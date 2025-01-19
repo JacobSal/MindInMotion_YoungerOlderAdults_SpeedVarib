@@ -67,9 +67,9 @@ ispc <- function() {
 # Set Parameters 
 ```{r} 
 #%% KIN PARAMS
-# kin_measures = c('step_width_mm','ap_exc_mm','step_width_mm_gc','ap_exc_mm_gc')
+# kin_measures = c('ml_exc_mm','ap_exc_mm','ml_exc_mm_gc','ap_exc_mm_gc')
 # kin_title_chars = c("Step width","ap exc.", "step width GC (m)","ap exc. GC (m)")
-kin_measures = c('step_width_mm','ap_exc_mm','step_width_mm_gc','ap_exc_mm_gc')
+kin_measures = c('ml_exc_mm','ap_exc_mm','ml_exc_mm_gc','ap_exc_mm_gc')
 kin_title_chars = c("Step width","ap exc.", "step width GC (m)","ap exc. GC (m)")
 #(01/17/2025) JS, only using the mean of the steps measure as per conversation with dan. Seems to be an effective way to reduce variability, but maintain validity with the gait-cycle-based PSD measures
 
@@ -88,12 +88,8 @@ clusters = c(3,4,6,7,8,9,10,13)
 
 # Load Data 
 ```{r}
-# excel_dir <-"M:/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb3/icrej_5/11/kin_eeg_step_to_step/step_by_step_eeg_table_indvfooof.xlsx";
-# excel_dir <-"M:/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb10/icrej_5/11/kin_eeg_step_to_step/step_by_step_eeg_psd_table.xlsx"
-# excel_dir <-"M:/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb10/icrej_5/11/kin_eeg_step_to_step/step_by_step_eeg_psd_pertrialpos_table.xlsx"
-# excel_dir <-"/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb10/icrej_5/11/kin_eeg_step_to_step/step_by_step_eeg_psd_prepost_table.xlsx"
-# excel_dir <-"/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb5/icrej_5/11/sbs_eeg_psd_prepost_imufix_condb_table.xlsx"
-excel_dir <-"/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb5/icrej_5/11/sbs_eeg_psd_meandesignb.xlsx"
+excel_dir <-"/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb5/icrej_5/11/sbs_eeg_psd_meandesignb.xlsx"
+
 if(ispc()){
   excel_dir <- paste0("M:",excel_dir)
 }else{
@@ -107,13 +103,14 @@ orig_eegt <- orig_eegt %>%
          avg_theta,avg_beta,avg_alpha,
          avg_theta_post,avg_alpha_post,avg_beta_post,
          avg_theta_pre,avg_alpha_pre,avg_beta_pre,
-         step_width_mm,ap_exc_mm,ud_exc_mm,step_width_mm_gc,ap_exc_mm_gc,ud_exc_mm_gc);
+         ml_exc_mm,ap_exc_mm,ud_exc_mm,ml_exc_mm_gc,ap_exc_mm_gc,ud_exc_mm_gc);
+
 ```
 
 # Format Table 
 ```{r}
-#%% SELECT SPEEDS
 eegt <- orig_eegt;
+#%% SELECT SPEEDS
 eegt <- filter_at(eegt,vars('cond_char'), any_vars(. %in% c('0p25','0p5','0p75','1p0')))
 flat_speeds = unique(eegt$cond_char)
 
@@ -137,21 +134,31 @@ head(eegt)
 # Table Manipulatiosn
 ```{r}
 # Calculate mean and standard deviation by group
-# data_summary <- eegt %>%
-#   group_by(subj_char) %>%
-#   summarise(mean_value = mean(step_width_mm,avg_theta_post,avg_alpha_post,avg_beta_post),
-#             sd_value = sd(step_width_mm,avg_theta_post,avg_alpha_post,avg_beta_post))
-data_summary <- eegt %>%
-  group_by(subj_char) %>%
-  summarise(mean_value = mean(step_width_mm),
-            sd_value = sd(step_width_mm))
-# Pivot wider
-data_wide <- data_summary %>%
-  pivot_wider(names_from = subj_char,
-              values_from = c(mean_value, sd_value),
-              names_sep = "_")
+dtbl <- eegt %>%
+  select(subj_char,cond_char,speed_n,group_char,cluster_n,
+         avg_theta,avg_beta,avg_alpha,
+         avg_theta_post,avg_alpha_post,avg_beta_post,
+         avg_theta_pre,avg_alpha_pre,avg_beta_pre,
+         ml_exc_mm,ap_exc_mm,ud_exc_mm,ml_exc_mm_gc,ap_exc_mm_gc,ud_exc_mm_gc);
 
-print(data_wide)
+#%% NEW VARS TO ANALYZE
+#-- KIN PARAMS
+kin_measures = c('ml_exc_mm_gc_fn1','ml_exc_mm_gc_fn2')
+kin_title_chars = c("ML Exc. Mean","ML Exc Std (m)")
+#-- EEG PARAMS
+eeg_measures = c('avg_theta_post_fn1',
+                 'avg_alpha_post_fn1',
+                 'avg_beta_post_fn1');
+eeg_title_chars = c("**THETA** Post",
+                    "**ALPHA** Post",
+                    "**BETA** Post");
+#-- CLUSTERS TO PLOT
+clusters = c(3,4,6,7,8,9,10,13)
+eegt <- dtbl;
+
+#%% MUTATE VARIABLES
+eegt$speed_cond_num <- as.numeric(eegt$speed_n);
+write.xlsx(dtbl,"lme_eeg_kin_mean_sd_tbl.xlsx")
 ```
 
 # Functions
@@ -198,8 +205,9 @@ excel_df <- data.frame(cluster_num=double(),
                         ran_effs_char=character(),
                         ran_effs_n=character())
 ```
-# MODERATION ALL) LME EEG ~ 1+speed+kin+speed:kin
-```{r eegspeedkininterall, echo=FALSE, message=FALSE, results="asis"}
+
+# MODERATION GROUP) LME EEG ~ 1+speed+kin+speed:kin
+```{r eegspeedkinintergroup, echo=FALSE, message=FALSE, results="asis"}
 theme_set(theme_classic()) # This sets the default ggplot theme
 #%% LOOP VARS
 cis <- rep(NA,length(clusters)*length(kin_measures)*length(eeg_measures)*length(tbl_groups))
@@ -268,15 +276,15 @@ for (i in 1:length(cis)){
   print(t_out)
   
   #%% R-SQUARED VALUE
-  r.squaredGLMM() %>%
-    print(str_glue("{outcome}\n R2m: {round(mod[1],4)},\tR2c: {round(mod[2],4)}\n\n"))
+  # r.squaredGLMM(mod) %>%
+  #   print(str_glue("R2m: {round(R2m,4)},\tR2c: {round(R2c,4)}\n\n"))
   
   #%% EFFECT SIZES
   cat(paste0("\n\n### model effect sizes\n"))
   #-- Intercept Model for Cohen's f^2
   print('intercept model\n');
   mod_char_int = paste(ei," ~ 1 + (1|subj_char)");
-  tmp_mod = lme4::lmer(str_glue(alt_mod_char_int), data=tmpt)
+  tmp_mod = lme4::lmer(str_glue(mod_char_int), data=tmpt)
   cf_alt = calc_cohensf2(mod, tmp_mod)
   #-- extract fixed & random effects coeffs
   anv_vals <- car::Anova(mod,type=3)
@@ -334,7 +342,7 @@ for (i in 1:length(cis)){
         main = paste0(eeg_title_chars[modi],"plot"),
         xlab = kin_title_chars[ki],
         ylab = "Speed (m/s)",
-        zlab = eeg_title_chars[eegi],
+        zlab = eeg_title_chars[eis[i]],
         xlim = c(min(tmpt[[yc]]),max(tmpt[[yc]])),
         ylim = c(min(tmpt[[xc]]),max(tmpt[[xc]])),
         zlim = c(min(tmpt[[ei]]),max(tmpt[[ei]])),
@@ -343,7 +351,7 @@ for (i in 1:length(cis)){
         angle = 30) # adjust the viewing angle
     } else {
     scatter$points3d(ts[[yc]], ts[[xc]], ts[[ei]] ,
-        main = paste0(eeg_title_chars[modi],"plot"),
+        main = paste0(eeg_title_chars[eis[i]],"plot"),
         col = color_pal_subj[i],
         pch=pch_n)
     }
@@ -427,15 +435,15 @@ for (i in 1:length(cis)){
   print(t_out)
   
   #%% R-SQUARED VALUE
-  r.squaredGLMM() %>%
-    print(str_glue("{outcome}\n R2m: {round(mod[1],4)},\tR2c: {round(mod[2],4)}\n\n"))
+  # r.squaredGLMM() %>%
+  #   print(str_glue("{outcome}\n R2m: {round(mod[1],4)},\tR2c: {round(mod[2],4)}\n\n"))
   
   #%% EFFECT SIZES
   cat(paste0("\n\n### model effect sizes\n"))
   #-- Intercept Model for Cohen's f^2
   print('intercept model\n');
   mod_char_int = paste(ei," ~ 1 + (1|subj_char)");
-  tmp_mod = lme4::lmer(str_glue(alt_mod_char_int), data=tmpt)
+  tmp_mod = lme4::lmer(str_glue(mod_char_int), data=tmpt)
   cf_alt = calc_cohensf2(mod, tmp_mod)
   #-- extract fixed & random effects coeffs
   anv_vals <- car::Anova(mod,type=3)
@@ -490,10 +498,10 @@ for (i in 1:length(cis)){
     ts <- filter_at(tmpt,vars(xc),all_vars(. == conds[i]))
     if(i == 1){
       scatter <- scatterplot3d(ts[[yc]], ts[[xc]], ts[[ei]],
-        main = paste0(eeg_title_chars[modi],"plot"),
+        main = paste0(eeg_title_chars[eis[i]],"plot"),
         xlab = kin_title_chars[ki],
         ylab = "Speed (m/s)",
-        zlab = eeg_title_chars[eegi],
+        zlab = eeg_title_chars[eis[i]],
         xlim = c(min(tmpt[[yc]]),max(tmpt[[yc]])),
         ylim = c(min(tmpt[[xc]]),max(tmpt[[xc]])),
         zlim = c(min(tmpt[[ei]]),max(tmpt[[ei]])),
@@ -502,7 +510,7 @@ for (i in 1:length(cis)){
         angle = 30) # adjust the viewing angle
     } else {
     scatter$points3d(ts[[yc]], ts[[xc]], ts[[ei]] ,
-        main = paste0(eeg_title_chars[modi],"plot"),
+        main = paste0(eeg_title_chars[eis[i]],"plot"),
         col = color_pal_subj[i],
         pch=pch_n)
     }
@@ -521,5 +529,5 @@ for (i in 1:length(cis)){
                     type="l")
 
 }
-write.xlsx(excel_df,"lme_eeg_kin_imufix_condb.xlsx")
+write.xlsx(excel_df,"lme_eeg_kin_mean_sd_stats.xlsx")
 ```

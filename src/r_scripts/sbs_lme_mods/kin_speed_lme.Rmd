@@ -53,31 +53,31 @@ library(RColorBrewer)
 library(openxlsx)
 ```
 
-## GTSUMMARY THEME
-``` {r}
-gtsummary::set_gtsummary_theme(theme_gtsummary_journal("jama"))
-#--
-convert_dos_to_unix_path <- function(dos_path) {
-  unix_path <- gsub("\\\\", "/", dos_path)
-  return(unix_path)
-}
-#--
-ispc <- function() {
-  sys_name <- Sys.info()["sysname"]
-  if (sys_name == "Windows") {
-    return(TRUE)
-  } else {
-    return(FALSE)
-  }
-}
+# Set Parameters 
+```{r} 
+#%% KIN PARAMS
+# kin_measures = c('ml_exc_mm','ap_exc_mm','ml_exc_mm_gc','ap_exc_mm_gc')
+# kin_title_chars = c("Step width","ap exc.", "step width GC (m)","ap exc. GC (m)")
+kin_measures = c('ml_exc_mm','ap_exc_mm','ml_exc_mm_gc','ap_exc_mm_gc')
+kin_title_chars = c("Step width","ap exc.", "step width GC (m)","ap exc. GC (m)")
+#(01/17/2025) JS, only using the mean of the steps measure as per conversation with dan. Seems to be an effective way to reduce variability, but maintain validity with the gait-cycle-based PSD measures
+
+#%% EEG PARAMS
+eeg_measures = c('avg_theta_post',
+                 'avg_alpha_post',
+                 'avg_beta_post');
+eeg_title_chars = c("**THETA** Post",
+                    "**ALPHA** Post",
+                    "**BETA** Post");
+#(01/17/2025) JS, only using the "post" measures as per conversation with dan. The other measures would be "tied" similarly in the model. the LME does not take into account the relativity of the data points in time, just their aggregate deviations. 
+
+#%% CLUSTERS TO PLOT
+clusters = c(3,4,6,7,8,9,10,13)
 ```
 
-# load table 
+# Load Data 
 ```{r}
-# excel_dir <-"M:/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb3/icrej_5/11/kin_eeg_step_to_step/step_by_step_eeg_table_indvfooof.xlsx";
-# excel_dir <-"M:/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb10/icrej_5/11/kin_eeg_step_to_step/step_by_step_eeg_psd_table.xlsx"
-# excel_dir <-"/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb10/icrej_5/11/kin_eeg_step_to_step/step_by_step_eeg_psd_prepost_table.xlsx"
-excel_dir <-"/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb5/icrej_5/11/step_by_step_eeg_psd_prepost_imufix_table.xlsx"
+excel_dir <-"/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed/__iclabel_cluster_kmeansalt_rb5/icrej_5/11/sbs_eeg_psd_meandesignb.xlsx"
 
 if(ispc()){
   excel_dir <- paste0("M:",excel_dir)
@@ -92,35 +92,67 @@ orig_eegt <- orig_eegt %>%
          avg_theta,avg_beta,avg_alpha,
          avg_theta_post,avg_alpha_post,avg_beta_post,
          avg_theta_pre,avg_alpha_pre,avg_beta_pre,
-         step_width_mm,ap_exc_mm,ud_exc_mm,step_width_mm_gc,ap_exc_mm_gc,ud_exc_mm_gc);
+         ml_exc_mm,ap_exc_mm,ud_exc_mm,ml_exc_mm_gc,ap_exc_mm_gc,ud_exc_mm_gc);
+
 ```
 
-## get unique entries 
-```{r} 
-#%% KIN PARAMS
-kin_measures = c('step_width_mm','ap_exc_mm','step_width_mm_gc','ap_exc_mm_gc')
-kin_title_chars = c("step width (m)","ap exc. (m)","step width GC (m)","ap exc. GC(m)") 
-kin_inds_plot = c(1:length(kin_measures));
-# cluster_inds_plot = c(3,4,6,7,9,10,11,12)
-cluster_inds_plot = c(3,4,6,7,8,9,10,13)
-```
-
-## get speeds only 
+# Format Table 
 ```{r}
 eegt <- orig_eegt;
+#%% SELECT SPEEDS
 eegt <- filter_at(eegt,vars('cond_char'), any_vars(. %in% c('0p25','0p5','0p75','1p0')))
 flat_speeds = unique(eegt$cond_char)
+
+#%% MUTATE VARIABLES
 eegt$speed_cond_num <- as.numeric(eegt$speed_n); #as.numeric(eegt$cond_char);
 eegt <- mutate(eegt,across(c('subj_char'), factor))
 eegt <- mutate(eegt,across(c('group_char'), factor))
+
+#%% COLORS
 color_pal_subj = brewer.pal(9,'PuBuGn')
 color_pal_subj = color_pal_subj[5:9];
-#-
-clusters = unique(eegt$cluster_n);
-subjects = unique(eegt$subj_char);
-groups = unique(eegt$group_char);
-#-
+
+#%% TBL VALUES
+tbl_clusterS = unique(eegt$cluster_n);
+tbl_subjects = unique(eegt$subj_char);
+tbl_groups = unique(eegt$group_char);
+
+#%% DISPLAY TBL
 head(eegt)
+```
+
+# Table Manipulatiosn
+```{r}
+# Calculate mean and standard deviation by group
+# data_summary <- eegt %>%
+#   group_by(subj_char) %>%
+#   summarise(mean_value = mean(ml_exc_mm,avg_theta_post,avg_alpha_post,avg_beta_post),
+#             sd_value = sd(ml_exc_mm,avg_theta_post,avg_alpha_post,avg_beta_post))
+dtbl <- eegt %>%
+  select(subj_char,cond_char,speed_n,group_char,cluster_n,
+         avg_theta,avg_beta,avg_alpha,
+         avg_theta_post,avg_alpha_post,avg_beta_post,
+         avg_theta_pre,avg_alpha_pre,avg_beta_pre,
+         ml_exc_mm,ap_exc_mm,ud_exc_mm,ml_exc_mm_gc,ap_exc_mm_gc,ud_exc_mm_gc);
+
+#%% NEW VARS TO ANALYZE
+#-- KIN PARAMS
+kin_measures = c('ml_exc_mm_gc_fn1','ml_exc_mm_gc_fn2')
+kin_title_chars = c("ML Exc. Mean","ML Exc Std (m)")
+#-- EEG PARAMS
+eeg_measures = c('avg_theta_post_fn1',
+                 'avg_alpha_post_fn1',
+                 'avg_beta_post_fn1');
+eeg_title_chars = c("**THETA** Post",
+                    "**ALPHA** Post",
+                    "**BETA** Post");
+#-- CLUSTERS TO PLOT
+clusters = c(3,4,6,7,8,9,10,13)
+eegt <- data_summary;
+
+#%% MUTATE VARIABLES
+eegt$speed_cond_num <- as.numeric(eegt$speed_n); #as.numeric(eegt$cond_char);
+write.xlsx(dtbl,"lme_eeg_kin_mean_sd_tbl.xlsx")
 ```
 
 ## Functions

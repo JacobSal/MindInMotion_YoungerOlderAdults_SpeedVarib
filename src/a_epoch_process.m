@@ -2,7 +2,7 @@
 %
 %   Code Designer: Jacob salminen
 %## SBATCH (SLURM KICKOFF SCRIPT)
-% sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_yaoa_speed_kin/run_a_epoch_process.sh
+% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_bash_sh_files/run_a_epoch_process.sh
 
 %{
 %## RESTORE MATLAB
@@ -116,7 +116,7 @@ CHK_STRUCT = struct( ...
 DATA_SET = 'MIM_dataset';
 %- Study Name
 % STUDY_DNAME = '04232024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej';
-STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
+STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
 %- Subject Directory information
 ICA_DIR_FNAME = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams';
 STUDY_FNAME_CONT = 'all_comps_study';
@@ -194,46 +194,44 @@ group_chars = group_chars(keep_inds);
 cond_chars = cond_chars(keep_inds);
 subj_chars = subj_chars(keep_inds);
 %%
-
-
-for subj_i = 1:length(subj_chars)
-    tt = tic();
-    tmp_save_dir = [save_dir filesep subj_chars{subj_i}];
-    %-
-    fpaths_del = {[tmp_save_dir filesep 'ICA' filesep sprintf('%s_allcond_ICA_TMPEEG.set',subj_chars{subj_i})], ...
-        [tmp_save_dir filesep 'ICA' filesep sprintf('%s_allcond_ICA_TMPEEG.fdt',subj_chars{subj_i})], ...
-        [tmp_save_dir filesep [DEF_EPOCH_PARAMS.gait_trial_chars{:}] filesep sprintf('%s.icatimef',subj_chars{subj_i})]};
-    dirs_del = {[tmp_save_dir filesep 'ICA' filesep 'conn_slide'], ...
-        [tmp_save_dir filesep 'slide_conn_study']};
-    %-
-    for ff = 1:length(fpaths_del)
-        try
-            delete(fpaths_del{ff});
-        catch e
-             fprintf(['error. identifier: %s\n',...
-                     'error. %s\n',...
-                     'error. on subject %s\n',...
-                     'stack. %s\n'],e.identifier,e.message,subj_chars{subj_i},getReport(e));
-        end
-    end
-    %-
-    for ff = 1:length(dirs_del)
-        try
-            tmpd = dir(dirs_del{ff});
-            for fi = 1:length(tmpd)
-                delete([tmpd(fi).folder filesep tmpd(fi).name]);
-            end
-            rmdir(dirs_del{ff});
-        catch e
-             fprintf(['error. identifier: %s\n',...
-                     'error. %s\n',...
-                     'error. on subject %s\n',...
-                     'stack. %s\n'],e.identifier,e.message,subj_chars{subj_i},getReport(e));
-        end
-    end
-    %-
-    fprintf('%s) deleting data done: %0.2f s\n',subj_chars{subj_i},toc(tt))
-end
+% for subj_i = 1:length(subj_chars)
+%     tt = tic();
+%     tmp_save_dir = [save_dir filesep subj_chars{subj_i}];
+%     %-
+%     fpaths_del = {[tmp_save_dir filesep 'ICA' filesep sprintf('%s_allcond_ICA_TMPEEG.set',subj_chars{subj_i})], ...
+%         [tmp_save_dir filesep 'ICA' filesep sprintf('%s_allcond_ICA_TMPEEG.fdt',subj_chars{subj_i})], ...
+%         [tmp_save_dir filesep [DEF_EPOCH_PARAMS.gait_trial_chars{:}] filesep sprintf('%s.icatimef',subj_chars{subj_i})]};
+%     dirs_del = {[tmp_save_dir filesep 'ICA' filesep 'conn_slide'], ...
+%         [tmp_save_dir filesep 'slide_conn_study']};
+%     %-
+%     for ff = 1:length(fpaths_del)
+%         try
+%             delete(fpaths_del{ff});
+%         catch e
+%              fprintf(['error. identifier: %s\n',...
+%                      'error. %s\n',...
+%                      'error. on subject %s\n',...
+%                      'stack. %s\n'],e.identifier,e.message,subj_chars{subj_i},getReport(e));
+%         end
+%     end
+%     %-
+%     for ff = 1:length(dirs_del)
+%         try
+%             tmpd = dir(dirs_del{ff});
+%             for fi = 1:length(tmpd)
+%                 delete([tmpd(fi).folder filesep tmpd(fi).name]);
+%             end
+%             rmdir(dirs_del{ff});
+%         catch e
+%              fprintf(['error. identifier: %s\n',...
+%                      'error. %s\n',...
+%                      'error. on subject %s\n',...
+%                      'stack. %s\n'],e.identifier,e.message,subj_chars{subj_i},getReport(e));
+%         end
+%     end
+%     %-
+%     fprintf('%s) deleting data done: %0.2f s\n',subj_chars{subj_i},toc(tt))
+% end
 %% Create STUDY & ALLEEG structs
 if ~exist([save_dir filesep STUDY_FNAME_CONT '.study'],'file') || RECALC_ICA_STUDY
     tmp_rmv_subjs = zeros(1,length(subj_chars));
