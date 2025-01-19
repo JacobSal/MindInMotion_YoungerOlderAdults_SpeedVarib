@@ -7,12 +7,11 @@
 #SBATCH --cpus-per-task=20 # Number of CPU cores per task
 #SBATCH --mem-per-cpu=35000mb# Total memory limit
 #SBATCH --distribution=cyclic:cyclic # Distribute tasks cyclically first among nodes and then among sockets within a node
-#SBATCH --time=36:00:00 # Time limit hrs:min:sec
-#SBATCH --output=/blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_oa_speed_eeg_out/_slurm_logs/%j_a_epoch_process.log # Standard output
+#SBATCH --time=05:00:00 # Time limit hrs:min:sec
+#SBATCH --output=./_slurm_logs/mim_yaoa_kineegcorrs/%j_a_epoch_process.log # Standard output
 #SBATCH --account=dferris # Account name
 #SBATCH --qos=dferris-b # Quality of service name
 #SBATCH --partition=hpg-default # cluster to run on, use slurm command 'sinfo -s'
-# sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_oa_speed_eeg_out/run_a_epoch_process.sh
 module load matlab/2023b
 
 # set linux workspace
@@ -26,9 +25,9 @@ else
     # otherwise: started with bash. Get the real location.
     TMP_PATH=$(realpath $0)
 fi
-export SCRIPT_DIR=$(dirname $TMP_PATH)
+export SCRIPT_DIR=$(dirname $(dirname $TMP_PATH))
 export STUDY_DIR=$SCRIPT_DIR
-export SRC_DIR=$(dirname $(dirname $STUDY_DIR))
+export SRC_DIR=$SCRIPT_DIR
 cd $STUDY_DIR
 
 echo "Date              = $(date)"

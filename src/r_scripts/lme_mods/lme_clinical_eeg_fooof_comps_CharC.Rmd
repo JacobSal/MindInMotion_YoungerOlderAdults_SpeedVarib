@@ -1,0 +1,411 @@
+---
+title: "Linear Mixed Effects Models for Kin & Speed Predictors for EEG"
+author: "Jacob Salminen"
+date: \`r format(Sys.Date(),"%d-%m-%Y")`\
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    toc_depth: 6
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+# ERROR. png() device not found bug try: dev.off()
+# ERROR. png() device not found fixed by changing cell names to a simple "windows friendlY" format so that knitr could save files.
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Packages & Setup
+```{r}
+# install.packages(c("tidyverse","purrr","R.matlab","readxl","dplyr"))
+library(readxl);
+library(purrr);
+library(tidyverse);
+library(tibble);
+library(knitr);
+library(gtsummary);
+library(kableExtra);
+library(lme4);
+library(MuMIn);
+# library(effects);
+library(sjPlot);
+# library(plotly);
+# library(webshot)
+# library(reshape2);
+library(htmltools)
+library(Polychrome);
+# library(htmlwidgets);
+# library(shiny)
+# library(webshot)
+library(scatterplot3d)
+library(RColorBrewer)
+library(openxlsx)
+```
+
+## GTSUMMARY THEME
+``` {r}
+# my_theme <-
+#   list(
+#     "tbl_summary-str:default_con_type" = "continuous2",
+#     "tbl_summary-str:continuous_stat" = c(
+#       "{median} ({p25} - {p75})",
+#       "{mean} ({sd})",
+#       "{min} - {max}"
+#     ),
+#     "tbl_summary-str:categorical_stat" = "{n} / {N} ({p}%)",
+#     "style_number-arg:big.mark" = "",
+#     "tbl_summary-fn:percent_fun" = function(x) style_percent(x, digits = 3)
+#   )
+# my_theme <-
+#   list()
+# gtsummary::set_gtsummary_theme(my_theme)
+gtsummary::set_gtsummary_theme(theme_gtsummary_journal("jama"))
+# reset_gtsummary_theme()
+```
+
+# load table 
+```{r} 
+excel_dir <-"M:/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/04232024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej/iclabel_cluster_kmeansalt_rb3/icrej_5/11/psd_calcs/group_spec/split_band_test/fooof_clins_table_nans.xlsx";
+orig_eegt <- read_excel(excel_dir,sheet="Sheet1") 
+```
+
+## get unique entries 
+```{r} 
+eegt <- orig_eegt;
+#%% KIN PARAMS
+kin_measures = c('sppb_12','og_walkspeed_flat','og_walkspeed_low','og_walkspeed_high','terrain_trials_speed_ms','age_mr','moca_total','time_to_walk_400_meters_seconds');
+kin_title_chars = c('sppb_12','og_walkspeed_flat','og_walkspeed_low','og_walkspeed_high','terrain_trials_speed_ms','age_mr','moca_total','time_to_walk_400_meters_seconds')
+kin_inds_plot = c(1:length(kin_measures));
+#%% EEG PARAMS
+clusters = unique(orig_eegt$cluster_id);
+subjects = unique(orig_eegt$subj_char);
+groups = unique(orig_eegt$group_char);
+designs = unique(orig_eegt$design_id);
+eeg_measures = c('aperiodic_exp','aperiodic_offset');
+eeg_title_chars = c("AP Exponent","AP Offset");
+eeg_inds_plot = c(1:length(eeg_measures));
+cluster_inds_plot = c(3,4,5,6,7,8,12);
+```
+
+## get speeds only 
+```{r}
+eegt <- mutate(eegt,across(c('subj_char'), factor))
+eegt <- mutate(eegt,across(c('group_char'), factor))
+color_pal_subj = brewer.pal(9,'PuBuGn')
+color_pal_subj = color_pal_subj[5:9]
+color_pal_cond = brewer.pal(4,'YlGnBu')
+head(eegt)
+```
+
+```{r}
+calc_cohensf2 <- function(mod_main,mod_alt){
+  r2_out = r.squaredGLMM(mod_main);
+  r2_outalt = r.squaredGLMM(mod_alt);
+  r2m = r2_out[1] # input your R2
+  f2m = r2m/(1 - r2m)
+  r2c = r2_out[2] # input your R2
+  f2c = r2c/(1 - r2c)
+  f2m = (r2_out[1]-r2_outalt[1])/(1-r2_out[1]);
+  f2c = (r2_out[2]-r2_outalt[2])/(1-r2_out[2]);
+  print(str_glue("r2m: {round(r2m,4)},\tr2c: {round(r2c,4)}\n\n"))
+  print(str_glue("f2m: {round(f2m,4)},\tf2c: {round(f2c,4)}\n\n"))
+  vals = data.frame(r2m, r2c, f2m, f2c);
+  return (vals)
+}
+#%% EXCEL DATAFRAME
+excel_df <- data.frame(cluster_num=double(),
+                        group_char=character(),
+                        model_char=character(),
+                        kinematic_char=character(),
+                        freq_band_char=character(),
+                        coeff_int=double(),
+                        coeff_sp=double(),
+                        coeff_kin=double(),
+                        coeff_intact=double(),
+                        pval_int=double(),
+                        pval_sp=double(),
+                        pval_kin=double(),
+                        pval_intact=double(),
+                        r2_m_int=double(),
+                        r2_c_int=double(),
+                        f2_m_int=double(),
+                        f2_c_int=double(),
+                        r2_m_nsp=double(),
+                        r2_c_nsp=double(),
+                        f2_m_nsp=double(),
+                        f2_c_nsp=double(),
+                        r2_m_nkin=double(),
+                        r2_c_nkin=double(),
+                        f2_m_nkin=double(),
+                        f2_c_nkin=double(),
+                        r2_m_nintact=double(),
+                        r2_c_nintact=double(),
+                        f2_m_nintact=double(),
+                        f2_c_nintact=double())
+```
+# TERRAIN) LME EEG ~ 1+clinical+(1|cond_char)
+```{r eegterrain, echo=FALSE, message=FALSE, results="asis"}
+di = 1;
+xlsx_cnt = 1;
+for (ci in cluster_inds_plot) {
+  #%% EXTRACT DATA
+  tmptc <- filter_at(eegt,vars('cluster_id'), any_vars(. %in% ci));
+  for(ki in kin_inds_plot){
+    tmptc = tmptc[complete.cases(tmptc[[kin_measures[ki]]]),]
+  }
+  tmptc <- filter_at(tmptc,vars('cond_char'), any_vars(. %in% c('flat','low','med','high')))
+  tmptc$cond_char <- as.factor(tmptc$cond_char);
+  tmpt <- tmptc
+  for (ki in kin_inds_plot){
+    mod_char = paste("{outcome} ~ 1 + ",kin_measures[ki]," + (1|cond_char)");
+    #%% RUN MODEL
+    tbl <- tibble(outcome=eeg_measures[eeg_inds_plot]) %>%
+      rowwise() %>%
+      mutate(
+        tbl = 
+          lmer(str_glue(mod_char), data=tmpt) %>%
+          tbl_regression(tidy_fun = broom.mixed::tidy,
+                         pvalue_fun = purrr::partial(style_pvalue, digits = 2),
+                         intercept=TRUE) %>%
+          add_global_p() %>%
+          add_q() %>%
+          list()
+        ) %>%
+      pull(tbl) %>% 
+      tbl_merge(tab_spanner=eeg_title_chars[eeg_inds_plot])
+    
+    #- HTML TAG
+    # print(htmltools:tags(HTML(markdown::mark(text=paste0("\n\n### ", ci,",", ki, "\n")))))
+    cat(paste0("\n\n### ", di,",",ci,",","\n"))
+    #%% PRINT TABLE
+    t_out <- as_gt(tbl) %>%
+      gt::tab_header(title=c("Changes in ","for Cluster: ",ci)) %>%
+      gt::tab_options(table.layout = "fixed") %>%
+      gt::as_raw_html()
+    print(t_out)
+    
+    rsq <- tibble(outcome=eeg_measures[eeg_inds_plot]) %>%
+    rowwise() %>%
+    mutate(
+        mod = 
+          lmer(str_glue(mod_char), data=tmpt) %>%
+          r.squaredGLMM(),
+          print(str_glue("{outcome}\n R2m: {round(mod[1],4)},\tR2c: {round(mod[2],4)}\n\n"))
+    )
+    
+    #%% VISUALIZATION OF MODELS
+    theme_set(theme_classic()) # This sets the default ggplot theme
+    fitfit <- tibble(outcome=eeg_measures[eeg_inds_plot]) %>%
+      rowwise() %>%
+      mutate(
+          mod = 
+            lmer(str_glue(mod_char), data=tmpt)%>%
+            list()
+      )
+    anvanv <- tibble(outcome=eeg_measures[eeg_inds_plot]) %>%
+      rowwise() %>%
+      mutate(
+          mod = 
+            lmer(str_glue(mod_char), data=tmpt)%>%
+            car::Anova(type=3)%>%
+            list()
+      )
+    
+    for(modi in 1:length(eeg_measures[eeg_inds_plot])){
+      eegi = eeg_inds_plot[modi]
+      #%%
+      cat(paste0("\n\n#### ",eeg_title_chars[modi]," model effect sizes\n"))
+      
+      alt_mod_char_int = paste(eeg_measures[eegi]," ~ 1 + (1|cond_char)");
+      #--
+      print('intercept model\n');
+      tmp_mod = lmer(str_glue(alt_mod_char_int), data=tmpt)
+      vals1=calc_cohensf2(fitfit$mod[[modi]], tmp_mod)
+      #--
+      vals <- fitfit$mod[[modi]]
+      anv_vals <- car::Anova(fitfit$mod[[modi]],type=3)
+      new_row = data.frame(cluster_num=ci,
+                    group_char='all',
+                    model_char=c('speed_only'),
+                    kinematic_char=c('none'),
+                    freq_band_char=c(eeg_measures[eegi]),
+                    coeff_int=vals@beta[1],
+                    coeff_sp=vals@beta[2],
+                    coeff_kin=vals@beta[3],
+                    coeff_intact=vals@beta[4],
+                    pval_int=anv_vals$`Pr(>Chisq)`[1],
+                    pval_sp=anv_vals$`Pr(>Chisq)`[2],
+                    pval_kin=anv_vals$`Pr(>Chisq)`[3],
+                    pval_intact=anv_vals$`Pr(>Chisq)`[4],
+                    r2_m_int=vals1$r2m,
+                    r2_c_int=vals1$r2c,
+                    f2_m_int=vals1$f2m,
+                    f2_c_int=vals1$f2c,
+                    r2_m_nsp=0,
+                    r2_c_nsp=0,
+                    f2_m_nsp=0,
+                    f2_c_nsp=0,
+                    r2_m_nkin=0,
+                    r2_c_nkin=0,
+                    f2_m_nkin=0,
+                    f2_c_nkin=0,
+                    r2_m_nintact=0,
+                    r2_c_nintact=0,
+                    f2_m_nintact=0,
+                    f2_c_nintact=0)
+      excel_df <- rbind(excel_df,new_row)
+      #%% MODEL VALIDATIONS
+      cat(paste0("\n\n#### ",eeg_title_chars[modi]," model validations\n"))
+      tmpt <- tmpt %>%
+        mutate(fit.m = predict(fitfit$mod[[modi]], re.form = NA),
+               fit.c = predict(fitfit$mod[[modi]], re.form = NULL))
+      print(plot_model(fitfit$mod[[modi]], type = 'diag'))
+      cat("\n")
+      cat(paste0("\n\n#### ",eeg_title_chars[modi]," plot\n"))
+      print(
+        tmpt %>%
+          ggplot(aes(x = .data[[kin_measures[ki]]], y = .data[[eeg_measures[eegi]]], color = cond_char)) +
+          geom_point(pch=16, size=2, alpha=0.5) +
+          geom_line(aes(x= .data[[kin_measures[ki]]], y=fit.c, color = cond_char), size = .1) +
+          geom_line(aes(x= .data[[kin_measures[ki]]], y=fit.m), size = 2)+
+          ggtitle(eeg_title_chars[modi])+ 
+          guides(group="none")
+      )
+    }
+  } 
+}
+```
+# SPEED) LME EEG ~ 1+clinical
+```{r eegspeed, echo=FALSE, message=FALSE, results="asis"}
+xlsx_cnt = 1;
+di = 2
+for (ci in cluster_inds_plot) {
+  #%% EXTRACT DATA
+  tmptc <- filter_at(eegt,vars('cluster_id'), any_vars(. %in% ci));
+  for(ki in kin_inds_plot){
+    tmptc = tmptc[complete.cases(tmptc[[kin_measures[ki]]]),]
+  }
+  tmptc <- filter_at(tmptc,vars('cond_char'), any_vars(. %in% c('0.25','0.5','0.75','1.0')))
+  tmptc$cond_char <- as.numeric(tmptc$cond_char);
+  tmpt <- tmptc
+  for (ki in kin_inds_plot){
+    mod_char = paste("{outcome} ~ 1 + ",kin_measures[ki]);
+    #%% RUN MODEL
+    tbl <- tibble(outcome=eeg_measures[eeg_inds_plot]) %>%
+      rowwise() %>%
+      mutate(
+        tbl = 
+          lm(str_glue(mod_char), data=tmpt) %>%
+          tbl_regression(tidy_fun = broom.mixed::tidy,
+                         pvalue_fun = purrr::partial(style_pvalue, digits = 2),
+                         intercept=TRUE) %>%
+          add_global_p() %>%
+          add_q() %>%
+          list()
+        ) %>%
+      pull(tbl) %>% 
+      tbl_merge(tab_spanner=eeg_title_chars[eeg_inds_plot])
+    #- HTML TAG
+    cat(paste0("\n\n### ", di,",",ci,",","\n"))
+    #%% PRINT TABLE
+    t_out <- as_gt(tbl) %>%
+      gt::tab_header(title=c("Changes in ","for Cluster: ",ci)) %>%
+      gt::tab_options(table.layout = "fixed") %>%
+      gt::as_raw_html()
+    print(t_out)
+    
+    rsq <- tibble(outcome=eeg_measures[eeg_inds_plot]) %>%
+    rowwise() %>%
+    mutate(
+        mod = 
+          lm(str_glue(mod_char), data=tmpt) %>%
+          r.squaredGLMM(),
+          print(str_glue("{outcome}\n R2m: {round(mod[1],4)},\tR2c: {round(mod[2],4)}\n\n"))
+    )
+    
+    #%% VISUALIZATION OF MODELS
+    theme_set(theme_classic()) # This sets the default ggplot theme
+    fitfit <- tibble(outcome=eeg_measures[eeg_inds_plot]) %>%
+      rowwise() %>%
+      mutate(
+          mod = 
+            lm(str_glue(mod_char), data=tmpt)%>%
+            list()
+      )
+    anvanv <- tibble(outcome=eeg_measures[eeg_inds_plot]) %>%
+      rowwise() %>%
+      mutate(
+          mod = 
+            lm(str_glue(mod_char), data=tmpt)%>%
+            car::Anova(type=3)%>%
+            list()
+      )
+    
+    for(modi in 1:length(eeg_measures[eeg_inds_plot])){
+      eegi = eeg_inds_plot[modi]
+      #%%
+      cat(paste0("\n\n#### ",eeg_title_chars[modi]," model effect sizes\n"))
+      alt_mod_char_int = paste(eeg_measures[eegi]," ~ 1 ");
+      #--
+      print('intercept model\n');
+      tmp_mod = lm(str_glue(alt_mod_char_int), data=tmpt)
+      vals1=calc_cohensf2(fitfit$mod[[modi]], tmp_mod)
+      #--
+      vals <- fitfit$mod[[modi]]
+      anv_vals <- car::Anova(fitfit$mod[[modi]],type=3)
+      new_row = data.frame(cluster_num=ci,
+                    group_char='all',
+                    model_char=c('speed_only'),
+                    kinematic_char=c('none'),
+                    freq_band_char=c(eeg_measures[eegi]),
+                    coeff_int=0, #vals@beta[1],
+                    coeff_sp=0, #vals@beta[2],
+                    coeff_kin=0, #vals@beta[3],
+                    coeff_intact=0, #vals@beta[4],
+                    pval_int=anv_vals$`Pr(>F)`[1],
+                    pval_sp=anv_vals$`Pr(>F)`[2],
+                    pval_kin=anv_vals$`Pr(>F)`[3],
+                    pval_intact=0, #anv_vals$`Pr(>Chisq)`[4],
+                    r2_m_int=vals1$r2m,
+                    r2_c_int=vals1$r2c,
+                    f2_m_int=vals1$f2m,
+                    f2_c_int=vals1$f2c,
+                    r2_m_nsp=0,
+                    r2_c_nsp=0,
+                    f2_m_nsp=0,
+                    f2_c_nsp=0,
+                    r2_m_nkin=0,
+                    r2_c_nkin=0,
+                    f2_m_nkin=0,
+                    f2_c_nkin=0,
+                    r2_m_nintact=0,
+                    r2_c_nintact=0,
+                    f2_m_nintact=0,
+                    f2_c_nintact=0)
+      excel_df <- rbind(excel_df,new_row)
+      #%% MODEL VALIDATIONS
+      cat(paste0("\n\n#### ",eeg_title_chars[modi]," model validations\n"))
+      tmpt <- tmpt %>%
+        mutate(fit.m = predict(fitfit$mod[[modi]], re.form = NA),
+               fit.c = predict(fitfit$mod[[modi]], re.form = NULL))
+      print(plot_model(fitfit$mod[[modi]], type = 'diag'))
+      cat("\n")
+      cat(paste0("\n\n#### ",eeg_title_chars[modi]," plot\n"))
+      print(
+        tmpt %>%
+          ggplot(aes(x = .data[[kin_measures[ki]]], y = .data[[eeg_measures[eegi]]], color = cond_char)) +
+          geom_point(pch=16, size=2, alpha=0.5) +
+          geom_line(aes(x= .data[[kin_measures[ki]]], y=fit.c, color = cond_char), size = .1) +
+          ggtitle(eeg_title_chars[modi])+ 
+          guides(group="none")
+      )
+    }
+  }
+}
+```
+
+

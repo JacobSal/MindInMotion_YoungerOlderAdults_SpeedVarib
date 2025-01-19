@@ -26,9 +26,9 @@ else
     # otherwise: started with bash. Get the real location.
     TMP_PATH=$(realpath $0)
 fi
-export SCRIPT_DIR=$(dirname $TMP_PATH)
+export SCRIPT_DIR=$(dirname $(dirname $TMP_PATH))
 export STUDY_DIR=$SCRIPT_DIR
-export SRC_DIR=$(dirname $(dirname $STUDY_DIR))
+export SRC_DIR=$SCRIPT_DIR
 cd $STUDY_DIR
 
 echo "Date              = $(date)"

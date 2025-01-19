@@ -5,9 +5,17 @@
 *.log
 **.DS_Store
 *.asv
-src/**/*.png
-src/**/*.jpg
-src/**/*.tiff
+*.png
+*.jpg
+*.tiff
+*.html
+*.xlsx
+*.js*
+*.css
+*.map
+*.metadata
+*.csv
+*.scss
 
 # .gitignore folders
 **/TEST
@@ -15,9 +23,11 @@ src/**/*.tiff
 **/_data
 **/__archive
 **/_test
+**/_slurm_scratch
+**/_slurm_logs
 **/Job*
 **/install
 **/installer
 **/_compiles
 **/venv
-.Rproj.user
+**/.Rproj.user
