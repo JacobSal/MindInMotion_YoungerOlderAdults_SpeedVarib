@@ -43,7 +43,7 @@ end
 % FUNCS_DIR = [SRC_DIR filesep 'MindInMotions_Functions'];
 %##
 SUBMODS_DIR = [fileparts(SRC_DIR) filesep 'submods'];
-FUNCS_DIR = [fileparts(fileparts(SRC_DIR)) filesep 'MindInMotion_Functions'];
+FUNCS_DIR = [fileparts(fileparts(SRC_DIR)) filesep 'MindInMotion_Functions' filesep 'src'];
 path(path,SUBMODS_DIR)
 path(path,SRC_DIR)
 path(path,FUNCS_DIR);

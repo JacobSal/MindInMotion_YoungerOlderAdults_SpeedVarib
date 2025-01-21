@@ -69,7 +69,7 @@ cmap_speed = linspecer(4*3);
 cmap_speed = [cmap_speed(1,:);cmap_speed(2,:);cmap_speed(3,:);cmap_speed(4,:)];
 %% (PATHS)
 studies_fpath = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
-%- load cluster
+%## CLUSTER LOADING
 CLUSTER_K = 11;
 CLUSTER_STUDY_NAME = 'temp_study_rejics5';
 % cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb10'];
@@ -77,6 +77,9 @@ CLUSTER_STUDY_NAME = 'temp_study_rejics5';
 cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb5'];
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
 cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
+
+%## R-STATS LOADING
+r_stats_dir = [PATHS.src_dir filesep 'r_scripts' filesep 'sbs_lme_mods'];
 %% ===================================================================== %%
 % if ~ispc
 %     [STUDY,ALLEEG] = pop_loadstudy('filename',[STUDY_FNAME '_UNIX.study'],'filepath',save_dir);
@@ -102,30 +105,75 @@ if ~exist(save_dir,'dir')
     mkdir(save_dir);
 end
 %% (LOAD STATISTICS & DATA EXCEL SHEET FROM R) ========================= %%
-%-
-KIN_TABLE = par_load(save_dir,'step_by_step_eeg_psd_prepost_imufix_table.mat');
+%## RAW STEP-BY-STEP DATA
+% KIN_TABLE = par_load(save_dir,'sbs_eeg_psd_meandesignb.mat');
+% KIN_TABLE = par_load(save_dir,'step_by_step_eeg_psd_prepost_imufix_table.mat');
 % KIN_TABLE = par_load(save_dir,'step_by_step_eeg_psd_prepost_table.mat');
 % KIN_TABLE = par_load(save_dir,'step_by_step_eeg_table_invdfooof.mat');
+%- chk
+% subj_chars = unique(KIN_TABLE.subj_char);
+% strides = zeros(length(subj_chars),1);
+% for i = 1:length(subj_chars)
+%     tmp = KIN_TABLE(strcmp(subj_chars{i},KIN_TABLE.subj_char),:);
+%     strides(i) = max(tmp.stride_n);
+% end
+% fprintf('mean number of strides: %0.2f\n',mean(strides));
+% fprintf('std number of strides: %0.2f\n',std(strides));
 
-subj_chars = unique(KIN_TABLE.subj_char);
-strides = zeros(length(subj_chars),1);
-for i = 1:length(subj_chars)
-    tmp = KIN_TABLE(strcmp(subj_chars{i},KIN_TABLE.subj_char),:);
-    strides(i) = max(tmp.stride_n);
-end
-fprintf('mean number of strides: %0.2f\n',mean(strides));
-fprintf('std number of strides: %0.2f\n',std(strides));
-%- 
-r_stats_dir = [PATHS.src_dir filesep 'r_scripts' filesep 'sbs_lme_mods'];
+%## MEAN & SD TABLE
+% KIN_TABLE = readtable([r_stats_dir filesep 'lme_eeg_kin_mean_sd_tbl.xlsx'], ...
+%     "FileType","spreadsheet", ...
+%     "UseExcel",true);
+
+%## R-STATS IMPORT
 % RSTATS_IMPORT = readtable([r_stats_dir filesep 'moderation_eeg_psd_kin_speed_intact_nonorm_sepgroup.xlsx'], ...
 %     "FileType","spreadsheet","UseExcel",true);
 % RSTATS_IMPORT = readtable([r_stats_dir filesep 'moderation_eeg_psd_kin_speed_intact_nonorm_swonly.xlsx'], ...
 %     "FileType","spreadsheet","UseExcel",true);
 % RSTATS_IMPORT = readtable([r_stats_dir filesep 'moderation_eeg_psd_kin_speed_intact_nonorm_swonly_0p005cut.xlsx'], ...
 %     "FileType","spreadsheet","UseExcel",true);
-RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_imufix.xlsx'], ...
+RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_mean_sd_stats.xlsx'], ...
     "FileType","spreadsheet","UseExcel",true);
 %% MEASURES TO ANALYZE ================================================= %%
+EEG_MEASURES = {'avg_theta_post_fn1','avg_theta_post_fn2', ...
+    'avg_alpha_post_fn1','avg_alpha_post_fn2', ...
+    'avg_theta_post_fn1','avg_theta_post_fn2'};
+EEG_MEASURES_LABS = {'Mean \theta','Std. Dev. \theta', ...
+    'Mean \alpha','Std. Dev. \alpha', ...
+    'Mean \beta','Std. Dev. \beta'};
+MEASURE_SYMBOLS = {'\mu \theta','\sigma \theta', ...
+    '\mu \alpha','\sigma \alpha', ...
+    '\mu \beta','\sigma \beta'};
+%-
+KINNAMES = {'ml_exc_mm_gc_fn1','ml_exc_mm_gc_fn2'};
+KINNAMES_LABS = {'Mean ML Excursion (m)','Std. ML Excursion (m)'};
+tmp_savedir = [save_dir filesep 'mean_std_kin_eeg'];
+%-
+% EEG_MEASURES = {'avg_theta_pre','avg_theta','avg_theta_post', ...
+%     'avg_alpha_pre','avg_alpha','avg_alpha_post', ...
+%     'avg_beta_pre','avg_beta','avg_beta_post'};
+% EEG_MEASURES_LABS = {'Pre \theta','In-stride \theta','Post \theta', ...
+%     'Pre \alpha','In-stride \alpha','Post \alpha' ,...
+%     'Pre \beta','In-stride \beta','Post \beta'};
+% MEASURE_SYMBOLS = {'\theta','\theta','\theta', ...
+%     '\alpha','\alpha','\alpha', ...
+%     '\beta','\beta','\beta'};
+%-
+% EEG_MEASURES = {'avg_theta_pre','avg_theta','avg_theta_post'};
+% EEG_MEASURES_LABS = {'Pre \theta','In-stride \theta','Post \theta'};
+% MEASURE_SYMBOLS = {'\theta','\theta','\theta'};
+% tmp_savedir = [save_dir filesep 'theta_step_to_step_prepost'];
+%-
+% EEG_MEASURES = {'avg_alpha_pre','avg_alpha','avg_alpha_post'};
+% EEG_MEASURES_LABS = {'Pre \alpha','In-stride \alpha','Post \alpha'};
+% MEASURE_SYMBOLS = {'\alpha','\alpha','\alpha'};
+% tmp_savedir = [save_dir filesep 'alpha_step_to_step_prepost'];
+%-
+% EEG_MEASURES = {'avg_beta_pre','avg_beta','avg_beta_post'};
+% EEG_MEASURES_LABS = {'Pre \beta','In-stride \beta','Post \beta'};
+% MEASURE_SYMBOLS = {'\beta','\beta','\beta'};
+% tmp_savedir = [save_dir filesep 'beta_step_to_step_prepost'];
+%-
 % EEG_MEASURES = {'avg_theta_post','avg_alpha_post','avg_beta_post'};
 % EEG_MEASURES_LABS = {'Mean \theta','Mean \alpha','Mean \beta'};
 % MEASURE_SYMBOLS = {'\theta','\alpha','\beta'};
@@ -149,9 +197,9 @@ RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_imufix.xlsx'], ...
 % KINNAMES_LABS = {'ML Excursion (m)','AP Excursion (m)'};
 %% ===================================================================== %%
 %## SPEED MANUSCRIPT GROUP PLOT
-designs = unique(KIN_TABLE.model_n);
-% clusters = unique(KIN_TABLE.cluster_n);
-groups = unique(KIN_TABLE.group_n);
+% defsigns = unique(KIN_TABLE.model_n);
+% clusters = unique(fKIN_TABLE.cluster_n);
+% groups = unique(KIN_TABLE.group_char);
 group_chars = unique(KIN_TABLE.group_char);
 cond_chars = unique(KIN_TABLE.cond_char);
 speed_ns = unique(KIN_TABLE.speed_n);
@@ -247,37 +295,9 @@ X_DIM = 3;
 
 %% (ALL SUBJS MODEL) =================================================== %%
 %-
-% EEG_MEASURES = {'avg_theta_pre','avg_theta','avg_theta_post'};
-% EEG_MEASURES_LABS = {'Pre \theta','In-stride \theta','Post \theta'};
-% MEASURE_SYMBOLS = {'\theta','\theta','\theta'};
-% tmp_savedir = [save_dir filesep 'theta_step_to_step_prepost'];
-%-
-% EEG_MEASURES = {'avg_alpha_pre','avg_alpha','avg_alpha_post'};
-% EEG_MEASURES_LABS = {'Pre \alpha','In-stride \alpha','Post \alpha'};
-% MEASURE_SYMBOLS = {'\alpha','\alpha','\alpha'};
-% tmp_savedir = [save_dir filesep 'alpha_step_to_step_prepost'];
-%-
-% EEG_MEASURES = {'avg_beta_pre','avg_beta','avg_beta_post'};
-% EEG_MEASURES_LABS = {'Pre \beta','In-stride \beta','Post \beta'};
-% MEASURE_SYMBOLS = {'\beta','\beta','\beta'};
-% tmp_savedir = [save_dir filesep 'beta_step_to_step_prepost'];
-
-EEG_MEASURES = {'avg_theta_pre','avg_theta','avg_theta_post', ...
-    'avg_alpha_pre','avg_alpha','avg_alpha_post', ...
-    'avg_beta_pre','avg_beta','avg_beta_post'};
-EEG_MEASURES_LABS = {'Pre \theta','In-stride \theta','Post \theta', ...
-    'Pre \alpha','In-stride \alpha','Post \alpha' ,...
-    'Pre \beta','In-stride \beta','Post \beta'};
-MEASURE_SYMBOLS = {'\theta','\theta','\theta', ...
-    '\alpha','\alpha','\alpha', ...
-    '\beta','\beta','\beta'};
-tmp_savedir = [save_dir filesep 'allband_step_to_step_prepost'];
-%-
-KINNAMES = {'step_width_mm','ap_exc_mm','step_width_mm_gc','ap_exc_mm_gc'};
-KINNAMES_LABS = {'ML Excursion (m)','AP Excursion (m)','ML Excursion (m)','AP Excursion (m)'};
-%-
 mkdir(tmp_savedir);
-grp_i = 1;
+% grp_i = 1;
+grp_i = [];
 KIN_CUTOFF = 0.005;
 for cl_i = 1:length(clusters)
     %##
@@ -303,14 +323,25 @@ for cl_i = 1:length(clusters)
             %##
             cond_plot_store = [];
             group_plot_store = [];
+
+            %## ORIGINAL DATA EXTRACTION
+            % if ~isempty(grp_i)
+            %     inds = tmp_kint.model_n == des_i &... %designs(des_i) &...
+            %         tmp_kint.cluster_n == clusters(cl_i) &...
+            %         tmp_kint.group_n == groups(grp_i);
+            % else
+            %     inds = tmp_kint.model_n == des_i &... %designs(des_i) &...
+            %         tmp_kint.cluster_n == clusters(cl_i);
+            % end
+
+            %## MEAD SD TABLE EXTRACTION
             if ~isempty(grp_i)
-                inds = tmp_kint.model_n == des_i &... %designs(des_i) &...
-                    tmp_kint.cluster_n == clusters(cl_i) &...
-                    tmp_kint.group_n == groups(grp_i);
+                inds = tmp_kint.cluster_n == clusters(cl_i) &...
+                    strcmp(tmp_kint.group_char,group_chars{grp_i});
             else
-                inds = tmp_kint.model_n == des_i &... %designs(des_i) &...
-                    tmp_kint.cluster_n == clusters(cl_i);
+                inds = tmp_kint.cluster_n == clusters(cl_i);
             end
+
             %## CUT-OUT KINEMATIC VALUES >/< 3 STD'S FROM MEAN
             muc = mean(tmp_kint.(KINNAMES{kin_i}));
             stdc = std(tmp_kint.(KINNAMES{kin_i}));
@@ -334,6 +365,7 @@ for cl_i = 1:length(clusters)
                 strcmp(RSTATS_IMPORT.kinematic_char,KINNAMES{kin_i}) &...
                 strcmp(RSTATS_IMPORT.group_char,'all');
             tmp_stats = RSTATS_IMPORT(tmp_stats,:);
+            tmp_stats = tmp_stats(4,:);
             %-
             ran_effs_char = strsplit(tmp_stats.ran_effs_char{1},',');
             ran_effs_n = cellfun(@(x) double(string(x)),strsplit(tmp_stats.ran_effs_n{1},','));
@@ -382,7 +414,8 @@ for cl_i = 1:length(clusters)
                 data = data(inds,:);
                 ss = scatter(data,KINNAMES{kin_i},EEG_MEASURES{meas_i},'DisplayName',sprintf('%0.2f',speed_ns(cond_i)));
                 ss.CData = COLORS(cond_i,:);
-                ss.SizeData = 1;
+                % ss.SizeData = 1;
+                ss.SizeData = 25;
                 % ss.MarkerFaceAlpha = 'flat';
                 % ss.AlphaData = repmat(0.3,[size(data,1),1]);
                 ss.MarkerFaceColor = "flat";

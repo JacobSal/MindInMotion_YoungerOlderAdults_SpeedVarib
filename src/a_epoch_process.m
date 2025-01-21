@@ -206,6 +206,9 @@ if ~exist([save_dir filesep STUDY_FNAME_CONT '.study'],'file') || RECALC_ICA_STU
         try
             EEG = struct.empty;
             tmp_save_dir = [save_dir filesep subj_chars{subj_i} filesep 'ICA'];
+            if ~exist(tmp_save_dir,'dir')
+                mkdir(tmp_save_dir);
+            end
             tmp_rej_struct = REJ_STRUCT;
             tmp_load_struct = DEF_LOAD_STRUCT;
             tmp_chk_struct = CHK_STRUCT;
@@ -232,7 +235,7 @@ if ~exist([save_dir filesep STUDY_FNAME_CONT '.study'],'file') || RECALC_ICA_STU
                     'CHK_STRUCT',tmp_chk_struct);
                 if ~rmv_subj_flag
                     tmp_rej_crit_out{subj_i} = rej_struct_out;
-                    mkdir(tmp_save_dir);
+                    
                     ALLEEG{subj_i} = pop_saveset(EEG, ...
                             'filepath',tmp_save_dir, ...
                             'filename',eeg_fnames{subj_i}, ...
