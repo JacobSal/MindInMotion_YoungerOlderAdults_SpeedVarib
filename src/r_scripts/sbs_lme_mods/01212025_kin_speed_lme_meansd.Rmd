@@ -156,7 +156,7 @@ eegt <- dtbl;
 
 #%% MUTATE VARIABLES
 eegt$speed_cond_num <- as.numeric(eegt$speed_n);
-write.xlsx(dtbl,"lme_eeg_kin_mean_sd_tbl.xlsx")
+write.xlsx(dtbl,"lme_eeg_kin_mean_sd_behave_tbl.xlsx")
 ```
 
 ## Functions
@@ -729,5 +729,5 @@ for (i in 1:length(cis)){
 }
 #%% SAVE WIDGET AS AN INDEPENDENT HTML FILE
 pwd <- getwd()
-write.xlsx(excel_df,file.path(pwd,"speed_kin_lme_behavior.xlsx"))
+write.xlsx(excel_df,file.path(pwd,"speed_kin_lme_behavior_meansd.xlsx"))
 ```

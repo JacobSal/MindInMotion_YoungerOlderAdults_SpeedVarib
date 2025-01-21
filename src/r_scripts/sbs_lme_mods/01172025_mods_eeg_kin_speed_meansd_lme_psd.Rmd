@@ -519,17 +519,17 @@ for (i in 1:length(cis)){
   tmpt <- filter_at(eegt,vars('cluster_n'), any_vars(. %in% ci));
   
   #%% REMOVE KIN_MEASURES < 0.005 & THAT ARE GREATER THAN OR LESS THAN 3STD FROM MEAN
-  #- remove NAN cases
+  # #- remove NAN cases
   tmpt = tmpt[complete.cases(tmpt[[ki]]),];
-  #- bad strides cutoff
-  sub_s = tmpt[[ki]] < 0.005
-  #(12/18/2024) JS, changing from 0.01 to 0.005 to see if I can retain some more data without it looking funky
-  tmpt = tmpt[sub_s==FALSE, ]
-  #- mean & std cutoff
-  muc = mean(tmpt[[ki]])
-  stdc = sd(tmpt[[ki]])
-  inds_keep = tmpt[[ki]] > muc-3*stdc & tmpt[[ki]] < muc+3*stdc
-  tmpt = tmpt[inds_keep,]
+  # #- bad strides cutoff
+  # sub_s = tmpt[[ki]] < 0.005
+  # #(12/18/2024) JS, changing from 0.01 to 0.005 to see if I can retain some more data without it looking funky
+  # tmpt = tmpt[sub_s==FALSE, ]
+  # #- mean & std cutoff
+  # muc = mean(tmpt[[ki]])
+  # stdc = sd(tmpt[[ki]])
+  # inds_keep = tmpt[[ki]] > muc-3*stdc & tmpt[[ki]] < muc+3*stdc
+  # tmpt = tmpt[inds_keep,]
   
   #%% SUBSET BY GROUP
   tmpt <- filter_at(tmpt,vars('group_char'), any_vars(. %in% gi));
@@ -681,17 +681,17 @@ for (i in 1:length(cis)){
   tmpt <- filter_at(eegt,vars('cluster_n'), any_vars(. %in% ci));
   
   #%% REMOVE KIN_MEASURES < 0.005 & THAT ARE GREATER THAN OR LESS THAN 3STD FROM MEAN
-  #- remove NAN cases
+  # #- remove NAN cases
   tmpt = tmpt[complete.cases(tmpt[[ki]]),];
-  #- bad strides cutoff
-  sub_s = tmpt[[ki]] < 0.005
-  #(12/18/2024) JS, changing from 0.01 to 0.005 to see if I can retain some more data without it looking funky
-  tmpt = tmpt[sub_s==FALSE, ]
-  #- mean & std cutoff
-  muc = mean(tmpt[[ki]])
-  stdc = sd(tmpt[[ki]])
-  inds_keep = tmpt[[ki]] > muc-3*stdc & tmpt[[ki]] < muc+3*stdc
-  tmpt = tmpt[inds_keep,]
+  # #- bad strides cutoff
+  # sub_s = tmpt[[ki]] < 0.005
+  # #(12/18/2024) JS, changing from 0.01 to 0.005 to see if I can retain some more data without it looking funky
+  # tmpt = tmpt[sub_s==FALSE, ]
+  # #- mean & std cutoff
+  # muc = mean(tmpt[[ki]])
+  # stdc = sd(tmpt[[ki]])
+  # inds_keep = tmpt[[ki]] > muc-3*stdc & tmpt[[ki]] < muc+3*stdc
+  # tmpt = tmpt[inds_keep,]
   
   #%% COMPUTE LME MODEL
   mod_char = paste(ei," ~ 1 + speed_cond_num + ",ki," + speed_cond_num:",ki," + (1|subj_char)");
@@ -805,5 +805,5 @@ for (i in 1:length(cis)){
                     type="l")
 
 }
-write.xlsx(excel_df,"lme_eeg_kin_mean_sd_stats.xlsx")
+write.xlsx(excel_df,"lme_eeg_kin_mean_sd_stats_meansd.xlsx")
 ```

@@ -2,7 +2,7 @@
 %
 %   Code Designer: Jacob salminen
 %## SBATCH (SLURM KICKOFF SCRIPT)
-% sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_yaoa_speed_kin/run_b_cluster_ics.sh
+% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_bash_sh_files/run_b_cluster_ics.sh
 
 %{
 %## RESTORE MATLAB
@@ -16,15 +16,14 @@ clearvars
 % opengl('dsave', 'software') % might be needed to plot dipole plots?
 %## TIME
 tic
-global ADD_CLEANING_SUBMODS STUDY_DIR SCRIPT_DIR %#ok<GVMIS>
-ADD_CLEANING_SUBMODS = false;
+ADD_ALL_SUBMODS = true;
 %## Determine Working Directories
 if ~ispc
     try
         SCRIPT_DIR = matlab.desktop.editor.getActiveFilename;
         SCRIPT_DIR = fileparts(SCRIPT_DIR);
-        STUDY_DIR = SCRIPT_DIR;
-        SRC_DIR = fileparts(fileparts(STUDY_DIR));
+        STUDY_DIR = SCRIPT_DIR; % change this if in sub folder
+        SRC_DIR = STUDY_DIR;
     catch e
         fprintf('ERROR. PWD_DIR couldn''t be set...\n%s',getReport(e))
         STUDY_DIR = getenv('STUDY_DIR');
@@ -40,24 +39,24 @@ else
         SCRIPT_DIR = dir(['.' filesep]);
         SCRIPT_DIR = SCRIPT_DIR(1).folder;
     end
-    STUDY_DIR = SCRIPT_DIR;
-    SRC_DIR = fileparts(fileparts(STUDY_DIR));
+    STUDY_DIR = SCRIPT_DIR; % change this if in sub folder
+    SRC_DIR = STUDY_DIR;
 end
-%## Add Study & Script Paths
-addpath(STUDY_DIR);
+%## Add Study, Src, & Script Paths
 addpath(SRC_DIR);
+addpath(STUDY_DIR);
 cd(SRC_DIR);
-fprintf(1,'Current folder: %s\n',SCRIPT_DIR);
+fprintf(1,'Current folder: %s\n',SRC_DIR);
 %## Set PWD_DIR, EEGLAB path, _functions path, and others...
 set_workspace
 %% (DATASET INFORMATION) =============================================== %%
-[SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca');
+[SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca_speed');
 %% (JS_PARAMETERS) ===================================================== %%
 %## hard define
 %- datset name
 DATA_SET = 'MIM_dataset';
 %- compute measures for spectrum and ersp
-FORCE_RECALC_SPEC = false;
+FORCE_RECALC_SPEC = true;
 %## statistics & conditions
 % (07/16/2023) JS, updating mcorrect to fdr as per CL YA paper
 % (07/31/2023) JS, changing fieldtripnaccu from 2000 to 10000 to match CL's
@@ -109,7 +108,7 @@ CLUSTER_STRUCT = struct('algorithm','kmeans',...
     'clust_k_replicates',1000,...
     'clust_k_repeat_iters',1,...
     'clust_k_repeat_std',3,... % (inf | INT), INT uses robust_kmeans_CL
-    'clust_k_robust_maxiter',100,... % how many times to redo kmean clustering with removal of unmatching IC's
+    'clust_k_robust_maxiter',10,... % how many times to redo kmean clustering with removal of unmatching IC's
     'clust_k_empty_action','drop',...
     'do_eval_clusters',true);
 %{
@@ -134,14 +133,15 @@ STUDY_DESI_PARAMS = {{'subjselect',{},...
             'variable1','group','values1',{'H1000''s','H2000''s','H3000''s'}}};
 %- custom params
 STD_PRECLUST_COMMAND = {'dipoles','weight',1};
+%% (PATHS) ============================================================= %%
 %- datetime override
-STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
-%## soft define
-DATA_DIR = [PATHS.src_dir filesep '_data'];
-STUDIES_DIR = [DATA_DIR filesep DATA_SET filesep '_studies'];
+% STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
+STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
 STUDY_FNAME = 'epoch_study';
-save_dir = [STUDIES_DIR filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb100'];
-load_dir = [STUDIES_DIR filesep sprintf('%s',STUDY_DNAME)];
+%## soft define
+studies_dir = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
+save_dir = [studies_dir filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb3'];
+load_dir = [studies_dir filesep sprintf('%s',STUDY_DNAME)];
 %- create new study directory
 if ~exist(save_dir,'dir')
     mkdir(save_dir);

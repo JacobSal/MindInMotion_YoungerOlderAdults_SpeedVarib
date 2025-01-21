@@ -2,7 +2,7 @@
 %
 %   Code Designer: Jacob salminen
 %## SBATCH (SLURM KICKOFF SCRIPT)
-% sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_yaoa_speed_kin/step_to_step_anlz/run_b_epoch_eeg_kin.sh
+% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_bash_sh_files/run_sts_b_epoch_eeg_kin.sh
 
 %{
 %## RESTORE MATLAB
@@ -16,13 +16,14 @@ clearvars
 % opengl('dsave', 'software') % might be needed to plot dipole plots?
 %## TIME
 tic
+ADD_ALL_SUBMODS = true;
 %## Determine Working Directories
 if ~ispc
     try
         SCRIPT_DIR = matlab.desktop.editor.getActiveFilename;
         SCRIPT_DIR = fileparts(SCRIPT_DIR);
         STUDY_DIR = fileparts(SCRIPT_DIR); % change this if in sub folder
-        SRC_DIR = fileparts(fileparts(STUDY_DIR));
+        SRC_DIR = STUDY_DIR;
     catch e
         fprintf('ERROR. PWD_DIR couldn''t be set...\n%s',getReport(e))
         STUDY_DIR = getenv('STUDY_DIR');
@@ -39,10 +40,9 @@ else
         SCRIPT_DIR = SCRIPT_DIR(1).folder;
     end
     STUDY_DIR = fileparts(SCRIPT_DIR); % change this if in sub folder
-    SRC_DIR = fileparts(fileparts(STUDY_DIR));
+    SRC_DIR = STUDY_DIR;
 end
 %## Add Study, Src, & Script Paths
-addpath(SCRIPT_DIR)
 addpath(SRC_DIR);
 addpath(STUDY_DIR);
 cd(SRC_DIR);
@@ -60,15 +60,10 @@ set_workspace
 %## hard define
 %- datset name
 DATA_SET = 'MIM_dataset';
-%- study group and saving
-SESSION_NUMBER = '1';
-SAVE_ALLEEG = false;
 %- epoching params
-RECALC_ICA_STUDY = false;
 DO_STANDARD_TRIALS = false;
 MIN_STANDARD_TRIALS = 100;
 %## EPOCH PARAMS
-SUFFIX_PATH_EPOCHED = 'GAIT_EPOCHED';
 EPOCH_PARAMS = struct('epoch_method','timewarp',...
     'percent_overlap',0,...
     'epoch_event_char','RHS',...
@@ -84,19 +79,19 @@ EPOCH_PARAMS = struct('epoch_method','timewarp',...
     'rest_trial_char',{{}},...
     'do_recalc_epoch',true,...
     'do_combine_trials',true);
+%% (PATHS) ========================================================== %%
+%- datset name
+DATA_SET = 'MIM_dataset';
 %- Study Name
-% STUDY_DNAME = '04232024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej';
-% STUDY_DNAME = '11222024_mim_yaoa_n89_imu_ls_kin_anl';
-STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
+STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
 %- Subject Directory information
 ICA_DIR_FNAME = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams';
 SUBJ_FNAME_REGEX = 'cleanEEG_EMG_HP3std_iCC0p65_iCCEMG0p4_ChanRej0p7_TimeRej0p4_winTol10';
 KIN_DNAME_EXT = 'kin_eeg_anl';
-% STUDY_FNAME_ALLCOMP = 'all_comps_study';
 STUDY_FNAME_EPOCH = 'kin_eeg_epoch_study';
 %## soft define
-studies_dir = [PATHS.src_dir filesep '_data' filesep DATA_SET filesep '_studies'];
-ica_data_dir = [PATHS.src_dir filesep '_data' filesep DATA_SET filesep '_studies' filesep ICA_DIR_FNAME]; % JACOB,SAL(02/23/2023)
+studies_dir = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
+ica_data_dir = [studies_dir filesep ICA_DIR_FNAME]; % JACOB,SAL(02/23/2023)
 save_dir = [studies_dir filesep sprintf('%s',STUDY_DNAME)];
 %- create new study directory
 if ~exist(save_dir,'dir')
@@ -199,7 +194,7 @@ parfor subj_i = 1:length(subj_chars)
         close(fh);
         %- check data
         fprintf('percent data points nan: %0.2g\n',(sum(logical(isnan(tmp_biom.data)),'all')/(size(tmp_biom.data,1)*size(tmp_biom.data,2))*100));
-        %## CALCULATE POSITION COORDS
+        %## CALCULATE POSITION COORDSf
         % tmp_biom = imu_get_pos_coords(tmp_biom);
         %(12/01/2024) JS, fixed bug where NaN values were causing the filter to
         %NaN entire trace.
