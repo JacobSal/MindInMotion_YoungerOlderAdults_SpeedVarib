@@ -136,19 +136,23 @@ head(eegt)
 # Calculate mean and standard deviation by group
 dtbl <- eegt %>%
   select(subj_char,cond_char,speed_n,group_char,cluster_n,
-         avg_theta,avg_beta,avg_alpha,
          avg_theta_post,avg_alpha_post,avg_beta_post,
-         avg_theta_pre,avg_alpha_pre,avg_beta_pre,
          ml_exc_mm,ap_exc_mm,ud_exc_mm,ml_exc_mm_gc,ap_exc_mm_gc,ud_exc_mm_gc);
+dtbl <- dtbl %>%
+  group_by(subj_char,cond_char,speed_n,group_char,cluster_n) %>%
+  summarise_all(list("mean","sd"))
 
 #%% NEW VARS TO ANALYZE
 #-- KIN PARAMS
 kin_measures = c('ml_exc_mm_gc_fn1','ml_exc_mm_gc_fn2')
 kin_title_chars = c("ML Exc. Mean","ML Exc Std (m)")
-#-- EEG PARAMS
+#-- EEG PARAMS (fn1 = mean, fn2 = sd)
 eeg_measures = c('avg_theta_post_fn1',
                  'avg_alpha_post_fn1',
-                 'avg_beta_post_fn1');
+                 'avg_beta_post_fn1',
+                 'avg_theta_post_fn2',
+                 'avg_alpha_post_fn2',
+                 'avg_beta_post_fn2');
 eeg_title_chars = c("**THETA** Post",
                     "**ALPHA** Post",
                     "**BETA** Post");
@@ -218,7 +222,7 @@ cnt = 1;
 for (i in 1:length(clusters)) {
   for(j in 1:length(kin_measures)){
     for(k in 1:length(eeg_measures)){
-      for(g in 1:length(groups)){
+      for(g in 1:length(tbl_groups)){
         cis[cnt] = i;
         kis[cnt] = j;
         eis[cnt] = k;
@@ -234,7 +238,7 @@ for (i in 1:length(cis)){
   ci = clusters[cis[i]];
   ki = kin_measures[kis[i]];
   ei = eeg_measures[eis[i]];
-  gi = groups[gis[i]];
+  gi = tbl_groups[gis[i]];
   
   #%% HTML TAG
   cat(paste0("\n\n## ", ci,',',gi,',', ki,',',ei,"\n"))
@@ -339,8 +343,8 @@ for (i in 1:length(cis)){
     ts <- filter_at(tmpt,vars(xc),all_vars(. == conds[i]))
     if(i == 1){
       scatter <- scatterplot3d(ts[[yc]], ts[[xc]], ts[[ei]],
-        main = paste0(eeg_title_chars[modi],"plot"),
-        xlab = kin_title_chars[ki],
+        main = paste0(eeg_title_chars[eis[i]],"plot"),
+        xlab = kin_title_chars[kis[i]],
         ylab = "Speed (m/s)",
         zlab = eeg_title_chars[eis[i]],
         xlim = c(min(tmpt[[yc]]),max(tmpt[[yc]])),
@@ -499,7 +503,7 @@ for (i in 1:length(cis)){
     if(i == 1){
       scatter <- scatterplot3d(ts[[yc]], ts[[xc]], ts[[ei]],
         main = paste0(eeg_title_chars[eis[i]],"plot"),
-        xlab = kin_title_chars[ki],
+        xlab = kin_title_chars[kis[i]],
         ylab = "Speed (m/s)",
         zlab = eeg_title_chars[eis[i]],
         xlim = c(min(tmpt[[yc]]),max(tmpt[[yc]])),

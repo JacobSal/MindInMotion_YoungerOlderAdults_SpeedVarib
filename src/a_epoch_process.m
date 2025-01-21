@@ -16,7 +16,7 @@ clearvars
 % opengl('dsave', 'software') % might be needed to plot dipole plots?
 %## TIME
 tic
-ADD_ALL_SUBMODS = false;
+ADD_ALL_SUBMODS = true;
 %## Determine Working Directories
 if ~ispc
     try
@@ -193,45 +193,7 @@ sess_chars = sess_chars(keep_inds);
 group_chars = group_chars(keep_inds);
 cond_chars = cond_chars(keep_inds);
 subj_chars = subj_chars(keep_inds);
-%%
-% for subj_i = 1:length(subj_chars)
-%     tt = tic();
-%     tmp_save_dir = [save_dir filesep subj_chars{subj_i}];
-%     %-
-%     fpaths_del = {[tmp_save_dir filesep 'ICA' filesep sprintf('%s_allcond_ICA_TMPEEG.set',subj_chars{subj_i})], ...
-%         [tmp_save_dir filesep 'ICA' filesep sprintf('%s_allcond_ICA_TMPEEG.fdt',subj_chars{subj_i})], ...
-%         [tmp_save_dir filesep [DEF_EPOCH_PARAMS.gait_trial_chars{:}] filesep sprintf('%s.icatimef',subj_chars{subj_i})]};
-%     dirs_del = {[tmp_save_dir filesep 'ICA' filesep 'conn_slide'], ...
-%         [tmp_save_dir filesep 'slide_conn_study']};
-%     %-
-%     for ff = 1:length(fpaths_del)
-%         try
-%             delete(fpaths_del{ff});
-%         catch e
-%              fprintf(['error. identifier: %s\n',...
-%                      'error. %s\n',...
-%                      'error. on subject %s\n',...
-%                      'stack. %s\n'],e.identifier,e.message,subj_chars{subj_i},getReport(e));
-%         end
-%     end
-%     %-
-%     for ff = 1:length(dirs_del)
-%         try
-%             tmpd = dir(dirs_del{ff});
-%             for fi = 1:length(tmpd)
-%                 delete([tmpd(fi).folder filesep tmpd(fi).name]);
-%             end
-%             rmdir(dirs_del{ff});
-%         catch e
-%              fprintf(['error. identifier: %s\n',...
-%                      'error. %s\n',...
-%                      'error. on subject %s\n',...
-%                      'stack. %s\n'],e.identifier,e.message,subj_chars{subj_i},getReport(e));
-%         end
-%     end
-%     %-
-%     fprintf('%s) deleting data done: %0.2f s\n',subj_chars{subj_i},toc(tt))
-% end
+
 %% Create STUDY & ALLEEG structs
 if ~exist([save_dir filesep STUDY_FNAME_CONT '.study'],'file') || RECALC_ICA_STUDY
     tmp_rmv_subjs = zeros(1,length(subj_chars));
@@ -260,7 +222,7 @@ if ~exist([save_dir filesep STUDY_FNAME_CONT '.study'],'file') || RECALC_ICA_STU
 
                 %## REJECT ICS
                 fprintf('%s) Rejecting EEG independent components...\n',subj_chars{subj_i});
-                tmp_rej_stru ct.plot_save_dir = tmp_save_dir;
+                tmp_rej_struct.plot_save_dir = tmp_save_dir;
                 %- get ic component criteria
                 [ic_rej_out] = mim_get_reject_subj_ics(EEG, ...
                     'REJ_STRUCT',tmp_rej_struct)
@@ -288,7 +250,7 @@ if ~exist([save_dir filesep STUDY_FNAME_CONT '.study'],'file') || RECALC_ICA_STU
                  'error. %s\n',...
                  'error. on subject %s\n',...
                  'stack. %s\n'],e.identifier,e.message,subj_chars{subj_i},getReport(e));
-            exit();
+            % exit();
         end
     end
     ALLEEG = ALLEEG(~cellfun(@isempty,ALLEEG));

@@ -55,6 +55,7 @@ if ADD_ALL_SUBMODS
     tmpd = dir(SUBMODS_DIR);
     tmpd = tmpd(3:end);
     SUBMODULES = {tmpd.name};
+    SUBMODULES_ITERS = (1:length(SUBMODULES));
 else
     SUBMODULES = {'fieldtrip','eeglab','sift','postamicautility',...
             'iclabel','viewprops','powpowcat'};
