@@ -119,7 +119,7 @@ DATA_SET = 'MIM_dataset';
 STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
 %- Subject Directory information
 ICA_DIR_FNAME = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams';
-STUDY_FNAME_CONT = 'all_comps_study';
+STUDY_FNAME_CONT = 'contin_study';
 STUDY_FNAME_EPOCH = 'epoch_study';
 %## soft define
 studies_dir = [PATHS.data_dir filesep DATA_SET filesep '_studies'];

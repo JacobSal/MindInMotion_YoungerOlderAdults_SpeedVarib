@@ -113,7 +113,7 @@ if contains('fieldtrip',SUBMODULES)
 end
 %% INITIALIZE MIM & EEGLAB
 %start EEGLAB if necessary
-if contains('SIFT',SUBMODULES)
+if contains('sift',SUBMODULES)
     StartSIFT;
 end
 %- always start eeglab last.

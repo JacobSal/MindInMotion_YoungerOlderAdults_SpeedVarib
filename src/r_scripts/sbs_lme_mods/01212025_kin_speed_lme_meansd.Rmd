@@ -99,7 +99,7 @@ if(ispc()){
   excel_dir <- paste0("/blue/dferris",excel_dir);
 }
 
-orig_eegt <- read_excel(excel_dir,sheet="Sheet1")
+orig_eegt <- readxl::read_excel(excel_dir,sheet="Sheet1")
 #%% SUBSET
 orig_eegt <- orig_eegt %>%
   select(subj_char,cond_char,speed_n,group_n,group_name,group_char,cluster_n,model_n,model_char,
@@ -144,12 +144,16 @@ dtbl <- eegt %>%
          ml_exc_mm,ap_exc_mm,ud_exc_mm,ml_exc_mm_gc,ap_exc_mm_gc,ud_exc_mm_gc);
 dtbl <- dtbl %>%
   group_by(subj_char,cond_char,model_n,speed_n,group_char,cluster_n) %>%
-  summarise_all(list("mean","sd"))
+  summarise_all(list("mean","sd","median"))
+dtbl <- transform(dtbl,cov_avg_theta_post = avg_theta_post_fn2/avg_theta_post_fn1)
+dtbl <- transform(dtbl,cov_ml_exc = ml_exc_mm_gc_fn2/ml_exc_mm_gc_fn1)
 
 #%% NEW VARS TO ANALYZE
 #-- KIN PARAMS
-kin_measures = c('ml_exc_mm_gc_fn1','ml_exc_mm_gc_fn2')
-kin_title_chars = c("ML Exc. Mean","ML Exc Std (m)")
+# kin_measures = c('ml_exc_mm_gc_fn1','ml_exc_mm_gc_fn2')
+# kin_title_chars = c("ML Exc. Mean","ML Exc Std (m)")
+kin_measures = c('ml_exc_mm_gc_fn1','ml_exc_mm_gc_fn2','ml_exc_mm_gc_fn3');
+kin_title_chars = c("ml exc. mean","ml exc. std","ml exc. med.")
 #-- CLUSTERS TO PLOT
 clusters = c(3,4,6,7,8,9,10,13)
 eegt <- dtbl;
@@ -331,7 +335,7 @@ for (i in 1:length(cis)){
   print(
     tmpt %>%
       ggplot() +
-      geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=.1, alpha=0.2) +
+      geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=10, alpha=0.2) +
       geom_line(aes(x= speed_cond_num, y=fit.c, group = subj_char),linetype = "dashed", linewidth = .5) +
       geom_line(aes(x= speed_cond_num, y=fit.m), linewidth = 2)+
       facet_wrap(~group_char) + 
@@ -458,7 +462,7 @@ for (i in 1:length(cis)){
   print(
       tmpt %>%
         ggplot() +
-        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=.1, alpha=0.2) +
+        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=10, alpha=0.2) +
         geom_line(aes(x= speed_cond_num, y=fit.c, group = subj_char),linetype = "dashed", linewidth = .5) +
         geom_line(aes(x= speed_cond_num, y=fit.m), linewidth = 2)+
         facet_wrap(~group_char) + 
@@ -588,7 +592,7 @@ for (i in 1:length(cis)){
   print(
       tmpt %>%
         ggplot() +
-        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=.1, alpha=0.2) +
+        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=10, alpha=0.2) +
         geom_line(aes(x= speed_cond_num, y=fit.c, group = subj_char),linetype = "dashed", linewidth = .5) +
         geom_line(aes(x= speed_cond_num, y=fit.m), linewidth = 2)+
         facet_wrap(~group_char) + 
@@ -718,7 +722,7 @@ for (i in 1:length(cis)){
   print(
       tmpt %>%
         ggplot() +
-        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=.1, alpha=0.2) +
+        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=10, alpha=0.2) +
         geom_line(aes(x= speed_cond_num, y=fit.c, group = subj_char),linetype = "dashed", linewidth = .5) +
         geom_line(aes(x= speed_cond_num, y=fit.m), linewidth = 2)+
         facet_wrap(~group_char) + 

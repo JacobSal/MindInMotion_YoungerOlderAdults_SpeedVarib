@@ -135,30 +135,6 @@ tbl_groups = unique(eegt$group_char);
 head(eegt)
 ```
 
-# Table Manipulatiosn
-```{r tblmanip}
-# Calculate mean and standard deviation by group
-dtbl <- eegt %>%
-  select(subj_char,cond_char,speed_n,model_n,group_char,cluster_n,
-         avg_theta_post,avg_alpha_post,avg_beta_post,
-         ml_exc_mm,ap_exc_mm,ud_exc_mm,ml_exc_mm_gc,ap_exc_mm_gc,ud_exc_mm_gc);
-dtbl <- dtbl %>%
-  group_by(subj_char,cond_char,model_n,speed_n,group_char,cluster_n) %>%
-  summarise_all(list("mean","sd"))
-
-#%% NEW VARS TO ANALYZE
-#-- KIN PARAMS
-kin_measures = c('ml_exc_mm_gc_fn1','ml_exc_mm_gc_fn2')
-kin_title_chars = c("ML Exc. Mean","ML Exc Std (m)")
-#-- CLUSTERS TO PLOT
-clusters = c(3,4,6,7,8,9,10,13)
-eegt <- dtbl;
-
-#%% MUTATE VARIABLES
-eegt$speed_cond_num <- as.numeric(eegt$speed_n);
-write.xlsx(dtbl,"lme_eeg_kin_mean_sd_tbl.xlsx")
-```
-
 ## Functions
 ```{r}
 calc_cohensf2 <- function(mod_main,mod_alt){
@@ -331,7 +307,7 @@ for (i in 1:length(cis)){
   print(
     tmpt %>%
       ggplot() +
-      geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=.1, alpha=0.2) +
+      geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=1, alpha=0.2) +
       geom_line(aes(x= speed_cond_num, y=fit.c, group = subj_char),linetype = "dashed", linewidth = .5) +
       geom_line(aes(x= speed_cond_num, y=fit.m), linewidth = 2)+
       facet_wrap(~group_char) + 
@@ -458,7 +434,7 @@ for (i in 1:length(cis)){
   print(
       tmpt %>%
         ggplot() +
-        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=.1, alpha=0.2) +
+        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=1, alpha=0.2) +
         geom_line(aes(x= speed_cond_num, y=fit.c, group = subj_char),linetype = "dashed", linewidth = .5) +
         geom_line(aes(x= speed_cond_num, y=fit.m), linewidth = 2)+
         facet_wrap(~group_char) + 
@@ -588,7 +564,7 @@ for (i in 1:length(cis)){
   print(
       tmpt %>%
         ggplot() +
-        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=.1, alpha=0.2) +
+        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=1, alpha=0.2) +
         geom_line(aes(x= speed_cond_num, y=fit.c, group = subj_char),linetype = "dashed", linewidth = .5) +
         geom_line(aes(x= speed_cond_num, y=fit.m), linewidth = 2)+
         facet_wrap(~group_char) + 
@@ -718,7 +694,7 @@ for (i in 1:length(cis)){
   print(
       tmpt %>%
         ggplot() +
-        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=.1, alpha=0.2) +
+        geom_jitter(aes(x = speed_cond_num, y = .data[[ki]], color = subj_char), pch=20, size=1, alpha=0.2) +
         geom_line(aes(x= speed_cond_num, y=fit.c, group = subj_char),linetype = "dashed", linewidth = .5) +
         geom_line(aes(x= speed_cond_num, y=fit.m), linewidth = 2)+
         facet_wrap(~group_char) + 
@@ -729,5 +705,5 @@ for (i in 1:length(cis)){
 }
 #%% SAVE WIDGET AS AN INDEPENDENT HTML FILE
 pwd <- getwd()
-write.xlsx(excel_df,file.path(pwd,"speed_kin_lme_behavior.xlsx"))
+write.xlsx(excel_df,file.path(pwd,"speed_kin_lme_behavior_meansd.xlsx"))
 ```

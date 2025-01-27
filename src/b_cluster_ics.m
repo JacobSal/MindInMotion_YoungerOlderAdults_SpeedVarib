@@ -56,7 +56,7 @@ set_workspace
 %- datset name
 DATA_SET = 'MIM_dataset';
 %- compute measures for spectrum and ersp
-FORCE_RECALC_SPEC = true;
+FORCE_RECALC_SPEC = false;
 %## statistics & conditions
 % (07/16/2023) JS, updating mcorrect to fdr as per CL YA paper
 % (07/31/2023) JS, changing fieldtripnaccu from 2000 to 10000 to match CL's
@@ -90,7 +90,6 @@ ERSP_STAT_PARAMS = struct('condstats','on',... % ['on'|'off]
     'fieldtripnaccu',2000);
 %- clustering parameters
 MIN_ICS_SUBJ = 5; %[2,3,4,5,6,7,8]; % iterative clustering
-DO_K_ICPRUNE = true;
 % CLUSTER_STRUCT = struct('algorithm','kmeans',...
 %     'clust_k_num',[7,10,11,12],... %(10-12 seems ideal, see. Makoto's PCA test)
 %     'clust_k_evals',[7,10,11,12],...
@@ -221,7 +220,25 @@ if ~exist(spec_f,'file') || ~exist(topo_f,'file') || FORCE_RECALC_SPEC
 end
 %% (IC PRUNING) ======================================================== %%
 %## Remove subjects if they have too few ICs
-addpath([PATHS.submods_dir filesep 'AAL3']);
+%*
+if ~ispc
+    tp = strsplit(path,':');
+else
+    tp = strsplit(path,';');
+end
+b1 = contains(tp,'AAL3','IgnoreCase',true);
+b2 = tp(b1);
+try
+    ind = regexp(b2(1),'AAL3','end');
+    path_aal3 = b2{1}(1:ind{1});
+    fprintf('ALL3 path: %s\n',path_aal3);
+catch ME
+    switch ME.identifier
+        case 'MATLAB:badsubscript'
+            fprintf('AAL3 path not found.\n');
+    end
+end
+addpath(path_aal3);
 for i = 1:length(MIN_ICS_SUBJ)
 % parfor (i = 1:length(MIN_ICS_SUBJ),length(MIN_ICS_SUBJ))
     tmp_dir = [save_dir filesep sprintf('icrej_%i',MIN_ICS_SUBJ(i))];
@@ -302,10 +319,10 @@ for i = 1:length(MIN_ICS_SUBJ)
         [TMP_STUDY,dipfit_structs,topo_cells] = eeglab_get_topodip(TMP_STUDY,...
             'CALC_STRUCT',CALC_STRUCT,...
             'ALLEEG',TMP_ALLEEG);
-        ANATOMY_STRUCT = struct('atlas_fpath',{{[PATHS.submods_dir filesep 'AAL3' filesep 'AAL3v1.nii']}},...
+        ANATOMY_STRUCT = struct('atlas_fpath',{{[path_aal3 filesep 'AAL3v1.nii']}},...
             'group_chars',{unique({TMP_STUDY.datasetinfo.group})},...
             'cluster_inds',3:length(TMP_STUDY.cluster),...
-            'anatomy_calcs',{{'all aggregate'}},... % ('all calcs','group centroid','all centroid','group aggregate','all aggregate')
+            'anatomy_calcs',{{'all aggregate','all centroid'}},... % ('all calcs','group centroid','all centroid','group aggregate','all aggregate')
             'save_dir',cluster_dir,...
             'save_inf',true);
         %(01/16/2025) JS, 'all centroid' option has a bug where indexing

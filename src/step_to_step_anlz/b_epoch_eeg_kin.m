@@ -57,9 +57,6 @@ set_workspace
 % GROUP_NAMES = {'H1000''s','H2000''s','H3000''s'};
 % SUBJ_ITERS = {[1,2],[1,2],[1,2]};
 %% (PARAMETERS) ======================================================== %%
-%## hard define
-%- datset name
-DATA_SET = 'MIM_dataset';
 %- epoching params
 DO_STANDARD_TRIALS = false;
 MIN_STANDARD_TRIALS = 100;
@@ -82,20 +79,32 @@ EPOCH_PARAMS = struct('epoch_method','timewarp',...
 %% (PATHS) ========================================================== %%
 %- datset name
 DATA_SET = 'MIM_dataset';
-%- Study Name
-STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
-%- Subject Directory information
+%## PREPROCESSED ICA 
 ICA_DIR_FNAME = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams';
 SUBJ_FNAME_REGEX = 'cleanEEG_EMG_HP3std_iCC0p65_iCCEMG0p4_ChanRej0p7_TimeRej0p4_winTol10';
+
+%## PROCESSED STUDY
+STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
+STUDY_FNAME = 'all_comps_study';
+
+%## SAVE INFO
 KIN_DNAME_EXT = 'kin_eeg_anl';
 STUDY_FNAME_EPOCH = 'kin_eeg_epoch_study';
-%## soft define
 studies_dir = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
 ica_data_dir = [studies_dir filesep ICA_DIR_FNAME]; % JACOB,SAL(02/23/2023)
 save_dir = [studies_dir filesep sprintf('%s',STUDY_DNAME)];
 %- create new study directory
 if ~exist(save_dir,'dir')
     mkdir(save_dir);
+end
+%% (LOAD PROCESSED STUDY)
+%## LOAD STUDY
+if ~ispc
+    tmp = load('-mat',[save_dir filesep sprintf('%s_UNIX.study',STUDY_FNAME)]);
+    STUDY_PROC = tmp.STUDY;
+else
+    tmp = load('-mat',[save_dir filesep sprintf('%s.study',STUDY_FNAME)]);
+    STUDY_PROC = tmp.STUDY;
 end
 %% Store fNames and fPaths
 subj_chars          = [SUBJ_PICS{:}];
@@ -112,7 +121,7 @@ for subj_i = 1:length(subj_chars)
         fprintf('No .set file found...\n')
         dipfit_norm_fPaths{subj_i} = [];
     else
-        chanlocs_fPaths{subj_i} = [PATHS.src_dir filesep '_data' filesep DATA_SET filesep subj_chars{subj_i} filesep 'MRI' filesep 'CustomElectrodeLocations.mat'];
+        chanlocs_fPaths{subj_i} = [PATHS.data_dir filesep DATA_SET filesep subj_chars{subj_i} filesep 'MRI' filesep 'CustomElectrodeLocations.mat'];
         dipfit_norm_fPaths{subj_i} = [fPaths{subj_i} filesep 'dipfit_fem_norm_ants.mat'];
         fprintf('ICA Exists: %i\n',(exist([fPaths{subj_i} filesep fNames{subj_i}],'file') && exist([fPaths{subj_i} filesep 'W'],'file')))
         fprintf('Normalized DIPFIT Exists: %i\n',exist(dipfit_norm_fPaths{subj_i},'file'));
@@ -128,19 +137,26 @@ subj_chars = subj_chars(inds);
 %% (PROC 1)
 tmp_alleeg = cell(length(fPaths),1);
 %## PATHING UPDATES
-path(unix_genpath([PATHS.submods_dir filesep 'Gait Tracking With x-IMU']),path);
+% path(unix_genpath([PATHS.submods_dir filesep 'Gait Tracking With x-IMU']),path);
+path(unix_genpath([PATHS.submods_dir filesep 'gait_tracking_w_imu']),path);
 %##
 parfor subj_i = 1:length(subj_chars)
     tmp_epoch_params = EPOCH_PARAMS;
     EEG = []; 
+    tmp_biom = {};
+    tmp_study_proc = STUDY_PROC;
     cont_proc = true;
     try
-        trial_fpath = [PATHS.src_dir filesep '_data' filesep DATA_SET filesep subj_chars{subj_i} filesep 'EEG' filesep 'Trials'];
+        trial_fpath = [PATHS.data_dir filesep DATA_SET filesep subj_chars{subj_i} filesep 'EEG' filesep 'Trials'];
         %## Find All Trials of Interest
         fileList_TM = dir([trial_fpath filesep 'TM*.set']);
         fileList_SP = dir([trial_fpath filesep 'SP*.set']);
         fileList_Rest = dir([trial_fpath filesep 'Rest.set']);
         fileList = [fileList_Rest; fileList_TM; fileList_SP];
+        tmp_savedir = [save_dir filesep subj_chars{subj_i} filesep 'kin_eeg_valid_plots'];
+        if ~exist(tmp_savedir,'dir')
+            mkdir(tmp_savedir);
+        end
         tmp_biom = cell(size(fileList,1),1);
         for trial_i = 1:size(fileList,1)
             %- Load trial
@@ -175,10 +191,15 @@ parfor subj_i = 1:length(subj_chars)
             %- calculate body and world positions
             %(12/11/2024) JS, changing the position grabbing alg. to on a
             %per trial basis instead of at the total experiment level.
-            
+            if any(subj_i==[1,40,70])
+                export_res = 900;
+            else
+                export_res = 300;
+            end
             EEG = imu_get_pos_coords(EEG);
             nn = strsplit(fileList(trial_i).name,'.')
-            fh = imu_valid_plots(EEG,trial_fpath,sprintf('%s_%s_',subj_chars{subj_i},nn{1}));
+            fh = imu_valid_plots(EEG,tmp_savedir,sprintf('%s_%s_',subj_chars{subj_i},nn{1}),...
+                'EXPORT_RES',export_res);
             close(fh);
             % tmp_biom.nbchan = length(tmp_biom.chanlocs);
             tmp_biom{trial_i} = EEG;
@@ -241,7 +262,9 @@ parfor subj_i = 1:length(subj_chars)
             tmp.nbchan = size(tmp.data,1);
             %## REJECT NON BRAIN COMPONENTS
             % THRESH_BRAIN_SCORE = 8;
-            tmp_icrej = load([save_dir filesep subj_chars{subj_i} filesep 'ICA' filesep sprintf('%s_allcond_ICA_TMPEEG.set',subj_chars{subj_i})],'-mat');
+            % tmp_icrej = load([save_dir filesep subj_chars{subj_i} filesep 'ICA' filesep sprintf('%s_allcond_ICA_TMPEEG.set',subj_chars{subj_i})],'-mat');
+            ind = strcmp({tmp_study_proc.datasetinfo.subject},subj_chars{subj_i})
+            tmp_icrej = load([tmp_study_proc.datasetinfo(ind).filepath filesep tmp_study_proc.datasetinfo(ind).filename],'-mat');
             biom_chans = find(strcmpi('BioM',{tmp.chanlocs.type}));
             ics_keep = tmp_icrej.etc.urreject.ic_keep;
             urreject = tmp_icrej.etc.urreject;
@@ -328,7 +351,7 @@ parfor subj_i = 1:length(subj_chars)
             %## FINAL DATA CHECK
             % pop_eegplot( ALLEEG, 1, 1, 1);
             %## STRUCT EDITS
-            groups = {'H1000''s','H2000''s','H3000''s'};
+            groups = {'H1000','H2000','H3000'};
             group_name = {'younger_adults','older_high_function','older_low_function'};
             vals = regexp(ALLEEG.subject,'[nN]?[hH](\d)\d*','tokens');
             vals = double(string(vals{1}{1}));
