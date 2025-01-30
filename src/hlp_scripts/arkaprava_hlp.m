@@ -61,9 +61,11 @@ subj_chars          = [SUBJ_PICS{:}];
 %## PATHING UPDATES
 % path(unix_genpath([PATHS.submods_dir filesep 'Gait Tracking With x-IMU']),path);
 path(unix_genpath([PATHS.submods_dir filesep 'gait_tracking_w_imu']),path);
-data_fpath = '/blue/ark007/ark007/Dan lab IMU data/imu_data_full_dataset';
+% data_fpath = '/blue/ark007/ark007/Dan lab IMU data/imu_data_full_dataset';
+data_fpath = 'M:\jsalminen\GitHub\MIND_IN_MOTION_PRJ\_data\MIM_dataset';
 %##
-parfor subj_i = 1:length(subj_chars)
+% parfor subj_i = 1:length(subj_chars)
+for subj_i = 39
     trial_fpath = [data_fpath filesep subj_chars{subj_i} filesep 'IMU' filesep 'Raw'];
     %## Find All Trials of Interest
     files_imu = dir([trial_fpath filesep '*.csv']);
@@ -71,12 +73,12 @@ parfor subj_i = 1:length(subj_chars)
     if ~exist(tmp_savedir,'dir')
         mkdir(tmp_savedir);
     end
-    tmp_biom = cell(size(fileList,1),1);
+    tmp_biom = cell(size(files_imu,1),1);
     [imu_table,rec_start_struct] =  convert_imu_to_table([files_imu(1).folder]);
-    for trial_i = 1:size(fileList,1)
+    for trial_i = 1:size(files_imu,1)
         %- Load trial
-        nn = strsplit(files_imu(trial_i).name,'.')
-        nn = strsplit(nn{1},'-')
+        nn = strsplit(files_imu(trial_i).name,'.');
+        nn = strsplit(nn{1},'-');
         nn = nn{end};
         [tbl_out,out_struct] = imu_get_pos_coords_tbl(imu_table{trial_i},tmp_savedir,nn);
         % nn = strsplit(fileList(trial_i).name,'.')
@@ -92,4 +94,5 @@ parfor subj_i = 1:length(subj_chars)
     tmp_biom = cat(1,tmp_biom{:});
     par_save(tmp_biom,[tmp_savedir filesep 'imu_table_orient.mat']);
     writetable(tmp_biom,[tmp_savedir filesep 'imu_table_orient.xlsx']);
+
 end

@@ -41,6 +41,7 @@ else
     SRC_DIR = fileparts(SCRIPT_DIR); % change this if in sub folder
 end
 %## Add Study, Src, & Script Paths
+addpath(SCRIPT_DIR)
 addpath(SRC_DIR);
 cd(SRC_DIR);
 fprintf(1,'Current folder: %s\n',SRC_DIR);
@@ -102,7 +103,7 @@ if ~exist(save_dir,'dir')
 end
 %% (LOAD STATISTICS & DATA EXCEL SHEET FROM R) ========================= %%
 %## RAW STEP-BY-STEP DATA
-% KIN_TABLE = par_load(save_dir,'sbs_eeg_psd_meandesignb.mat');
+KIN_TABLE = par_load(save_dir,'sbs_eeg_psd_meandesignb.mat');
 % %- chk
 % subj_chars = unique(KIN_TABLE.subj_char);
 % strides = zeros(length(subj_chars),1);
@@ -124,13 +125,18 @@ end
 % RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_mean_sd_stats_meandesignb.xlsx'], ...
 %     "FileType","spreadsheet","UseExcel",true);
 %-
-KIN_TABLE = readtable([r_stats_dir filesep 'lme_eeg_kin_mean_sd_cov_tbl.xlsx'], ...
-    "FileType","spreadsheet", ...
-    "UseExcel",true);
-RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_mean_sd_cov_stats.xlsx'], ...
-    "FileType","spreadsheet","UseExcel",true);
+% KIN_TABLE = readtable([r_stats_dir filesep 'lme_eeg_kin_mean_sd_cov_tbl.xlsx'], ...
+%     "FileType","spreadsheet", ...
+%     "UseExcel",true);
+% RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_mean_sd_cov_stats.xlsx'], ...
+%     "FileType","spreadsheet","UseExcel",true);
 X_DIM = 2;
-X_DIM = 2;
+%% SLIDING AVERAGE PROCESS
+groups = unique(KIN_TABLE.group_char);
+group_chars = unique(KIN_TABLE.group_char);
+cond_chars = unique(KIN_TABLE.cond_char);
+speed_ns = unique(KIN_TABLE.speed_n);
+clusters = unique(RSTATS_IMPORT.cluster_num);
 
 %% MEASURES TO ANALYZE ================================================= %%
 %## MEAN SD MEASURES

@@ -83,7 +83,7 @@ if(ispc()){
 orig_eegt <- read_excel(excel_dir,sheet="Sheet1")
 #%% SUBSET
 orig_eegt <- orig_eegt %>%
-  select(subj_char,cond_char,speed_n,group_n,group_name,group_char,cluster_n,model_n,model_char,
+  select(subj_char,cond_char,speed_n,group_n,group_name,group_char,cluster_n,model_n,model_char,stride_n,
          avg_theta,avg_beta,avg_alpha,
          avg_theta_post,avg_alpha_post,avg_beta_post,
          avg_theta_pre,avg_alpha_pre,avg_beta_pre,
@@ -100,9 +100,11 @@ eegt <- filter_at(eegt,vars('cond_char'), any_vars(. %in% c('0p25','0p5','0p75',
 flat_speeds = unique(eegt$cond_char)
 
 #%% MUTATE VARIABLES
-eegt$speed_cond_num <- as.numeric(eegt$speed_n); #as.numeric(eegt$cond_char);
-eegt <- mutate(eegt,across(c('subj_char'), factor))
-eegt <- mutate(eegt,across(c('group_char'), factor))
+# eegt$speed_cond_num <- as.numeric(eegt$speed_n); #as.numeric(eegt$cond_char);
+# eegt <- mutate(eegt,across(c('subj_char'), factor))
+# eegt <- mutate(eegt,across(c('group_char'), factor))
+# eegt <- mutate(eegt,across(c('group_name'), factor))
+# eegt <- mutate(eegt,across(c('model_char'), factor))
 
 #%% COLORS
 color_pal_subj = brewer.pal(9,'PuBuGn')
@@ -116,35 +118,116 @@ tbl_groups = unique(eegt$group_char);
 #%% DISPLAY TBL
 head(eegt)
 ```
-# REMOVE NOISY DATA
+# AVERAGE SLIDING WINDOW
 ```{r errordat}
-std_cutoff = 3;
-kin_measures = c('ml_exc_mm_gc','step_dur','stance_dur');
+num_strides_avg = 5;
+conds = unique(tmpts$cond_char);
 #%% REMOVE ERRONEOUS DATA IN KINEMATICS
 dtbl <- eegt
 newtbl <- dtbl[0,];
-tmpt_subjects = unique(dtbl$subj_char);
+subjects = unique(dtbl$subj_char);
 orig_len = nrow(dtbl)
+
 #-- loop through subjects
 for(k in 1:length(tmpt_subjects)){
-  ki = kin_measures[kis[i]];
-  #%% reduce table and get specific subject data?
-  tmpts <- filter_at(dtbl,vars('subj_char'), any_vars(. %in% tmpt_subjects[k]));
-  
-  #%% THAT ARE GREATER THAN OR LESS THAN 3STD FROM MEAN
-  #-- remove NAN cases
-  tmpts = tmpts[complete.cases(tmpts[[ki]]),];
-  #- mean & std cutoff
-  muc = mean(tmpts[[ki]])
-  stdc = sd(tmpts[[ki]])
-  inds_keep = tmpts[[ki]] > muc-std_cutoff*stdc & tmpts[[ki]] < muc+std_cutoff*stdc
-  tmpts = tmpts[inds_keep,]
-  newtbl <- rbind(newtbl,tmpts)
+  tmpts <- filter_at(dtbl,vars('subj_char'), any_vars(. %in% subjects[k]));
+  cond_chars <- unique(tmpts$cond_char)
+  print(sprintf('Processing subject %s...\n',subjects[k]))
+  for( j in 1:length(cond_chars)){
+    tmptc <- filter_at(tmpts,vars('cond_char'), any_vars(. %in% cond_chars[j]));
+    for( i in 1:length(clusters)){
+      tmptcc <- filter_at(tmptc,vars('cluster_n'), any_vars(. %in% clusters[i]));
+      n_strides = length(unique(tmpts$stride_n))
+      #-- iterate through condition and average strides.
+      cnt = 1
+      while( cnt < n_strides){
+        #%% reduce table and get specific subject data?
+        tt <- tmptcc[seq(cnt,cnt+num_strides_avg-1,by=1),]
+        tt <- tt %>%
+          group_by(subj_char,cond_char,speed_n,model_n,group_char,group_name,model_char,cluster_n) %>%
+          summarise_all("mean")
+        newtbl <- rbind(newtbl,tt)
+        cnt = cnt + num_strides_avg;
+      }
+      if(cnt!=n_strides){
+        cnt = cnt - num_strides_avg;
+        tt <- tmptcc[seq(cnt,n_strides,by=1),]
+        tt <- tt %>%
+          group_by(subj_char,cond_char,speed_n,model_n,group_char,group_name,model_char,cluster_n) %>%
+          summarise_all("mean")
+        newtbl <- rbind(newtbl,tt)
+      }
+    }
+  }
 }
 new_len = nrow(newtbl)
-print(sprintf("Number of data points lost: %d",orig_len-new_len))
+print(sprintf("Kinematics) Number of data points condensed: %d",orig_len-new_len))
+write.xlsx(newtbl,"lme_eeg_kin_speed_slidingavg_tbl.xlsx")
 ```
-# Table Manipulatiosn
+# REMOVE NOISY DATA
+```{r errordat}
+# std_cutoff_eeg = 4;
+# std_cutoff_kin = 3.5;
+# kin_measures = c('ml_exc_mm_gc','step_dur','stance_dur');
+# eeg_measures = c('avg_theta_post','avg_alpha_post','avg_beta_post');
+# #%% REMOVE ERRONEOUS DATA IN KINEMATICS
+# dtbl <- eegt
+# newtbl <- dtbl[0,];
+# tmpt_subjects = unique(dtbl$subj_char);
+# orig_len = nrow(dtbl)
+# 
+# #-- loop through subjects
+# for(k in 1:length(tmpt_subjects)){
+#   for(i in 1:length(kin_measures)){
+#     ki = kin_measures[i];
+#     #%% reduce table and get specific subject data?
+#     tmpts <- filter_at(dtbl,vars('subj_char'), any_vars(. %in% tmpt_subjects[k]));
+#     
+#     #%% THAT ARE GREATER THAN OR LESS THAN 3STD FROM MEAN
+#     #-- remove NAN cases
+#     tmpts = tmpts[complete.cases(tmpts[[ki]]),];
+#     #- mean & std cutoff
+#     muc = mean(tmpts[[ki]])
+#     stdc = sd(tmpts[[ki]])
+#     inds_keep = tmpts[[ki]] > muc-std_cutoff_kin*stdc & tmpts[[ki]] < muc+std_cutoff_kin*stdc
+#     tmpts = tmpts[inds_keep,]
+#     newtbl <- rbind(newtbl,tmpts)
+#   }
+# }
+# new_len = nrow(newtbl)
+# print(sprintf("Kinematics) Number of data points lost: %d",orig_len-new_len))
+# 
+# #%% REMOVE DATA BASED ON EEG MEASURES
+# #-- reassign
+# # dtbl <- eegt # if not using kin cutoff
+# dtbl <- newtbl
+# orig_len = nrow(dtbl)
+# newtbl <- dtbl[0,];
+# 
+# #-- loop through subjects
+# for(k in 1:length(tmpt_subjects)){
+#   tmpts <- filter_at(dtbl,vars('subj_char'), any_vars(. %in% tmpt_subjects[k]));
+#   for (i in 1:length(clusters)) {
+#     tmptc <- filter_at(tmpts,vars('cluster_n'), any_vars(. %in% clusters[i]));
+#     for(j in 1:length(eeg_measures)){
+#       ei = eeg_measures[j];
+#       
+#       #%% THAT ARE GREATER THAN OR LESS THAN 3STD FROM MEAN
+#       #-- remove NAN cases
+#       tmptc = tmptc[complete.cases(tmptc[[ei]]),];
+#       #- mean & std cutoff
+#       muc = mean(tmptc[[ei]])
+#       stdc = sd(tmptc[[ei]])
+#       inds_keep = tmptc[[ei]] > muc-std_cutoff_eeg*stdc & tmptc[[ei]] < muc+std_cutoff_eeg*stdc
+#       tmptc = tmptc[inds_keep,]
+#       newtbl <- rbind(newtbl,tmptc)
+#     }
+#   }
+# }
+# new_len = nrow(newtbl)
+# print(sprintf("EEG) Number of data points lost: %d",orig_len-new_len))
+```
+# Table Manipulations
 ```{r tblmanip}
 # Calculate mean and standard deviation by group
 dtbl <- eegt %>%
@@ -354,7 +437,7 @@ for (i in 1:length(cis)){
 }
 ```
 
-# KIN INTERACTION) LME Kin ~ 1+speed+group
+# KIN GROUP MAIN) LME Kin ~ 1+speed+group
 ```{r kinspeedgroupall, echo=FALSE, message=FALSE, results="asis"}
 theme_set(theme_classic()) # This sets the default ggplot theme
 #%% LOOP VARS
@@ -512,7 +595,7 @@ for (i in 1:length(cis)){
   #%% SUBSET BY CLUSTER
   tmpt <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% ci));
   #-- remove NAN cases
-  tmpt = tmpt[complete.cases(tmpt[[ki]]),];
+  # tmpt = tmpt[complete.cases(tmpt[[ki]]),];
   
   #%% THAT ARE GREATER THAN OR LESS THAN 3STD FROM MEAN
   #- mean & std cutoff
@@ -648,7 +731,7 @@ for (i in 1:length(cis)){
   #%% SUBSET BY CLUSTER
   tmpt <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% ci));
   #-- remove NAN cases
-  tmpt = tmpt[complete.cases(tmpt[[ki]]),];
+  # tmpt = tmpt[complete.cases(tmpt[[ki]]),];
   
   #%% THAT ARE GREATER THAN OR LESS THAN 3STD FROM MEAN
   #- mean & std cutoff
@@ -750,7 +833,7 @@ for (i in 1:length(cis)){
 # write.xlsx(excel_df,"lme_eeg_kin_imufix_condb.xlsx")
 ```
 
-# SPEED ALL) LME EEG ~ 1+speed
+# SPEED-GROUP INTERACTION) LME EEG ~ 1+speed+group+speed:group
 ```{r eegspeedgroupinter, echo=FALSE, message=FALSE, results="asis"}
 theme_set(theme_classic()) # This sets the default ggplot theme
 #%% LOOP VARS
@@ -775,8 +858,8 @@ for (i in 1:length(cis)){
   
   #%% SUBSET BY CLUSTER
   tmpt <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% ci));
-  #-- remove NAN cases
-  tmpt = tmpt[complete.cases(tmpt[[ki]]),];
+  # -- remove NAN cases
+  # tmpt = tmpt[complete.cases(tmpt[[ki]]),];
   
   #%% THAT ARE GREATER THAN OR LESS THAN 3STD FROM MEAN
   #- mean & std cutoff
@@ -878,5 +961,164 @@ for (i in 1:length(cis)){
   )
 
 }
-write.xlsx(excel_df,"lme_eeg_kin_mean_sd_stats_eegspeed_anl.xlsx")
+# write.xlsx(excel_df,"lme_eeg_kin_mean_sd_stats_eegspeed_anl.xlsx")
+```
+
+# EEG-KIN ALL) LME EEG ~ 1+kin
+```{r eegspeedkininterall, echo=FALSE, message=FALSE, results="asis"}
+theme_set(theme_classic()) # This sets the default ggplot theme
+#%% LOOP VARS
+cis <- rep(NA,length(clusters)*length(kin_measures)*length(eeg_measures))
+kis <- rep(NA,length(clusters)*length(kin_measures)*length(eeg_measures))
+eis <- rep(NA,length(clusters)*length(kin_measures)*length(eeg_measures))
+cnt = 1;
+for (i in 1:length(clusters)) {
+  for(j in 1:length(kin_measures)){
+    for(k in 1:length(eeg_measures)){
+      cis[cnt] = i;
+      kis[cnt] = j;
+      eis[cnt] = k;
+      cnt = cnt + 1;
+    }
+  }
+}
+
+for (i in 1:length(cis)){
+  #%% SET LOOP PARAMS
+  ci = clusters[cis[i]];
+  ki = kin_measures[kis[i]];
+  ei = eeg_measures[eis[i]];
+  
+  #%% HTML TAG
+  cat(paste0("\n\n## ", ci,',', ki,',',ei,"\n"))
+  
+  #%% SUBSET BY CLUSTER
+  tmpt <- filter_at(eegt,vars('cluster_n'), any_vars(. %in% ci));
+  
+  #%% REMOVE KIN_MEASURES < 0.005 & THAT ARE GREATER THAN OR LESS THAN 3STD FROM MEAN
+  # #- remove NAN cases
+  # tmpt = tmpt[complete.cases(tmpt[[ki]]),];
+  # #- bad strides cutoff
+  # sub_s = tmpt[[ki]] < 0.005
+  # #(12/18/2024) JS, changing from 0.01 to 0.005 to see if I can retain some more data without it looking funky
+  # tmpt = tmpt[sub_s==FALSE, ]
+  # #- mean & std cutoff
+  # muc = mean(tmpt[[ki]])
+  # stdc = sd(tmpt[[ki]])
+  # inds_keep = tmpt[[ki]] > muc-3*stdc & tmpt[[ki]] < muc+3*stdc
+  # tmpt = tmpt[inds_keep,]
+  
+  #%% COMPUTE LME MODEL
+  mod_char = paste(ei," ~ 1 + ",ki," + (1|subj_char)");
+  mod <- lme4::lmer(str_glue(mod_char), data=tmpt);
+  tbl <- mod %>%
+    tbl_regression(tidy_fun = broom.mixed::tidy,
+                   pvalue_fun = purrr::partial(style_pvalue, digits = 2),
+                     intercept=TRUE) %>%
+    add_global_p() %>%
+    add_q()
+  
+  #%% PRINT TABLE
+  t_out <- as_gt(tbl) %>%
+    gt::tab_header(title=c("Changes in ",ki,"for Cluster: ",ci)) %>%
+    gt::tab_options(table.layout = "fixed") %>%
+    gt::as_raw_html()
+  print(t_out)
+  
+  #%% R-SQUARED VALUE
+  # r.squaredGLMM() %>%
+  #   print(str_glue("{outcome}\n R2m: {round(mod[1],4)},\tR2c: {round(mod[2],4)}\n\n"))
+  
+  #%% EFFECT SIZES
+  cat(paste0("\n\n### model effect sizes\n"))
+  #-- Intercept Model for Cohen's f^2
+  print('intercept model\n');
+  mod_char_int = paste(ei," ~ 1 + (1|subj_char)");
+  tmp_mod = lme4::lmer(str_glue(mod_char_int), data=tmpt)
+  cf_alt = calc_cohensf2(mod, tmp_mod)
+  #-- extract fixed & random effects coeffs
+  anv_vals <- car::Anova(mod,type=3)
+  fix_effs <- fixef(mod)
+  ran_effs <- ranef(mod)$subj_char
+  #-- calculate effect sizes using r-package 
+  etasq_res <- effectsize::eta_squared(mod, partial = TRUE)
+  cohens_fsq_res <- effectsize::cohens_f_squared(mod, partial = TRUE)
+  
+  #%% EXCEL PRINTS
+  new_row = data.frame(cluster_num=ci,
+                      group_char=c('all'),
+                      model_char=c('all_interaction'),
+                      kinematic_char=c(ki),
+                      freq_band_char=c(ei),
+                      coeff_int=mod@beta[1],
+                      coeff_sp=mod@beta[2],
+                      coeff_kin=mod@beta[3],
+                      coeff_intact=mod@beta[4],
+                      pval_int=anv_vals$`Pr(>Chisq)`[1],
+                      pval_sp=anv_vals$`Pr(>Chisq)`[2],
+                      pval_kin=anv_vals$`Pr(>Chisq)`[3],
+                      pval_intact=anv_vals$`Pr(>Chisq)`[4],
+                      r2_m_int=cf_alt$r2m,
+                      r2_c_int=cf_alt$r2c,
+                      f2_m_int=cf_alt$f2m,
+                      f2_c_int=cf_alt$f2c,
+                      fsq_sp=cohens_fsq_res$Cohens_f2_partial[1],
+                      fsq_kin=cohens_fsq_res$Cohens_f2_partial[2],
+                      fsq_intact=cohens_fsq_res$Cohens_f2_partial[3],
+                      etasq_sp=etasq_res$Eta2_partial[1],
+                      etasq_kin=etasq_res$Eta2_partial[2],
+                      etasq_intact=etasq_res$Eta2_partial[3],
+                      ran_effs_char=paste(unlist(row.names(ran_effs)),collapse=','),
+                      ran_effs_n=paste(unlist(ran_effs$`(Intercept)`),collapse=','))
+  excel_df <- rbind(excel_df,new_row)
+  
+  #%% MODEL VALIDATION PLOTS
+  cat(paste0("\n\n### model validations\n"))
+  print(plot_model(mod, type = 'diag'))
+  cat("\n")
+  
+  #%% SCATTER3D IMPLEMENTATION
+  cat(paste0("\n\n### plot\n"))
+  xc = "speed_cond_num";
+  yc = ki;
+  intc = paste0(xc,":",yc)
+  #- plot
+  pch_n = 1;
+  conds = rev(unique(tmpt[[xc]]))
+  for(i in 1:length(conds)){
+    ts <- filter_at(tmpt,vars(xc),all_vars(. == conds[i]))
+    if(i == 1){
+      scatter <- scatterplot3d(ts[[yc]], ts[[xc]], ts[[ei]],
+        main = paste0(eeg_title_chars[eis[i]],"plot"),
+        xlab = kin_title_chars[kis[i]],
+        ylab = "Speed (m/s)",
+        zlab = eeg_title_chars[eis[i]],
+        xlim = c(min(tmpt[[yc]]),max(tmpt[[yc]])),
+        ylim = c(min(tmpt[[xc]]),max(tmpt[[xc]])),
+        zlim = c(min(tmpt[[ei]]),max(tmpt[[ei]])),
+        pch = pch_n,
+        color = color_pal_subj[i],
+        angle = 30) # adjust the viewing angle
+    } else {
+    scatter$points3d(ts[[yc]], ts[[xc]], ts[[ei]] ,
+        main = paste0(eeg_title_chars[eis[i]],"plot"),
+        col = color_pal_subj[i],
+        pch=pch_n)
+    }
+  }
+  a <- fix_effs[xc]
+  b <- fix_effs[yc]
+  c <- fix_effs[intc]
+  d <- fix_effs["(Intercept)"]
+  # Create the plane's z-values using the equation of the plane
+  plane_z <- function(y,x){a*x+b*y+c*x*y+d}
+  scatter$contour3d(plane_z,y.count=4,
+                    x.count=4,
+                    y.resolution=10,
+                    x.resolution=10,
+                    lty="24",
+                    type="l")
+
+}
+write.xlsx(excel_df,"lme_eeg_kin_raw_stats.xlsx")
 ```

@@ -160,6 +160,7 @@ parfor subj_i = 1:length(subj_chars)
         tmp_biom = cell(size(fileList,1),1);
         for trial_i = 1:size(fileList,1)
             %- Load trial
+            trial_i = 10; trial_i = 15;
             EEG = pop_loadset('filename',fileList(trial_i).name,'filepath',trial_fpath);
             %(11/22/2024) JS, trying to fix a bug where the IMU channels don't get
             %loaded if I load using the pop_loadset function. Actually they get
