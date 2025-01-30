@@ -1,18 +1,18 @@
 #!/bin/bash
-#SBATCH --job-name=SPCA_E_PSDS # Job name
+#SBATCH --job-name=SPCA_A_GEN # Job name
 #SBATCH --mail-type=ALL # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=jsalminen@ufl.edu # Where to send mail
 #SBATCH --nodes=1 # Use one node
 #SBATCH --ntasks=1 # Run a single task
-#SBATCH --cpus-per-task=10 # Number of CPU cores per task
-#SBATCH --mem-per-cpu=30000mb# Total memory limit
+#SBATCH --cpus-per-task=20 # Number of CPU cores per task
+#SBATCH --mem-per-cpu=35000mb# Total memory limit
 #SBATCH --distribution=cyclic:cyclic # Distribute tasks cyclically first among nodes and then among sockets within a node
-#SBATCH --time=12:00:00 # Time limit hrs:min:sec
-#SBATCH --output=/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_slurm_logs/%j_spca_e_psds.log # Standard output
+#SBATCH --time=06:00:00 # Time limit hrs:min:sec
+#SBATCH --output=/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_slurm_logs/%j_spca_a_gen_study.log # Standard output
 #SBATCH --account=dferris # Account name
 #SBATCH --qos=dferris-b # Quality of service name
 #SBATCH --partition=hpg-default # cluster to run on, use slurm command 'sinfo -s'
-# sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_yaoa_speed_kin/run_spca_e_psds.sh
+# sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_yaoa_speed_kin/run_spca_a_tw_epochgen.sh
 module load matlab/2023b
 
 # set linux workspace
@@ -26,9 +26,10 @@ else
     # otherwise: started with bash. Get the real location.
     TMP_PATH=$(realpath $0)
 fi
-export SCRIPT_DIR=$(dirname $(dirname $TMP_PATH))
-export STUDY_DIR=$SCRIPT_DIR
-export SRC_DIR=$SCRIPT_DIR
+export SCRIPT_DIR=$(dirname $TMP_PATH)
+export SRC_DIR=$(dirname $SCRIPT_DIR)
+export STUDY_DIR=$SRC_DIR
+
 cd $STUDY_DIR
 
 echo "Date              = $(date)"
@@ -44,7 +45,7 @@ echo "Number of Cores/Task Allocated = $SLURM_CPUS_PER_TASK"
 mkdir -p $STUDY_DIR/_slurm_scratch/$SLURM_JOB_ID
 
 # Kick off matlab
-matlab -nodisplay < $SCRIPT_DIR/spca_e_psds.m
+matlab -nodisplay < $SCRIPT_DIR/spca_a_gen_study.m
 
 # Cleanup local work directory
 rm -rf $STUDY_DIR/_slurm_scratch/$SLURM_JOB_ID

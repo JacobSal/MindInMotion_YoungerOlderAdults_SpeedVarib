@@ -2,7 +2,7 @@
 %
 %   Code Designer: Jacob salminen
 %## SBATCH (SLURM KICKOFF SCRIPT)
-% sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_yaoa_speed_kin/step_to_step_anlz/run_cc_gen_psd_dat.sh
+% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_bash_sh_files/run_sts_cc_gen_psd_dat.sh
 
 %{
 %## RESTORE MATLAB
@@ -16,18 +16,14 @@ clearvars
 % opengl('dsave', 'software') % might be needed to plot dipole plots?
 %## TIME
 tic
-global ADD_CLEANING_SUBMODS STUDY_DIR SCRIPT_DIR %#ok<GVMIS>
-ADD_CLEANING_SUBMODS = false;
 %## Determine Working Directories
 if ~ispc
     try
         SCRIPT_DIR = matlab.desktop.editor.getActiveFilename;
         SCRIPT_DIR = fileparts(SCRIPT_DIR);
-        STUDY_DIR = SCRIPT_DIR; % change this if in sub folder
-        SRC_DIR = fileparts(fileparts(STUDY_DIR));
+        SRC_DIR = fileparts(SCRIPT_DIR); % change this if in sub folder
     catch e
         fprintf('ERROR. PWD_DIR couldn''t be set...\n%s',getReport(e))
-        STUDY_DIR = getenv('STUDY_DIR');
         SCRIPT_DIR = getenv('SCRIPT_DIR');
         SRC_DIR = getenv('SRC_DIR');
     end
@@ -40,13 +36,11 @@ else
         SCRIPT_DIR = dir(['.' filesep]);
         SCRIPT_DIR = SCRIPT_DIR(1).folder;
     end
-    STUDY_DIR = fileparts(SCRIPT_DIR); % change this if in sub folder
-    SRC_DIR = fileparts(fileparts(STUDY_DIR));
+    SRC_DIR = fileparts(SCRIPT_DIR); % change this if in sub folder
 end
 %## Add Study, Src, & Script Paths
-addpath(SCRIPT_DIR)
+addpath(SCRIPT_DIR);
 addpath(SRC_DIR);
-addpath(STUDY_DIR);
 cd(SRC_DIR);
 fprintf(1,'Current folder: %s\n',SRC_DIR);
 %## Set PWD_DIR, EEGLAB path, _functions path, and others...
@@ -80,16 +74,16 @@ ERSP_PARAMS = struct('subbaseline','off',...
     'freqfac',4,...
     'cycles',[3,0.8],...
     'freqrange',[1,200]);
-%% (PATHS)
-%- Study Name
+%% (PATHS) ========================================================== %%
+%- datset name
 DATA_SET = 'MIM_dataset';
-STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
-%- Subject Directory information
-ICA_DIR_FNAME = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams';
+
+%## PROCESSED STUDY
+STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
+
+%## SAVE INFO
 STUDY_FNAME_EPOCH = 'kin_eeg_epoch_study';
-%## soft define
-studies_dir = [PATHS.src_dir filesep '_data' filesep DATA_SET filesep '_studies'];
-ica_data_dir = [PATHS.src_dir filesep '_data' filesep DATA_SET filesep '_studies' filesep ICA_DIR_FNAME]; % JACOB,SAL(02/23/2023)
+studies_dir = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
 save_dir = [studies_dir filesep sprintf('%s',STUDY_DNAME)];
 %- create new study directory
 if ~exist(save_dir,'dir')
@@ -142,26 +136,23 @@ parfor subj_i = 1:length(STUDY.datasetinfo)
         EEG.icaact = (EEG.icaweights*EEG.icasphere)*EEG.data(EEG.icachansind,:);
         EEG.icaact = reshape(EEG.icaact, size(EEG.icaact,1), EEG.pnts, EEG.trials);
     end
-    %## GENERATE ERSPS
-    icaspec_f = [EEG.filepath filesep sprintf('%s.icaspec',EEG.subject)];
-    if ~exist(icaspec_f,'file') || FORCE_RECALC_PSD % || any(strcmp(EEG.subject,FINISHED_ADULTS))
-        tmp_study_calc = tmp_study;
-        %- overrride datasetinfo to trick std_precomp to run.
-        tmp_study_calc.datasetinfo = tmp_study_calc.datasetinfo(subj_i);
-        tmp_study_calc.datasetinfo(1).index = 1;
-        [~, ~] = std_precomp(tmp_study_calc, EEG,...
-                    'components',...
-                    'recompute','on',...
-                    'spec','on',...
-                    'scalp','on',...
-                    'savetrials','on',...
-                    'specparams', ...
-                    {'specmode',tmp_spec_params.specmode, ...
-                    'freqfac',tmp_spec_params.freqfac,...
-                    'freqrange',tmp_spec_params.freqrange, ...
-                    'logtrials',tmp_spec_params.logtrials});
-        fprintf('Done calculating PSDs for %s\n',EEG.subject);
-    end
+    %## GENERATE PSDS
+    tmp_study_calc = tmp_study;
+    %- overrride datasetinfo to trick std_precomp to run.
+    tmp_study_calc.datasetinfo = tmp_study_calc.datasetinfo(subj_i);
+    tmp_study_calc.datasetinfo(1).index = 1;
+    [~, ~] = std_precomp(tmp_study_calc, EEG,...
+                'components',...
+                'recompute','on',...
+                'spec','on',...
+                'scalp','on',...
+                'savetrials','on',...
+                'specparams', ...
+                {'specmode',tmp_spec_params.specmode, ...
+                'freqfac',tmp_spec_params.freqfac,...
+                'freqrange',tmp_spec_params.freqrange, ...
+                'logtrials',tmp_spec_params.logtrials});
+    fprintf('Done calculating PSDs for %s\n',EEG.subject);
 end
 % %% (SPCA IMPLEMENTATION?) ============================================== %%
 % DEF_EPOCH_PARAMS = struct('epoch_method','timewarp',...

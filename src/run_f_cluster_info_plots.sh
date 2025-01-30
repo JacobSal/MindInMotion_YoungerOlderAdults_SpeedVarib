@@ -1,18 +1,17 @@
 #!/bin/bash
-#SBATCH --job-name=SPCA_F_CLUSTER_PSD # Job name
+#SBATCH --job-name=F_CLUSTER_INFO # Job name
 #SBATCH --mail-type=ALL # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=jsalminen@ufl.edu # Where to send mail
 #SBATCH --nodes=1 # Use one node
 #SBATCH --ntasks=1 # Run a single task
-#SBATCH --cpus-per-task=20 # Number of CPU cores per task
-#SBATCH --mem-per-cpu=20000mb# Total memory limit
+#SBATCH --cpus-per-task=4 # Number of CPU cores per task
+#SBATCH --mem-per-cpu=8000mb# Total memory limit
 #SBATCH --distribution=cyclic:cyclic # Distribute tasks cyclically first among nodes and then among sockets within a node
-#SBATCH --time=01:00:00 # Time limit hrs:min:sec
-#SBATCH --output=/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_slurm_logs/%j_spca_f_psds_cluster.log # Standard output
+#SBATCH --time=06:00:00 # Time limit hrs:min:sec
+#SBATCH --output=/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_slurm_logs/%j_f_cluster_info_plots.log # Standard output
 #SBATCH --account=dferris # Account name
 #SBATCH --qos=dferris-b # Quality of service name
 #SBATCH --partition=hpg-default # cluster to run on, use slurm command 'sinfo -s'
-# sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_yaoa_speed_kin/run_spca_f_psds_cluster.sh
 module load matlab/2023b
 
 # set linux workspace
@@ -26,7 +25,7 @@ else
     # otherwise: started with bash. Get the real location.
     TMP_PATH=$(realpath $0)
 fi
-export SCRIPT_DIR=$(dirname $(dirname $TMP_PATH))
+export SCRIPT_DIR=$(dirname $TMP_PATH)
 export STUDY_DIR=$SCRIPT_DIR
 export SRC_DIR=$SCRIPT_DIR
 cd $STUDY_DIR
@@ -44,7 +43,7 @@ echo "Number of Cores/Task Allocated = $SLURM_CPUS_PER_TASK"
 mkdir -p $STUDY_DIR/_slurm_scratch/$SLURM_JOB_ID
 
 # Kick off matlab
-matlab -nodisplay < $SCRIPT_DIR/spca_f_psds_cluster.m
+matlab -nodisplay < $SCRIPT_DIR/f_cluster_info_plots.m
 
 # Cleanup local work directory
 rm -rf $STUDY_DIR/_slurm_scratch/$SLURM_JOB_ID

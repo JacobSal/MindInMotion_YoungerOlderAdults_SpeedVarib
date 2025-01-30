@@ -1,18 +1,18 @@
 #!/bin/bash
-#SBATCH --job-name=CC_GEN_PSD_DAT # Job name
+#SBATCH --job-name=E_KIN_EEG_PLOTS # Job name
 #SBATCH --mail-type=ALL # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=jsalminen@ufl.edu # Where to send mail
 #SBATCH --nodes=1 # Use one node
 #SBATCH --ntasks=1 # Run a single task
-#SBATCH --cpus-per-task=10 # Number of CPU cores per task
-#SBATCH --mem-per-cpu=36000mb# Total memory limit
+#SBATCH --cpus-per-task=4 # Number of CPU cores per task
+#SBATCH --mem-per-cpu=16000mb# Total memory limit
 #SBATCH --distribution=cyclic:cyclic # Distribute tasks cyclically first among nodes and then among sockets within a node
-#SBATCH --time=12:00:00 # Time limit hrs:min:sec
-#SBATCH --output=/blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_yaoa_speed_kin/_slurm_logs/%j_cc_gen_psd_dat.log # Standard output
+#SBATCH --time=06:00:00 # Time limit hrs:min:sec
+#SBATCH --output=/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_slurm_logs/%j_e_fooof_group_kin_lms.log # Standard output
 #SBATCH --account=dferris # Account name
 #SBATCH --qos=dferris-b # Quality of service name
 #SBATCH --partition=hpg-default # cluster to run on, use slurm command 'sinfo -s'
-# sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_yaoa_speed_kin/run_cc_gen_psd_dat.sh
+# sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_yaoa_speed_kin/run_e_fooof_group_kin_lms.sh
 module load matlab/2023b
 
 # set linux workspace
@@ -27,8 +27,8 @@ else
     TMP_PATH=$(realpath $0)
 fi
 export SCRIPT_DIR=$(dirname $TMP_PATH)
-export STUDY_DIR=$(dirname $SCRIPT_DIR)
-export SRC_DIR=$(dirname $(dirname $STUDY_DIR))
+export STUDY_DIR=$SCRIPT_DIR
+export SRC_DIR=$SCRIPT_DIR
 cd $STUDY_DIR
 
 echo "Date              = $(date)"
@@ -44,7 +44,7 @@ echo "Number of Cores/Task Allocated = $SLURM_CPUS_PER_TASK"
 mkdir -p $STUDY_DIR/_slurm_scratch/$SLURM_JOB_ID
 
 # Kick off matlab
-matlab -nodisplay < $SCRIPT_DIR/cc_gen_psd_dat.m
+matlab -nodisplay < $SCRIPT_DIR/e_fooof_group_kin_lms.m
 
 # Cleanup local work directory
 rm -rf $STUDY_DIR/_slurm_scratch/$SLURM_JOB_ID

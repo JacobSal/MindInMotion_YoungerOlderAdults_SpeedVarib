@@ -1,17 +1,18 @@
 #!/bin/bash
-#SBATCH --job-name=EPOCH_KIN_EEG # Job name
+#SBATCH --job-name=C_GEN_SPEC # Job name
 #SBATCH --mail-type=ALL # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=jsalminen@ufl.edu # Where to send mail
 #SBATCH --nodes=1 # Use one node
 #SBATCH --ntasks=1 # Run a single task
-#SBATCH --cpus-per-task=20 # Number of CPU cores per task
-#SBATCH --mem-per-cpu=30000mb# Total memory limit
+#SBATCH --cpus-per-task=10 # Number of CPU cores per task
+#SBATCH --mem-per-cpu=45000mb# Total memory limit
 #SBATCH --distribution=cyclic:cyclic # Distribute tasks cyclically first among nodes and then among sockets within a node
-#SBATCH --time=06:00:00 # Time limit hrs:min:sec
-#SBATCH --output=/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_slurm_logs/%j_sts_b_epoch_eeg_kin.log # Standard output
+#SBATCH --time=12:00:00 # Time limit hrs:min:sec
+#SBATCH --output=/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_slurm_logs/%j_c_fooof_spec_precomp.log # Standard output
 #SBATCH --account=dferris # Account name
 #SBATCH --qos=dferris-b # Quality of service name
 #SBATCH --partition=hpg-default # cluster to run on, use slurm command 'sinfo -s'
+# sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/2_STUDY/mim_yaoa_speed_kin/run_c_fooof_spec_precomp.sh
 module load matlab/2023b
 
 # set linux workspace
@@ -25,10 +26,9 @@ else
     # otherwise: started with bash. Get the real location.
     TMP_PATH=$(realpath $0)
 fi
-export SRC_DIR=$(dirname $(dirname $TMP_PATH))
-export SCRIPT_DIR=$SRC_DIR/step_to_step_anlz
+export SCRIPT_DIR=$(dirname $TMP_PATH)
 export STUDY_DIR=$SCRIPT_DIR
-
+export SRC_DIR=$SCRIPT_DIR
 cd $STUDY_DIR
 
 echo "Date              = $(date)"
@@ -44,7 +44,7 @@ echo "Number of Cores/Task Allocated = $SLURM_CPUS_PER_TASK"
 mkdir -p $STUDY_DIR/_slurm_scratch/$SLURM_JOB_ID
 
 # Kick off matlab
-matlab -nodisplay < $SCRIPT_DIR/b_epoch_eeg_kin.m
+matlab -nodisplay < $SCRIPT_DIR/c_fooof_spec_precomp.m
 
 # Cleanup local work directory
 rm -rf $STUDY_DIR/_slurm_scratch/$SLURM_JOB_ID
