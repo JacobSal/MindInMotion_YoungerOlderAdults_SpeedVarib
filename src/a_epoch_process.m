@@ -2,7 +2,7 @@
 %
 %   Code Designer: Jacob salminen
 %## SBATCH (SLURM KICKOFF SCRIPT)
-% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_bash_sh_files/run_a_epoch_process.sh
+% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/run_a_epoch_process.sh
 
 %{
 %## RESTORE MATLAB
@@ -116,7 +116,8 @@ CHK_STRUCT = struct( ...
 DATA_SET = 'MIM_dataset';
 %- Study Name
 % STUDY_DNAME = '04232024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej';
-STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
+% STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
+STUDY_DNAME = 'dummy_study';
 %- Subject Directory information
 ICA_DIR_FNAME = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams';
 STUDY_FNAME_CONT = 'contin_study';
@@ -235,11 +236,12 @@ if ~exist([save_dir filesep STUDY_FNAME_CONT '.study'],'file') || RECALC_ICA_STU
                     'CHK_STRUCT',tmp_chk_struct);
                 if ~rmv_subj_flag
                     tmp_rej_crit_out{subj_i} = rej_struct_out;
-                    
-                    ALLEEG{subj_i} = pop_saveset(EEG, ...
-                            'filepath',tmp_save_dir, ...
-                            'filename',eeg_fnames{subj_i}, ...
-                            'savemode','twofiles')
+                    par_save(rej_struct_out,[EEG.filepath filesep 'rej_struct_out.mat']);
+                    % ALLEEG{subj_i} = pop_saveset(EEG, ...
+                    %         'filepath',tmp_save_dir, ...
+                    %         'filename',eeg_fnames{subj_i}, ...
+                    %         'savemode','twofiles')
+                    ALLEEG{subj_i} = EEG;
                 else
                     tmp_rej_crit_out{subj_i} = rej_struct_out;
                     fprintf('%s) Subject removed...\n',subj_chars{subj_i});
@@ -256,6 +258,13 @@ if ~exist([save_dir filesep STUDY_FNAME_CONT '.study'],'file') || RECALC_ICA_STU
             % exit();
         end
     end
+    %- save reject table
+    tmp_rej_crit_out = tmp_rej_crit_out(~cellfun(@isempty,tmp_rej_crit_out));
+    tmp_rej_crit_out = util_resolve_struct(tmp_rej_crit_out);
+    tmp_rej_crit_out = struct2table(tmp_rej_crit_out);
+    writetable(tmp_rej_crit_out,[save_dir filesep 'rejection_crit_table.xlsx']);
+
+    %##
     ALLEEG = ALLEEG(~cellfun(@isempty,ALLEEG));
     ALLEEG = util_resolve_struct(ALLEEG);
     %##
@@ -269,11 +278,7 @@ if ~exist([save_dir filesep STUDY_FNAME_CONT '.study'],'file') || RECALC_ICA_STU
     [STUDY,~] = parfunc_save_study(STUDY,ALLEEG,...
                                     STUDY.filename,STUDY.filepath,...
                                     'RESAVE_DATASETS','on');  
-    %- save reject table
-    tmp_rej_crit_out = tmp_rej_crit_out(~cellfun(@isempty,tmp_rej_crit_out));
-    tmp_rej_crit_out = util_resolve_struct(tmp_rej_crit_out);
-    tmp_rej_crit_out = struct2table(tmp_rej_crit_out);
-    writetable(tmp_rej_crit_out,[save_dir filesep 'rejection_crit_table.xlsx']);
+    
 else
     if ~ispc
         [STUDY,~] = pop_loadstudy('filename',[STUDY_FNAME_CONT '_UNIX.study'],'filepath',save_dir);
@@ -295,6 +300,16 @@ else
     STUDY = tmp.STUDY;
 end
 %}
+%## RECOVER REJ STRUCT XSLX
+tmp_rej_crit_out = cell(1,length(subj_chars)); 
+for subj_i = 1:length(subj_chars)  
+    
+end
+%- save reject table
+tmp_rej_crit_out = tmp_rej_crit_out(~cellfun(@isempty,tmp_rej_crit_out));
+tmp_rej_crit_out = util_resolve_struct(tmp_rej_crit_out);
+tmp_rej_crit_out = struct2table(tmp_rej_crit_out);
+writetable(tmp_rej_crit_out,[save_dir filesep 'rejection_crit_table.xlsx']);
 %% INITIALIZE PARFOR LOOP VARS
 %##
 subj_chars = {STUDY.datasetinfo.subject};

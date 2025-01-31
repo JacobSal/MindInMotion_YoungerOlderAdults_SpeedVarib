@@ -136,9 +136,11 @@ fNames = fNames(inds);
 subj_chars = subj_chars(inds);
 %% (PROC 1)
 tmp_alleeg = cell(length(fPaths),1);
+
 %## PATHING UPDATES
 % path(unix_genpath([PATHS.submods_dir filesep 'Gait Tracking With x-IMU']),path);
 path(unix_genpath([PATHS.submods_dir filesep 'gait_tracking_w_imu']),path);
+
 %##
 parfor subj_i = 1:length(subj_chars)
     tmp_epoch_params = EPOCH_PARAMS;

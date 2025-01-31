@@ -2,7 +2,7 @@
 #SBATCH --job-name=ALL_AMICA
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=jsalminen@ufl.edu
-#SBATCH --output=/blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/1_PREPROC/mim/_slurm_logs/%j_amica_out.log
+#SBATCH --output=/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_slurm_logs/%j_amica_out.log
 #SBATCH --nodes=64
 #SBATCH --ntasks=64
 #SBATCH --ntasks-per-node=1
@@ -13,7 +13,7 @@
 #SBATCH --qos=dferris-b
 #SBATCH --partition=hpg2-compute
 # NOTE: (04/22/2023) SalminenJ, Seems to time out after ~15 subaject runs (6hr time limit). Moving to a 48hr cycle ( I think this is max for hpg2-compute).
-# sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/1_PREPROC/mim/b_run_singlenode_amica.sh
+# sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/prep_scripts/b_run_singlenode_amica.sh
 
 echo "Date              = $(date)"
 echo "Hostname          = $(hostname -s)"
@@ -30,7 +30,8 @@ module load ufrc
 module load intel/2020 openmpi/4.1.5
 
 #%% PARAMS
-export SUBJ_DIR="/blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/01132024_antsnorm_iccREEG0p65_iccREMG0p4_skull0p0042"
+# export SUBJ_DIR="/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/01132024_antsnorm_iccREEG0p65_iccREMG0p4_skull0p0042"
+export SUBJ_DIR="/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/01132024_antsnorm_iccREEG0p65_iccREMG0p4_skull0p0042"
 
 export SUBJ_RUN=("H1002" "H1004" "H1007" "H1009"
  "H1010" "H1011" "H1012" "H1013" "H1017" "H1018" "H1019"

@@ -61,7 +61,8 @@ ERSP_PARAMS = struct('subbaseline','off',...
 %- datset name
 DATA_SET = 'MIM_dataset';
 %- study name
-STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
+% STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
+STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
 STUDY_FNAME = 'kin_eeg_epoch_study';
 ANALYSIS_DNAME = 'kin_eeg_step_to_step';
 %-
@@ -70,8 +71,8 @@ studies_fpath = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
 CLUSTER_K = 11;
 CLUSTER_STUDY_NAME = 'temp_study_rejics5';
 % cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb10'];
-cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb5'];
-% cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb3'];
+% cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb5'];
+cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb3'];
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
 cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
 %-
@@ -183,6 +184,10 @@ conds_keep = {'0p25','0p5','0p75','1p0'};
 xtick_label_g = {'0.25','0.50','0.75','1.0'}; %{'0.25','0.50','0.75','1.0'};
 fname_ext_store = '';
 %% ===================================================================== %%
+%## WEIRD 0-OUT SUBJECTS FOR STD_AVG_THETA
+% {'H1010' },{'H1012' },{'H1013'},{'H1020' },{'H1027' },{'H1029' },{'H1035' }, ...
+% {'H1048' },{'H2017' },{'H2020' },{'H3029' },{'H3072' },{'H3103' ,{'H3120' }, ...
+% {'NH3008'},{'NH3021'},{'NH3043'},{'NH3058'},{'NH3066'},{'NH3070'},{'NH3112'}
 for subj_i = 1:length(STUDY.datasetinfo)
 % parfor subj_i = 1:length(STUDY.datasetinfo)
     tmp_study = STUDY;
@@ -207,8 +212,8 @@ for subj_i = 1:length(STUDY.datasetinfo)
     pop_eegplot( EEG, 1, 1, 1);
     %}
     %## LOAD PSD DATA
-    % epoched_fPath = strsplit(tmp_study.datasetinfo(subj_i).filepath,filesep);
-    epoched_fPath = strsplit(tmp_cl_study.datasetinfo(subj_i).filepath,filesep);
+    epoched_fPath = strsplit(tmp_study.datasetinfo(subj_i).filepath,filesep);
+    % epoched_fPath = strsplit(tmp_cl_study.datasetinfo(subj_i).filepath,filesep);
     icatimef_f = [strjoin(epoched_fPath,filesep) filesep sprintf('%s.icaspec',EEG.subject)];
     
     %- load .icatimef load-in parameters
@@ -257,6 +262,7 @@ for subj_i = 1:length(STUDY.datasetinfo)
     def_cond_struct = struct('ind',[], ...
         'cond',{''}, ...
         'indices',[]);
+    ttim = tic();
     for ct = 1:size(nolog_eeg_psd,3)
         %## GET DATA
         ext_tmp = nolog_eeg_psd(f_ind,:,ct);            
@@ -273,70 +279,107 @@ for subj_i = 1:length(STUDY.datasetinfo)
         % end
 
         %## REMOVE MEAN FOOOF OF COMPONENT (DESIGN AFTER SUBSETTIGN)
-        % %- un-log (if necessary)
-        % % ext_tmp = 10.^(ext_tmp/10);
-        % %- fooof
-        % fr = fooof(freqs_orig(f_ind),mean(squeeze(ext_tmp),2),f_range,settings,return_model);
-        % spec_in = 10*log10(squeeze(ext_tmp));
-        % ext_tmp = spec_in - repmat(10*fr.ap_fit',[1,size(ext_tmp,2)]);
-        % fooof_freqs = fr.freqs;
-        % if ct == 1
-        %     fname_ext{ff} = 'meandesignb';
-        %     ff = ff + 1;
-        % end
-        % %- assign data
-        % tmp(:,:,ct) = ext_tmp;      
-        % %(01/17/2025) JS, This baselining seems most similar to the group
-        % %average speed results
-        %(01/29/2025) JS, probs was bug wehre I was delogging twice.
-        %Consider this in future results...
-
-        %## SLIDING AVG FOOOF
         %- un-log (if necessary)
         % ext_tmp = 10.^(ext_tmp/10);
-        % ext_tmp = nolog_eeg_psd(f_ind,:,ct)
-        cnt = 1;
+        %- fooof
+        fr = fooof(freqs_orig(f_ind),mean(squeeze(ext_tmp),2),f_range,settings,return_model);
+        spec_in = 10*log10(squeeze(ext_tmp));
+        ext_tmp = spec_in - repmat(10*fr.ap_fit',[1,size(ext_tmp,2)]);
+        fooof_freqs = fr.freqs;
+        if ct == 1
+            fname_ext{ff} = 'meandesignb';
+            ff = ff + 1;
+        end
+        % %- if no sliding average?
+        % cond_struct = repmat(def_cond_struct,[1,size(ext_tmp,2)]);
+        % cnt = 1;
+        % for c_i = 1:length(tmp_conds)
+        %     inds_cond = find(cellfun(@(x) strcmp(x,tmp_conds{c_i}),{trialinfo.cond}));
+        %     for i = 1:length(inds_cond)
+        %         cond_struct(cnt).ind = cnt;
+        %         cond_struct(cnt).cond = tmp_conds{c_i};
+        %         cond_struct(cnt).indices = inds_cond(i);
+        %         cnt = cnt + 1;
+        %     end
+        % end
+        % %-- assign data
+        % tmp_psd(:,:,ct) = ext_tmp;
+
+        %## SLIDIN AVERAGE (NO FOOOF)
+        cnt = 1;        
         cond_struct = repmat(def_cond_struct,[1,size(ext_tmp,2)]);
         for c_i = 1:length(tmp_conds)
-            % disp(c_i)
             %-
             inds_cond = find(cellfun(@(x) strcmp(x,tmp_conds{c_i}),{trialinfo.cond}));
             fooof_tmp = ext_tmp(:,inds_cond);
             %-
             slides = 1:NUM_STRIDES_AVG:size(fooof_tmp,2);
-            slides = unique([slides,size(fooof_tmp,2)]);
+            % slides = unique([slides,size(fooof_tmp,2)]);
+            %(01/31/2025) JS, removing the edge to prevent zeroed out
+            %standard deviation values due to singular extractions.
             %- fooof
             for i = 1:length(slides)-1
-                avg_ext_tmp = mean(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),2);
-                % disp(i)
-                %-
-                fr = fooof(freqs_orig(f_ind),avg_ext_tmp,f_range,settings,return_model);
-                spec_in = 10*log10(squeeze(fooof_tmp(:,slides(i):slides(i+1))));
-                % spec_in = 10*log10(squeeze(avg_ext_tmp));
-                spec_in = spec_in - repmat(10*fr.ap_fit',[1,size(spec_in,2)]);
+                spec_in = squeeze(fooof_tmp(:,slides(i):(slides(i+1)-1)));
                 tmp_psd(:,cnt,ct) = mean(spec_in,2);
                 tmp_psd_std(:,cnt,ct) = std(spec_in,[],2)';
-                fooof_freqs = fr.freqs;
                 if ct == 1 && cnt == 1
-                    fname_ext{ff} = sprintf('slidingb%i',NUM_STRIDES_AVG);
+                    fname_ext{ff} = sprintf('nfslidingb%i',NUM_STRIDES_AVG);
                     ff = ff + 1;
                 end
                 cond_struct(cnt).cond = tmp_conds{c_i};
                 cond_struct(cnt).indices = inds_cond(slides(i):slides(i+1)-1);
                 cond_struct(cnt).ind = cnt;
-                % cond_struct(cnt).mean_psd = mean(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),2);
-                % cond_struct(cnt).std_psd = std(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),[],2);
                 cnt = cnt + 1;
-                % disp(cnt)
             end
-            %(01/17/2025) JS, This baselining seems most similar to the group
-            %average speed results
-            %(01/29/2025) JS, average sliding fooof as recommended by
-            %arkaprava. Increases homogeneity of the PSD measure. I think
-            %this also greatly reduces the variability of the PSDs without
-            %sacrificing averages
-        end          
+        end
+
+        %## SLIDING AVG FOOOF
+        %- un-log (if necessary)
+        % ext_tmp = 10.^(ext_tmp/10);
+        % ext_tmp = nolog_eeg_psd(f_ind,:,ct)
+        % cnt = 1;
+        % cond_struct = repmat(def_cond_struct,[1,size(ext_tmp,2)]);
+        % for c_i = 1:length(tmp_conds)
+        %     % disp(c_i)
+        %     %-
+        %     inds_cond = find(cellfun(@(x) strcmp(x,tmp_conds{c_i}),{trialinfo.cond}));
+        %     fooof_tmp = ext_tmp(:,inds_cond);
+        %     %-
+        %     slides = 1:NUM_STRIDES_AVG:size(fooof_tmp,2);
+        %     slides = unique([slides,size(fooof_tmp,2)]);
+        %     %- fooof
+        %     for i = 1:length(slides)-1
+        %         avg_ext_tmp = mean(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),2);
+        %         % disp(i)
+        %         %-
+        %         fr = fooof(freqs_orig(f_ind),avg_ext_tmp,f_range,settings,return_model);
+        %         spec_in = 10*log10(squeeze(fooof_tmp(:,slides(i):slides(i+1))));
+        %         % spec_in = 10*log10(squeeze(avg_ext_tmp));
+        %         spec_in = spec_in - repmat(10*fr.ap_fit',[1,size(spec_in,2)]);
+        %         tmp_psd(:,cnt,ct) = mean(spec_in,2);
+        %         tmp_psd_std(:,cnt,ct) = std(spec_in,[],2)';
+        %         fooof_freqs = fr.freqs;
+        %         if ct == 1 && cnt == 1
+        %             fname_ext{ff} = sprintf('slidingb%i',NUM_STRIDES_AVG);
+        %             ff = ff + 1;
+        %         end
+        %         cond_struct(cnt).cond = tmp_conds{c_i};
+        %         cond_struct(cnt).indices = inds_cond(slides(i):slides(i+1)-1);
+        %         cond_struct(cnt).ind = cnt;
+        %         % cond_struct(cnt).mean_psd = mean(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),2);
+        %         % cond_struct(cnt).std_psd = std(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),[],2);
+        %         cnt = cnt + 1;
+        %         % disp(cnt)
+        %     end
+        % end  
+        %(01/17/2025) JS, This baselining seems most similar to the group
+        %average speed results
+        %(01/29/2025) JS, average sliding fooof as recommended by
+        %arkaprava. Increases homogeneity of the PSD measure. I think
+        %this also greatly reduces the variability of the PSDs without
+        %sacrificing averages            
     end
+    fprintf('FOOOF Process done: %0.2g.\n',toc(ttim));
     inds_store = cell(size(nolog_eeg_psd,3),1);
     for ct = 1:size(nolog_eeg_psd,3)
         inds_store{ct} = find(~all(squeeze(tmp_psd(:,:,ct))==0,1));
@@ -645,56 +688,56 @@ for subj_i = 1:length(STUDY.datasetinfo)
                     steps_struct(cnt).comp_n_old = comp_arr(2,comp_arr(3,:) == cl_i); % old comp number
 
                     %## MEAN MEAS.
-                    steps_struct(cnt).stride_n = mean([tmp_step_struct(ss_inds).stride_n]);
-                    steps_struct(cnt).rhs_1 = mean([tmp_step_struct(ss_inds).rhs_1]);
-                    steps_struct(cnt).rhs_2 = mean([tmp_step_struct(ss_inds).rhs_2]);
-                    steps_struct(cnt).lhs_1 = mean([tmp_step_struct(ss_inds).lhs_1]);
-                    steps_struct(cnt).lto_1 = mean([tmp_step_struct(ss_inds).lto_1]);
-                    steps_struct(cnt).rto_1 = mean([tmp_step_struct(ss_inds).rto_1]);
-                    steps_struct(cnt).gait_cycle_dur = mean([tmp_step_struct(ss_inds).gait_cycle_dur]);
-                    steps_struct(cnt).stance_dur = mean([tmp_step_struct(ss_inds).stance_dur]);
-                    steps_struct(cnt).swing_dur = mean([tmp_step_struct(ss_inds).swing_dur]);
-                    steps_struct(cnt).double_sup_dur = mean([tmp_step_struct(ss_inds).double_sup_dur]);
-                    steps_struct(cnt).single_sup_dur = mean([tmp_step_struct(ss_inds).single_sup_dur]);
-                    steps_struct(cnt).step_dur = mean([tmp_step_struct(ss_inds).step_dur]);
+                    steps_struct(cnt).mu_stride_n = mean([tmp_step_struct(ss_inds).stride_n]);
+                    steps_struct(cnt).mu_rhs_1 = mean([tmp_step_struct(ss_inds).rhs_1]);
+                    steps_struct(cnt).mu_rhs_2 = mean([tmp_step_struct(ss_inds).rhs_2]);
+                    steps_struct(cnt).mu_lhs_1 = mean([tmp_step_struct(ss_inds).lhs_1]);
+                    steps_struct(cnt).mu_lto_1 = mean([tmp_step_struct(ss_inds).lto_1]);
+                    steps_struct(cnt).mu_rto_1 = mean([tmp_step_struct(ss_inds).rto_1]);
+                    steps_struct(cnt).mu_gait_cycle_dur = mean([tmp_step_struct(ss_inds).gait_cycle_dur]);
+                    steps_struct(cnt).mu_stance_dur = mean([tmp_step_struct(ss_inds).stance_dur]);
+                    steps_struct(cnt).mu_swing_dur = mean([tmp_step_struct(ss_inds).swing_dur]);
+                    steps_struct(cnt).mu_double_sup_dur = mean([tmp_step_struct(ss_inds).double_sup_dur]);
+                    steps_struct(cnt).mu_single_sup_dur = mean([tmp_step_struct(ss_inds).single_sup_dur]);
+                    steps_struct(cnt).mu_step_dur = mean([tmp_step_struct(ss_inds).step_dur]);
                     %-
-                    steps_struct(cnt).ml_exc_mm_gc = mean([tmp_step_struct(ss_inds).ml_exc_mm_gc]);
-                    steps_struct(cnt).ap_exc_mm_gc = mean([tmp_step_struct(ss_inds).ap_exc_mm_gc]);
-                    steps_struct(cnt).ud_exc_mm_gc = mean([tmp_step_struct(ss_inds).ud_exc_mm_gc]);
+                    steps_struct(cnt).mu_ml_exc_mm_gc = mean([tmp_step_struct(ss_inds).ml_exc_mm_gc]);
+                    steps_struct(cnt).mu_ap_exc_mm_gc = mean([tmp_step_struct(ss_inds).ap_exc_mm_gc]);
+                    steps_struct(cnt).mu_ud_exc_mm_gc = mean([tmp_step_struct(ss_inds).ud_exc_mm_gc]);
                     %-                    
                     % steps_struct(cnt).avg_theta = mean(mean(eeg_psd(bband,cond_struct(ii-1).ind,comp_n),2),1);
                     % steps_struct(cnt).avg_alpha = mean(mean(eeg_psd(bband,cond_struct(ii-1).ind,comp_n),2),1);
                     % steps_struct(cnt).avg_beta = mean(mean(eeg_psd(bband,cond_struct(ii-1).ind,comp_n),2),1);
-                    steps_struct(cnt).avg_theta = mean(eeg_psd(tband,cond_struct(ii).ind,comp_n),1);
-                    steps_struct(cnt).avg_alpha = mean(eeg_psd(aband,cond_struct(ii).ind,comp_n),1);
-                    steps_struct(cnt).avg_beta = mean(eeg_psd(bband,cond_struct(ii).ind,comp_n),1);
+                    steps_struct(cnt).mu_avg_theta = mean(eeg_psd(tband,cond_struct(ii).ind,comp_n),1);
+                    steps_struct(cnt).mu_avg_alpha = mean(eeg_psd(aband,cond_struct(ii).ind,comp_n),1);
+                    steps_struct(cnt).mu_avg_beta = mean(eeg_psd(bband,cond_struct(ii).ind,comp_n),1);
                     % steps_struct(cnt).avg_theta_post = mean(mean(eeg_psd(bband,cond_struct(ii+1).ind,comp_n),2),1);
                     % steps_struct(cnt).avg_alpha_post = mean(mean(eeg_psd(bband,cond_struct(ii+1).ind,comp_n),2),1);
                     % steps_struct(cnt).avg_beta_post = mean(mean(eeg_psd(bband,cond_struct(ii+1).ind,comp_n),2),1);
                     %## STANDARD DEV MEAS.
-                    steps_struct(cnt).stride_n = std([tmp_step_struct(ss_inds).stride_n]);
-                    steps_struct(cnt).rhs_1 = std([tmp_step_struct(ss_inds).rhs_1]);
-                    steps_struct(cnt).rhs_2 = std([tmp_step_struct(ss_inds).rhs_2]);
-                    steps_struct(cnt).lhs_1 = std([tmp_step_struct(ss_inds).lhs_1]);
-                    steps_struct(cnt).lto_1 = std([tmp_step_struct(ss_inds).lto_1]);
-                    steps_struct(cnt).rto_1 = std([tmp_step_struct(ss_inds).rto_1]);
-                    steps_struct(cnt).gait_cycle_dur = std([tmp_step_struct(ss_inds).gait_cycle_dur]);
-                    steps_struct(cnt).stance_dur = std([tmp_step_struct(ss_inds).stance_dur]);
-                    steps_struct(cnt).swing_dur = std([tmp_step_struct(ss_inds).swing_dur]);
-                    steps_struct(cnt).double_sup_dur = std([tmp_step_struct(ss_inds).double_sup_dur]);
-                    steps_struct(cnt).single_sup_dur = std([tmp_step_struct(ss_inds).single_sup_dur]);
-                    steps_struct(cnt).step_dur = std([tmp_step_struct(ss_inds).step_dur]);
+                    steps_struct(cnt).std_stride_n = std([tmp_step_struct(ss_inds).stride_n]);
+                    steps_struct(cnt).std_rhs_1 = std([tmp_step_struct(ss_inds).rhs_1]);
+                    steps_struct(cnt).std_rhs_2 = std([tmp_step_struct(ss_inds).rhs_2]);
+                    steps_struct(cnt).std_lhs_1 = std([tmp_step_struct(ss_inds).lhs_1]);
+                    steps_struct(cnt).std_lto_1 = std([tmp_step_struct(ss_inds).lto_1]);
+                    steps_struct(cnt).std_rto_1 = std([tmp_step_struct(ss_inds).rto_1]);
+                    steps_struct(cnt).std_gait_cycle_dur = std([tmp_step_struct(ss_inds).gait_cycle_dur]);
+                    steps_struct(cnt).std_stance_dur = std([tmp_step_struct(ss_inds).stance_dur]);
+                    steps_struct(cnt).std_swing_dur = std([tmp_step_struct(ss_inds).swing_dur]);
+                    steps_struct(cnt).std_double_sup_dur = std([tmp_step_struct(ss_inds).double_sup_dur]);
+                    steps_struct(cnt).std_single_sup_dur = std([tmp_step_struct(ss_inds).single_sup_dur]);
+                    steps_struct(cnt).std_step_dur = std([tmp_step_struct(ss_inds).step_dur]);
                     %-
-                    steps_struct(cnt).ml_exc_mm_gc = std([tmp_step_struct(ss_inds).ml_exc_mm_gc]);
-                    steps_struct(cnt).ap_exc_mm_gc = std([tmp_step_struct(ss_inds).ap_exc_mm_gc]);
-                    steps_struct(cnt).ud_exc_mm_gc = std([tmp_step_struct(ss_inds).ud_exc_mm_gc]);
+                    steps_struct(cnt).std_ml_exc_mm_gc = std([tmp_step_struct(ss_inds).ml_exc_mm_gc]);
+                    steps_struct(cnt).std_ap_exc_mm_gc = std([tmp_step_struct(ss_inds).ap_exc_mm_gc]);
+                    steps_struct(cnt).std_ud_exc_mm_gc = std([tmp_step_struct(ss_inds).ud_exc_mm_gc]);
                     %-                    
                     % steps_struct(cnt).avg_theta = mean(std(eeg_psd(bband,cond_struct(ii-1).ind,comp_n),[],2),1);
                     % steps_struct(cnt).avg_alpha = mean(std(eeg_psd(bband,cond_struct(ii-1).ind,comp_n),[],2),1);
                     % steps_struct(cnt).avg_beta = mean(std(eeg_psd(bband,cond_struct(ii-1).ind,comp_n),[],2),1);
-                    steps_struct(cnt).avg_theta = mean(tmp_psd_std(tband,cond_struct(ii).ind,comp_n),1);
-                    steps_struct(cnt).avg_alpha = mean(tmp_psd_std(aband,cond_struct(ii).ind,comp_n),1);
-                    steps_struct(cnt).avg_beta = mean(tmp_psd_std(bband,cond_struct(ii).ind,comp_n),1);
+                    steps_struct(cnt).std_avg_theta = mean(tmp_psd_std(tband,cond_struct(ii).ind,comp_n),1);
+                    steps_struct(cnt).std_avg_alpha = mean(tmp_psd_std(aband,cond_struct(ii).ind,comp_n),1);
+                    steps_struct(cnt).std_avg_beta = mean(tmp_psd_std(bband,cond_struct(ii).ind,comp_n),1);
                     % steps_struct(cnt).avg_theta_post = mean(std(eeg_psd(bband,cond_struct(ii+1).ind,comp_n),[],2),1);
                     % steps_struct(cnt).avg_alpha_post = mean(std(eeg_psd(bband,cond_struct(ii+1).ind,comp_n),[],2),1);
                     % steps_struct(cnt).avg_beta_post = mean(std(eeg_psd(bband,cond_struct(ii+1).ind,comp_n),[],2),1);
@@ -713,8 +756,8 @@ for subj_i = 1:length(STUDY.datasetinfo)
                 end
             end
         end
-        steps_struct = steps_struct(~cellfun(@isempty,{steps_struct.avg_theta}));
-        steps_struct = steps_struct(~cellfun(@isempty,{steps_struct.ml_exc_mm_gc}));
+        steps_struct = steps_struct(~cellfun(@isempty,{steps_struct.mu_avg_theta}));
+        steps_struct = steps_struct(~cellfun(@isempty,{steps_struct.mu_ml_exc_mm_gc}));
         steps_struct = steps_struct(~cellfun(@isempty,{steps_struct.comp_n}));
     end
     %- assign to struct
@@ -722,8 +765,8 @@ for subj_i = 1:length(STUDY.datasetinfo)
     % [steps_struct(inds_cond)] = deal(vals{:});
     %- per design measures
     %## SAVE
-    steps_struct = steps_struct(~cellfun(@isempty,{steps_struct.avg_theta}));
-    steps_struct = steps_struct(~cellfun(@isempty,{steps_struct.ml_exc_mm_gc}));
+    steps_struct = steps_struct(~cellfun(@isempty,{steps_struct.mu_avg_theta}));
+    steps_struct = steps_struct(~cellfun(@isempty,{steps_struct.mu_ml_exc_mm_gc}));
     steps_struct = steps_struct(~cellfun(@isempty,{steps_struct.comp_n}));
     steps_struct = struct2table(steps_struct);
     fname_ext = fname_ext(~cellfun(@isempty,fname_ext));
@@ -747,8 +790,8 @@ end
 % [STUDY, ALLEEG] = std_editset([],tmp_alleeg,...
 %                                 'updatedat','off',...
 %                                 'savedat','off',...
-%                                 'name','d_eeg_psd_imuls_sts_anl',...
-%                                 'filename','d_eeg_psd_imuls_sts_anl',...
+%                                 'name','dd_eeg_psd_imuls_sts_anl',...
+%                                 'filename','dd_eeg_psd_imuls_sts_anl',...
 %                                 'filepath',save_dir);
 % [STUDY,ALLEEG] = std_checkset(STUDY,ALLEEG);
 % [STUDY,ALLEEG] = parfunc_save_study(STUDY,ALLEEG,...
@@ -786,6 +829,10 @@ writetable(data_store,[save_dir filesep sprintf('sbs_eeg_psd_%s.xlsx',fname_ext_
 par_save(data_store,save_dir,sprintf('sbs_eeg_psd_%s.mat',fname_ext_store));
 % writetable(data_store,[save_dir filesep 'step_by_step_eeg_table_indvfooof.xlsx']);
 % par_save(data_store,save_dir,'step_by_step_eeg_table_indvfooof.mat');
+%%
+% tmp_data_store = par_load(save_dir,sprintf('sbs_eeg_psd_%s.mat','slidingb5'));
+% inds = ([tmp_data_store.mu_ml_exc_mm_gc])==0);
+% subjs = unique(tmp_data_store.subj_char(inds));
 %% (TEST DATA) ========================================================= %%
 %{
 %## PARAMSd

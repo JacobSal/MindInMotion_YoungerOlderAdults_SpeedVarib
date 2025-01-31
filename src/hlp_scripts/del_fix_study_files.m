@@ -56,12 +56,15 @@ set_workspace
 %- datset name
 DATA_SET = 'MIM_dataset';
 %- study directory name
-STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
+% STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
+% STUDY_DNAME =  '01192025_mim_yaoa_nopowpow_crit_speed';
+STUDY_DNAME =  '01102025_mim_yaoa_spca_calcs';
 
 %- study name
 % STUDY_FNAME = 'kin_eeg_epoch_study';
 % STUDY_FNAME = 'all_comps_study';
-STUDY_FNAME = 'epoch_study';
+% STUDY_FNAME = 'epoch_study';
+STUDY_FNAME = 'spca_gait_epoch_study';
 
 %- eeg path extension
 % DIREXT = 'kin_eeg_anl';
@@ -69,7 +72,7 @@ DIREXT = '0p250p50p751p0flatlowmedhigh';
 % DIREXT = 'ICA';
 
 %-- eeg fname regex 
-EEG_FNAME_REGEX = '%s_0p250p50p751p0flatlowmedhigh_EPOCH_TMPEEG.set';
+EEG_FNAME_REGEX = '%s_0p250p50p751p0flatlowmedhigh_epochd.set';
 % EEG_FNAME_REGEX = 'eeg_imu_epochs.set';
 %% (PATHS)
 studies_fpath = [PATHS.data_dir filesep DATA_SET filesep '_studies'];

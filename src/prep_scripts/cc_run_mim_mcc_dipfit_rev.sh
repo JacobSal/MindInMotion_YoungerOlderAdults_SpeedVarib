@@ -8,11 +8,11 @@
 #SBATCH --mem-per-cpu=15000mb # Total memory limit
 #SBATCH --distribution=cyclic:cyclic # Distribute tasks cyclically first among nodes and then among sockets within a node
 #SBATCH --time=48:00:00 # Time limit hrs:min:sec
-#SBATCH --output=/blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/1_PREPROC/mim/_slurm_logs/%j_c_run_mim_mcc_dipfit.log # Standard output
+#SBATCH --output=/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_slurm_logs/%j_c_run_mim_mcc_dipfit.log # Standard output
 #SBATCH --account=dferris # Account name
 #SBATCH --qos=dferris-b # Quality of service name
 #SBATCH --partition=hpg-default # cluster to run on  use slurm command "sinfo -s"; bigmem
-# sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/1_PREPROC/mim/c_run_mim_mcc_dipfit.sh
+# sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/prep_scripts/c_run_mim_mcc_dipfit.sh
 
 # set linux workspace
 # check if script is started via SLURM or bash
@@ -26,8 +26,8 @@ else
     TMP_PATH=$(realpath $0)
 fi
 export SCRIPT_DIR=$(dirname $TMP_PATH)
+export SRC_DIR=$(dirname $SCRIPT_DIR))
 export STUDY_DIR=$SCRIPT_DIR
-export SRC_DIR=$(dirname $(dirname $STUDY_DIR))
 cd $STUDY_DIR
 
 echo "Date              = $(date)"
@@ -48,9 +48,9 @@ cond_vals=$(echo "[1.65,0.33,0.33,0.01,0.126,2.5*10^-14]"); # csf, gray, scalp, 
 # export cond_vals=$(echo "[1.65,0.33,0.33,0.0042,0.126,2.5*10^-14]"); # csf, gray, scalp, skull, white, air
 
 # SET SUBJECT DIRECTORIES
-export SUBJ_EEG="/blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/_studies/11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams"
+export SUBJ_EEG="/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams"
 export MCC_PATH="/blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/i_HEADMODEL/2_dipole_fit/MIM/mcc_dipfit/"
-export SUBJ_HEADMOD="/blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset"
+export SUBJ_HEADMOD="/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset"
 
 export SUBJ_RUN=("H1002" "H1004" "H1007" "H1009"
  "H1010" "H1011" "H1012" "H1013" "H1017" "H1018" "H1019"

@@ -55,7 +55,8 @@ set_workspace
 %- datset name
 DATA_SET = 'MIM_dataset';
 %- study name
-STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
+% STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
+STUDY_DNAME =  '01192025_mim_yaoa_nopowpow_crit_speed';
 STUDY_FNAME = 'kin_eeg_epoch_study';
 ANALYSIS_DNAME = 'kin_eeg_step_to_step';
 %-
@@ -70,8 +71,8 @@ studies_fpath = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
 CLUSTER_K = 11;
 CLUSTER_STUDY_NAME = 'temp_study_rejics5';
 % cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb10'];
-% cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb3'];
-cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb5'];
+cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb3'];
+% cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb5'];
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
 cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
 
@@ -103,64 +104,69 @@ if ~exist(save_dir,'dir')
 end
 %% (LOAD STATISTICS & DATA EXCEL SHEET FROM R) ========================= %%
 %## RAW STEP-BY-STEP DATA
-KIN_TABLE = par_load(save_dir,'sbs_eeg_psd_meandesignb.mat');
-% %- chk
-% subj_chars = unique(KIN_TABLE.subj_char);
-% strides = zeros(length(subj_chars),1);
-% for i = 1:length(subj_chars)
-%     tmp = KIN_TABLE(strcmp(subj_chars{i},KIN_TABLE.subj_char),:);
-%     strides(i) = max(tmp.stride_n);
-% end
-% fprintf('mean number of strides: %0.2f\n',mean(strides));
-% fprintf('std number of strides: %0.2f\n',std(strides));
-% %- r-stats
+KIN_TABLE = par_load(save_dir,'sbs_eeg_psd_meandesignb_nfslidingb5.mat');
+%- r-stats
 % RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_raw_stats_meandesignb.xlsx'], ...
 %     "FileType","spreadsheet","UseExcel",true);
-% X_DIM = 1;
+
+%- r-stats
+% KIN_TABLE = par_load(save_dir,'sbs_eeg_psd_slidingb5.mat');
+% RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_raw_stats_meandesignb.xlsx'], ...
+%     "FileType","spreadsheet","UseExcel",true);
+%- chk
+subj_chars = unique(KIN_TABLE.subj_char);
+strides = zeros(length(subj_chars),1);
+for i = 1:length(subj_chars)
+    tmp = KIN_TABLE(strcmp(subj_chars{i},KIN_TABLE.subj_char),:);
+    strides(i) = max([tmp.mu_stride_n]);
+end
+fprintf('mean number of strides: %0.2f\n',mean(strides));
+fprintf('std number of strides: %0.2f\n',std(strides));
+
+X_DIM = 2;
 
 %## MEAN & SD TABLE
-% KIN_TABLE = readtable([r_stats_dir filesep 'lme_eeg_kin_mean_sd_tbl_meandesignb.xlsx'], ...
+% KIN_TABLE = readtable([r_stats_dir filesep '01302025_lme_eeg_kin_meansd_slidingmeanb5_tbl.xlsx'], ...
 %     "FileType","spreadsheet", ...
 %     "UseExcel",true);
-% RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_mean_sd_stats_meandesignb.xlsx'], ...
+% RSTATS_IMPORT = readtable([r_stats_dir filesep '01302025_lme_eeg_kin_meansd_slidingmeanb5.xlsx'], ...
 %     "FileType","spreadsheet","UseExcel",true);
 %-
-% KIN_TABLE = readtable([r_stats_dir filesep 'lme_eeg_kin_mean_sd_cov_tbl.xlsx'], ...
+% KIN_TABLE = readtable([r_stats_dir filesep '013022025_lme_eeg_kin_raw_slidingavgb5.xlsx'], ...
 %     "FileType","spreadsheet", ...
 %     "UseExcel",true);
-% RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_mean_sd_cov_stats.xlsx'], ...
+% RSTATS_IMPORT = readtable([r_stats_dir filesep '013022025_lme_eeg_kin_meansd_slidingavgb5.xlsx'], ...
 %     "FileType","spreadsheet","UseExcel",true);
-X_DIM = 2;
-%% SLIDING AVERAGE PROCESS
-groups = unique(KIN_TABLE.group_char);
-group_chars = unique(KIN_TABLE.group_char);
-cond_chars = unique(KIN_TABLE.cond_char);
-speed_ns = unique(KIN_TABLE.speed_n);
-clusters = unique(RSTATS_IMPORT.cluster_num);
-
+% X_DIM = 2;
 %% MEASURES TO ANALYZE ================================================= %%
-%## MEAN SD MEASURES
-EEG_MEASURES = {'cov_avg_theta_post','avg_theta_post_fn2', ...
-    'cov_avg_theta_post','avg_alpha_post_fn2', ...
-    'cov_avg_theta_post','avg_beta_post_fn2'};
+%## SLIDING BASELINE MEASURES (RAW)
+EEG_MEASURES = {'mu_avg_theta','std_avg_theta', ...
+    'mu_avg_alpha','std_avg_alpha', ...
+    'mu_avg_beta','std_avg_alpha'};
 EEG_MEASURES_LABS = {'Mean \theta','Std. Dev. \theta', ...
     'Mean \alpha','Std. Dev. \alpha', ...
     'Mean \beta','Std. Dev. \beta'};
 MEASURE_SYMBOLS = {'\mu \theta','\sigma \theta', ...
     '\mu \alpha','\sigma \alpha', ...
     '\mu \beta','\sigma \beta'};
-%-
-EEG_MEASURES = {'avg_theta_post_fn1','avg_theta_post_fn2', ...
-    'cov_avg_theta_post','avg_theta_post_fn3'};
-EEG_MEASURES_LABS = {'Mean \theta','Std. Dev. \theta', ...
-    'COV \theta','Median \theta'};
-MEASURE_SYMBOLS = {'\mu \theta','\sigma \theta', ...
-    'COV \theta','Med. \theta'};
-%-
-KINNAMES = {'ml_exc_mm_gc_fn1','ml_exc_mm_gc_fn2','ml_exc_mm_gc_fn3'};
-KINNAMES_LABS = {'Mean ML Excursion (m)','Std. ML Excursion (m)','Med. ML Excursion (m)'};
-tmp_savedir = [save_dir filesep 'mean_std_all_kin_eeg'];
 
+%-
+% EEG_MEASURES = {'mu_avg_theta_fn1','mu_avg_theta_fn2', ...
+%     'mu_avg_theta_cov'};
+% EEG_MEASURES_LABS = {'Mean \theta','Std. Dev. \theta', ...
+%     'COV \theta'};
+% MEASURE_SYMBOLS = {'\mu \theta','\sigma \theta', ...
+%     'COV \theta'};
+%-
+KINNAMES = {'mu_ml_exc_mm_gc','mu_step_dur', ...
+    'std_ml_exc_mm_gc','std_step_dur'};
+KINNAMES_LABS = {'Mean ML Excursion (m)','Mean Step Dur. (s)', ...
+    'Std. Dev. ML Excursion (m)','Std Dev. Step Dur. (s)'};
+tmp_savedir = [save_dir filesep 'meandes_sliding_mustd_all'];
+
+% KINNAMES = {'mu_ml_exc_mm_gc','mu_ml_exc_mm_gc','mu_ml_exc_mm_gc'};
+% KINNAMES_LABS = {'Mean ML Excursion (m)','Std. ML Excursion (m)','Med. ML Excursion (m)'};
+% tmp_savedir = [save_dir filesep 'mean_std_all_kin_eeg'];
 %## RAW STEP MEASURES
 % EEG_MEASURES = {'avg_theta_post','avg_alpha_post','avg_beta_post'};
 % EEG_MEASURES_LABS = {'Mean \theta_{i}','Mean \alpha_{i}','Mean \beta_{i}'};
@@ -171,17 +177,10 @@ tmp_savedir = [save_dir filesep 'mean_std_all_kin_eeg'];
 % tmp_savedir = [save_dir filesep 'raw_all_kin_eeg'];
 %% ===================================================================== %%
 %## SPEED MANUSCRIPT GROUP PLOT
-
-%## (01/16/2025) __iclabel_kmeansalt_rb10
-% cluster_titles = {'','','Right Sensorimotor','Mid Cingulate','Left Temporal','Right Occipital',...
-%     'Right Premotor','Left Occipital','Left Sensorimotor','Right Posterior Parietal',...
-%     'Left Posterior Parietal',...
-%     'Left Supplementary Motor','Right Temporal'};
-%## (01/22/2025) __iclabel_kmeasalt_rb5
-cluster_titles = {'','','Anterior Cingulate','Right Sensorimotor','Left Occipital','Left Supplementary Motor',...
-    'Mid Cingulate','Precuneus','Left Sensorimotor','Left Posterior Parietal',...
-    'Right Temporal',...
-    'Right Occipital','Right Posterior Parietal'};
+%## (01/30/2025) __iclabel_kmeasalt_rb3  % '01192025_mim_yaoa_nopowpow_crit_speed';
+cluster_titles = {'','','Right Sensorimotor','Precuneus','Left Sensorimotor','Right Occipital','Mid Cingulate',...
+    'Left Occipital','Left Temporal','Left Supplementary Motor','Right Temporal','Left Posterior Parietal',...
+    'Right Posterior Parietal'};
 %-
 % desdes = cat(1,STUDY.design.variable);
 % c_chars_d = desdes(strcmp({desdes.label},'cond'));
@@ -190,8 +189,12 @@ cluster_titles = {'','','Anterior Cingulate','Right Sensorimotor','Left Occipita
 % g_chars_d = {g_chars_d.value};
 
 %## PLOT PARAMS
-AXES_DEFAULT_PROPS = {'box','off','xtick',[],'ytick',[],...
-        'ztick',[],'xcolor',[1,1,1],'ycolor',[1,1,1]};
+AXES_DEFAULT_PROPS = {'box','off', ...
+    'xtick',[], ...
+    'ytick',[], ...
+    'ztick',[], ...
+    'xcolor',[1,1,1], ...
+    'ycolor',[1,1,1]};
 %-
 COLORS = cmap_speed;
 ALPHA = 0.05;
@@ -313,6 +316,15 @@ for cl_i = 1:length(clusters)
             %- get speeds & subjects
             speed_ns = unique(tmp_tbl.speed_n);
             subjects = unique(tmp_tbl.subj_char);
+
+            %## DETERMINE AXES LIMITS & EXTRACT STATS
+            % y_lim_calc = [mean(tmp_tbl.(EEG_MEASURES{meas_i}))-3.5*std(tmp_tbl.(EEG_MEASURES{meas_i})),...
+            %     mean(tmp_tbl.(EEG_MEASURES{meas_i}))+3.5*std(tmp_tbl.(EEG_MEASURES{meas_i}))];
+            y_lim_calc = [min(tmp_tbl.(EEG_MEASURES{meas_i}))-1*std(tmp_tbl.(EEG_MEASURES{meas_i})),...
+                max(tmp_tbl.(EEG_MEASURES{meas_i}))+1*std(tmp_tbl.(EEG_MEASURES{meas_i}))];
+            
+            x_lim_calc = [min(tmp_tbl.(KINNAMES{kin_i}))-std(tmp_tbl.(KINNAMES{kin_i})),...
+                max(tmp_tbl.(KINNAMES{kin_i}))+std(tmp_tbl.(KINNAMES{kin_i}))];
             
             %## ASSIGN STATS
             tmp_stats = RSTATS_IMPORT.cluster_num==double(string(clusters(cl_i))) &...
@@ -335,34 +347,36 @@ for cl_i = 1:length(clusters)
             %     tmp_tbl(ind,EEG_MEASURES{meas_i}) = tmp_tbl(ind,EEG_MEASURES{meas_i})-int;
             % end
 
-            %## DETERMINE AXES LIMITS & EXTRACT STATS
-            % y_lim_calc = [mean(tmp_tbl.(EEG_MEASURES{meas_i}))-3.5*std(tmp_tbl.(EEG_MEASURES{meas_i})),...
-            %     mean(tmp_tbl.(EEG_MEASURES{meas_i}))+3.5*std(tmp_tbl.(EEG_MEASURES{meas_i}))];
-            y_lim_calc = [min(tmp_tbl.(EEG_MEASURES{meas_i}))-1*std(tmp_tbl.(EEG_MEASURES{meas_i})),...
-                max(tmp_tbl.(EEG_MEASURES{meas_i}))+1*std(tmp_tbl.(EEG_MEASURES{meas_i}))];
-            
-            x_lim_calc = [min(tmp_tbl.(KINNAMES{kin_i}))-std(tmp_tbl.(KINNAMES{kin_i})),...
-                max(tmp_tbl.(KINNAMES{kin_i}))+std(tmp_tbl.(KINNAMES{kin_i}))];
-            %- eta/f2
-            % F2_sp = tmp_stats.fsq_sp;
-            % F2_kin = tmp_stats.fsq_kin;
-            fsq_intact = tmp_stats.fsq_intact;
-            
-            % F2 = tmp_stats.etasq_sp;
-            % F2 = tmp_stats.etasq_kin;
-            %- intercepts
-            % R2 = tmp_stats.r2_m_int;
-            % F2 = tmp_stats.f2_m_int;
-            R2 = tmp_stats.r2_c_int;
-            % F2 = tmp_stats.f2_c_int;
-            %-
-            anova_p_kin = tmp_stats.pval_kin;
-            anova_p_sp = tmp_stats.pval_sp;
-            anova_p_intact = tmp_stats.pval_intact;
-            slope_sp = tmp_stats.coeff_sp;
-            slope_kin = tmp_stats.coeff_kin;
-            slope_intact = tmp_stats.coeff_intact;
-            inter_mn = tmp_stats.coeff_int;
+            % %- eta/f2
+            % % F2_sp = tmp_stats.fsq_sp;
+            % % F2_kin = tmp_stats.fsq_kin;
+            % fsq_intact = tmp_stats.fsq_intact;
+            % 
+            % % F2 = tmp_stats.etasq_sp;
+            % % F2 = tmp_stats.etasq_kin;
+            % %- intercepts
+            % % R2 = tmp_stats.r2_m_int;
+            % % F2 = tmp_stats.f2_m_int;
+            % R2 = tmp_stats.r2_c_int;
+            % % F2 = tmp_stats.f2_c_int;
+            % %-
+            % anova_p_kin = tmp_stats.pval_kin;
+            % anova_p_sp = tmp_stats.pval_sp;
+            % anova_p_intact = tmp_stats.pval_intact;
+            % slope_sp = tmp_stats.coeff_sp;
+            % slope_kin = tmp_stats.coeff_kin;
+            % slope_intact = tmp_stats.coeff_intact;
+            % inter_mn = tmp_stats.coeff_int;
+            %## TEST TEST
+            fsq_intact = 1;
+            R2 = 1;
+            anova_p_kin = 1;
+            anova_p_sp = 1;
+            anova_p_intact = 1;
+            slope_sp = 1;
+            slope_kin = 1;
+            slope_intact = 1;
+            inter_mn = 1;
             %## SCATTER
             %- plot
             ax = axes();
