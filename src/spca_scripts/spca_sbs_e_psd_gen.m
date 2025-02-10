@@ -2,7 +2,7 @@
 %
 %   Code Designer: Jacob salminen
 %## SBATCH (SLURM KICKOFF SCRIPT)
-% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/spca_scripts/run_e_psd_gen.sh
+% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/spca_scripts/run_spca_sbs_e_psd_gen.sh
 
 %{
 %## RESTORE MATLAB
@@ -345,6 +345,7 @@ parfor subj_i = 1:length(STUDY_REST.datasetinfo)
         psd_avg = psd_f;
         psd_corr_psc1 = zeros(size(psd_f));
         psd_baselined = zeros(size(psd_f));
+        based_psd_corr = zeros(size(psd_f));
         % for cond_i = 1:length(conds)
         for s_i = 1:size(psd_f,2)
             %## STRIDE-BY-STRIDE IMPLEMENT OF SPCA
@@ -362,10 +363,11 @@ parfor subj_i = 1:length(STUDY_REST.datasetinfo)
             'baseline_psd',base_txf_mean,...
             'psd_corr_psc1',psd_corr_psc1,...
             'psd_orig_baselined',psd_baselined,...
+            'trialinfo',trialinfo,...
             'freqs',freqs,...
             'coeffs',coeffs);
         par_save(struct_out,fpath,sprintf('psd_sbs_struct.mat'));
-        end
+        
         
         %## CLEANUP AND FREE UP DRIVE SPACE
         % fpath = [epoched_fPath filesep [tmp_epoch_params.gait_trial_chars{:}]];

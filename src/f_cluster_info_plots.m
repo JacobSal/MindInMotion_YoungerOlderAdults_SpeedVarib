@@ -67,7 +67,7 @@ cluster_fpath = [studies_dir filesep sprintf('%s',STUDY_DNAME) filesep '__iclabe
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
 cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
 %- save dir
-save_dir = [cluster_k_dir filesep 'topo_dip_inf' filesep 'valid_figure_gen'];
+save_dir = [cluster_k_dir filesep 'topo_dip_inf' filesep 'keep_figure_gen'];
 if ~exist(save_dir,'dir')
     mkdir(save_dir);
 end
@@ -91,7 +91,7 @@ STUDY.cluster = cl_struct;
 [comps_out,main_cl_inds,outlier_cl_inds,valid_clusters] = eeglab_get_cluster_comps(STUDY);
 % cluster_inds = main_cl_inds(1:end);
 % cluster_inds = valid_clusters;
-cluster_inds = [3,4,6,7,8,9,10,13]; % 01192025_mim_yaoa_nopowpow_crit_speed, rb3
+cluster_inds = [3,4,5,7,10,12,13]; % 01192025_mim_yaoa_nopowpow_crit_speed, rb3
 
 % cluster_inds = [3,4,6,7,8,9,10,13]; % 01192025_mim_yaoa_nopowpow_crit_speed, rb3
 %- save dir
@@ -156,13 +156,13 @@ ANATOMY_STRUCT = struct('atlas_fpath',{{[path_aal3 filesep 'AAL3v1.nii'], ...
 groups = unique({STUDY.datasetinfo.group});
 AX_HORIZ_SHIFT = 0.4;
 AX_VERT_SHIFT = 0.05;
-DIP_IM_DPI = 1200;
+DIP_IM_DPI = 900;
 AX_INIT_HORIZ_TOPO = 0.085;
 AX_INIT_VERT_TOPO = 0.75;
 FIGURE_POSITION =[1,1,6.5,9];
 PG_SIZE = [6.5,9];
 FONT_NAME = 'Arial';
-TOPO_FONTSIZE = 7;
+TOPO_FONTSIZE = 6;
 HZ_DIM = 3;
 g_chars = unique({STUDY.datasetinfo.group});
 g_chars_topo = {'Young Adults','Older High Mobility Adults','Older Low Mobility Adults'};

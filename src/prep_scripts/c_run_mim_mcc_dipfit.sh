@@ -26,7 +26,7 @@ else
     TMP_PATH=$(realpath $0)
 fi
 export SCRIPT_DIR=$(dirname $TMP_PATH)
-export SRC_DIR=$(dirname $SCRIPT_DIR))
+export SRC_DIR=$(dirname $SCRIPT_DIR)
 export STUDY_DIR=$SCRIPT_DIR
 cd $STUDY_DIR
 
@@ -46,34 +46,38 @@ echo $LD_LIBRARY_PATH
 export DONOT_RECREATE=false;
 cond_vals=$(echo "[1.65,0.33,0.33,0.01,0.126,2.5*10^-14]"); # csf, gray, scalp, skull, white, air
 # export cond_vals=$(echo "[1.65,0.33,0.33,0.0042,0.126,2.5*10^-14]"); # csf, gray, scalp, skull, white, air
+export MCC_DIR="/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_Functions/src/_mcc_funcs/mcc_dipfit"
 
 # SET SUBJECT DIRECTORIES
 export SUBJ_EEG="/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams"
 export SUBJ_HEADMOD="/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset"
 
-export SUBJ_RUN=("H1002" "H1004" "H1007" "H1009"
- "H1010" "H1011" "H1012" "H1013" "H1017" "H1018" "H1019"
- "H1020" "H1022" "H1024" "H1025" "H1026" "H1027" "H1029" "H1030"
- "H1031" "H1032" "H1033" "H1034" "H1035"
- "H1036" "H1037" "H1038" "H1039" "H1041"
- "H1042" "H1044" "H1045" "H1046" "H1047" "H1048"
- "H2002" "H2007" "H2008" "H2012_FU"
- "H2013" "H2015" "H2017" "H2018_FU" "H2020" "H2021"
- "H2022" "H2023" "H2025" "H2026" "H2027"
- "H2033" "H2034" "H2037" "H2038" "H2039"
- "H2042" "H2052" "H2059" "H2062" "H2082"
- "H2090" "H2095" "H2111" "H2117"
- "H3029" "H3034" "H3039" "H3053"
- "H3063" "H3072" "H3092" "H3103" "H3107" "H3120"
- "NH3006" "NH3007" "NH3008" "NH3010" "NH3021"
- "NH3026" "NH3030" "NH3036" "NH3040"
- "NH3041" "NH3043" "NH3054"
- "NH3055" "NH3058" "NH3059" "NH3066"
- "NH3068" "NH3069" "NH3070" "NH3074"
- "NH3076" "NH3086" "NH3090" "NH3102"
- "NH3104" "NH3105" "NH3106" "NH3108" "NH3110"
- "NH3112" "NH3113" "NH3114" "NH3123" "NH3128" "NH3129") # JACOB SAL(08/23/2023)
-
+# export SUBJ_RUN=("H1002" "H1004" "H1007" "H1009"
+#  "H1010" "H1011" "H1012" "H1013" "H1017" "H1018" "H1019"
+#  "H1020" "H1022" "H1024" "H1025" "H1026" "H1027" "H1029" "H1030"
+#  "H1031" "H1032" "H1033" "H1034" "H1035"
+#  "H1036" "H1037" "H1038" "H1039" "H1041"
+#  "H1042" "H1044" "H1045" "H1046" "H1047" "H1048"
+#  "H2002" "H2007" "H2008" "H2012_FU"
+#  "H2013" "H2015" "H2017" "H2018_FU" "H2020" "H2021"
+#  "H2022" "H2023" "H2025" "H2026" "H2027"
+#  "H2033" "H2034" "H2037" "H2038" "H2039"
+#  "H2042" "H2052" "H2059" "H2062" "H2082"
+#  "H2090" "H2095" "H2111" "H2117"
+#  "H3029" "H3034" "H3039" "H3053"
+#  "H3063" "H3072" "H3092" "H3103" "H3107" "H3120"
+#  "NH3006" "NH3007" "NH3008" "NH3010" "NH3021"
+#  "NH3026" "NH3030" "NH3036" "NH3040"
+#  "NH3041" "NH3043" "NH3054"
+#  "NH3055" "NH3058" "NH3059" "NH3066"
+#  "NH3068" "NH3069" "NH3070" "NH3074"
+#  "NH3076" "NH3086" "NH3090" "NH3102"
+#  "NH3104" "NH3105" "NH3106" "NH3108" "NH3110"
+#  "NH3112" "NH3113" "NH3114" "NH3123" "NH3128" "NH3129") # JACOB SAL(08/23/2023)
+export SUBJ_RUN=("H3046" "H3047" "H3073" "H3077" 
+"H3092" "NH3023" "NH3025" "NH3027" 
+"NH3028" "NH3051" "NH3056" "NH3071" 
+"NH3082" "NH3123")
 
 # %% LOOP through a particular cohort of subjects
 for s in ${SUBJ_RUN[@]};
@@ -103,7 +107,7 @@ do
 			force_recreate=1;
 		fi
 		# %% run program
-		eval $STUDY_DIR/_compiled/_out/run_mcc_dipfit.sh $MCRROOT "$mri_f" "$set_f" "$out_f" "VOL_CONDUCTIVITIES"  "$cond_vals" "FORCE_RECREATE" "$force_recreate"
+		eval $MCC_DIR/_out/run_mcc_dipfit.sh $MCRROOT "$mri_f" "$set_f" "$out_f" "VOL_CONDUCTIVITIES"  "$cond_vals" "FORCE_RECREATE" "$force_recreate"
 		wait
 		echo "done: $s"
 	fi

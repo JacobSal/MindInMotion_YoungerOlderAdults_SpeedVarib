@@ -2,7 +2,7 @@
 %
 %   Code Designer: Jacob salminen
 %## SBATCH (SLURM KICKOFF SCRIPT)
-% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_bash_sh_files/run_sts_b_epoch_eeg_kin.sh
+% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/step_to_step_anlz/run_sts_b_epoch_eeg_kin.sh
 
 %{
 %## RESTORE MATLAB
@@ -107,7 +107,7 @@ else
     STUDY_PROC = tmp.STUDY;
 end
 %% Store fNames and fPaths
-subj_chars          = [SUBJ_PICS{:}];
+subj_chars          = {STUDY_PROC.datasetinfo.subject}; %[SUBJ_PICS{:}];
 fNames              = cell(1,length([SUBJ_PICS{:}]));
 fPaths              = cell(1,length([SUBJ_PICS{:}]));
 chanlocs_fPaths     = cell(1,length([SUBJ_PICS{:}]));
@@ -140,9 +140,10 @@ tmp_alleeg = cell(length(fPaths),1);
 %## PATHING UPDATES
 % path(unix_genpath([PATHS.submods_dir filesep 'Gait Tracking With x-IMU']),path);
 path(unix_genpath([PATHS.submods_dir filesep 'gait_tracking_w_imu']),path);
-
+crop_xlsx_fpath = [studies_dir filesep 'subject_mgmt' filesep 'Trial_Cropping_V2_test.xlsx'];
 %##
 parfor subj_i = 1:length(subj_chars)
+    fprintf('Running subject: %s...\n',subj_chars{subj_i});
     tmp_epoch_params = EPOCH_PARAMS;
     EEG = []; 
     tmp_biom = {};
@@ -162,7 +163,7 @@ parfor subj_i = 1:length(subj_chars)
         tmp_biom = cell(size(fileList,1),1);
         for trial_i = 1:size(fileList,1)
             %- Load trial
-            trial_i = 10; trial_i = 15;
+            % trial_i = 10; trial_i = 15;
             EEG = pop_loadset('filename',fileList(trial_i).name,'filepath',trial_fpath);
             %(11/22/2024) JS, trying to fix a bug where the IMU channels don't get
             %loaded if I load using the pop_loadset function. Actually they get
@@ -191,7 +192,12 @@ parfor subj_i = 1:length(subj_chars)
             ls_chans = find(contains({EEG.chanlocs.labels},'GRF','IgnoreCase',true));
             EEG.data(isnan(EEG.data)) = 0;
             EEG = pop_select(EEG,'channel',sort([back_imu_chans,ls_chans]));
-            %- calculate body and world positions
+            EEG.subject = subj_chars{subj_i};
+            %-- crop trials?? 
+            % [EEG_IMU] = imu_crop_trials(EEG, crop_xlsx_fpath);
+            %(02/03/2025) JS, pretty sure this is performed later on when
+            %the data is cropped using the laready cleaned ICA .set file.
+            %-- calculate body and world positions
             %(12/11/2024) JS, changing the position grabbing alg. to on a
             %per trial basis instead of at the total experiment level.
             if any(subj_i==[1,40,70])
@@ -199,7 +205,7 @@ parfor subj_i = 1:length(subj_chars)
             else
                 export_res = 300;
             end
-            EEG = imu_get_pos_coords(EEG);
+            EEG = imu_get_pos_coords(EEG, crop_xlsx_fpath);
             nn = strsplit(fileList(trial_i).name,'.')
             fh = imu_valid_plots(EEG,tmp_savedir,sprintf('%s_%s_',subj_chars{subj_i},nn{1}),...
                 'EXPORT_RES',export_res);
@@ -208,7 +214,7 @@ parfor subj_i = 1:length(subj_chars)
             tmp_biom{trial_i} = EEG;
             % pop_eegplot( EEG, 1, 1, 1);
             fprintf('percent data points nan: %0.2g\n',sum(logical(isnan(tmp_biom{trial_i}.data)),'all')/(size(tmp_biom{trial_i}.data,1)*size(tmp_biom{trial_i}.data,2)));
-        end        
+        end
         %##
         tmp_biom = tmp_biom(~cellfun(@isempty,tmp_biom));
         %## BOOKKEEPING (i.e., ADD fields not similar across EEG structures)
@@ -227,6 +233,8 @@ parfor subj_i = 1:length(subj_chars)
         world_chans = find(contains({tmp_biom.chanlocs.labels},'world','IgnoreCase',true));
         tmp_biom.nbchan = length(tmp_biom.chanlocs);
         tmp_biom = pop_select(tmp_biom,'channel',sort([body_chans,world_chans]));
+        % fh = imu_valid_plots(tmp_biom,tmp_savedir,sprintf('%s_%s_',subj_chars{subj_i},nn{1}),...
+        %         'EXPORT_RES',export_res);
     catch e
         fprintf('%s) Error. in BioM struct construction...\n\n%s',subj_chars{subj_i},getReport(e))
         cont_proc = false;
@@ -242,11 +250,23 @@ parfor subj_i = 1:length(subj_chars)
             biom_chans = find(strcmpi('BioM',{tmp_biom.chanlocs.type}));
             %- check data
             fprintf('percent data points nan: %0.2g\n',sum(logical(isnan(tmp_biom.data)),'all')/(size(tmp_biom.data,1)*size(tmp_biom.data,2)));
-            
+            % fh = imu_valid_plots(tmp_biom,tmp_savedir,sprintf('%s_%s_',subj_chars{subj_i},'postmerge'),...
+            %     'EXPORT_RES',100);
             %## MERGE BIOM & EEG DATA
             tmp = EEG;
-            tmp.data = [tmp.data(:,:);
-                tmp_biom.data(:,tmp.etc.clean_artifacts.clean_sample_mask)];
+            %-- test
+            % tmp.data = tmp.data(:,1:10000);
+            % tmpd = tmp_biom.data(:,1:10000);
+            %--
+            chk = logical(tmp.etc.clean_artifacts.clean_sample_mask);
+            % chk = tmp.etc.clean_artifacts.clean_sample_mask;
+            tmpd = tmp_biom.data(:,chk);
+            tmpd = cat(1,tmp.data, ...
+                tmpd);
+            tmp.data = tmpd;
+            %(02/04/2025) JS, this is hands down the most annoying bug I've
+            %ever encountered. The data was being 0'ed out because the chk
+            %variable was not a logical type :( .
             %- add in chanlocs information
             n_eeg_chans = length(eeg_chans);
             for chan = 1:length(sort(biom_chans))
@@ -266,7 +286,7 @@ parfor subj_i = 1:length(subj_chars)
             %## REJECT NON BRAIN COMPONENTS
             % THRESH_BRAIN_SCORE = 8;
             % tmp_icrej = load([save_dir filesep subj_chars{subj_i} filesep 'ICA' filesep sprintf('%s_allcond_ICA_TMPEEG.set',subj_chars{subj_i})],'-mat');
-            ind = strcmp({tmp_study_proc.datasetinfo.subject},subj_chars{subj_i})
+            ind = strcmp({tmp_study_proc.datasetinfo.subject},subj_chars{subj_i});
             tmp_icrej = load([tmp_study_proc.datasetinfo(ind).filepath filesep tmp_study_proc.datasetinfo(ind).filename],'-mat');
             biom_chans = find(strcmpi('BioM',{tmp.chanlocs.type}));
             ics_keep = tmp_icrej.etc.urreject.ic_keep;
@@ -287,10 +307,13 @@ parfor subj_i = 1:length(subj_chars)
             %}
             tmp = pop_select(tmp,'channel',sort([ics_keep, biom_chans]));
             tmp.etc.urreject = urreject;
+            
             %## REASSIGN
             EEG = tmp;
             tmp = struct.empty; % memory clean-up
             EEG.subject = subj_chars{subj_i};
+            % fh = imu_valid_plots(EEG,tmp_savedir,sprintf('%s_%s_',subj_chars{subj_i},'postrej'),...
+            %     'EXPORT_RES',100);
             
             %## DIPFIT INFO
             fprintf('Trying to load .mat file...\n');
@@ -369,6 +392,8 @@ parfor subj_i = 1:length(subj_chars)
             end
             ALLEEG = pop_saveset(ALLEEG,'filepath',[save_dir filesep ALLEEG.subject filesep KIN_DNAME_EXT],'filename','eeg_imu_epochs.set');
             tmp_alleeg{subj_i} = ALLEEG;
+            % fh = imu_valid_plots(ALLEEG,tmp_savedir,sprintf('%s_%s_',subj_chars{subj_i},nn{1}),...
+            %     'EXPORT_RES',export_res);
         catch e
             fprintf('%s) Error. in EEG/BioM epoching process...\n\n%s',subj_chars{subj_i},getReport(e))
             % tmp_alleeg{subj_i} = [];

@@ -131,34 +131,51 @@ def_spca_struct = struct('subj_c',{''}, ...
     'psd_corr_psc1',{[]}, ...
     'tf_coeff_c',{[]});
 %% TABLE CONSTRUCTION ================================================== %%
-
-subj_chars = {'H1019','H1022','H1017','H1007','H1030','H1004','H1012','H1036', ...
-    'H2026','H1048','H2095','H2015','H2013','H1041','NH3066','NH3090','NH3026','H2034', ...
-    'NH3030','NH3058','NH3128'};
+% subj_subset = {'H1019','H1022','H1017','H1007','H1030','H1004','H1012','H1036', ...
+%     'H2026','H1048','H2095','H2015','H2013','H1041','NH3066','NH3090','NH3026','H2034', ...
+%     'NH3030','NH3058','NH3128'};
 struct_store = cell(length(subj_chars),1);
-% parfor subj_i = 1:length(subj_chars)
-for ii = 1:3
-    subj_i = find(strcmp(subj_chars{ii},{STUDY.datasetinfo.subject}));
+parfor subj_i = 1:length(subj_chars)
+% for ii = 1
+    % subj_i = find(strcmp(subj_subset{ii},subj_chars));
     %## INITIATION
     tmp_study = STUDY;
     spca_struct = repmat(def_spca_struct,[1,length(main_cl_inds)*length(gait_conds)]);
     cnt = 1;
     %## LOAD EEG DATA
     try
+        %## OLD CODE
+        fpath = [ica_data_dir filesep subj_chars{subj_i} filesep 'clean'];
+        tmp = dir([fpath filesep '*.set']);
+        [~,EEG_FULL,~] = eeglab_loadICA(tmp.name,tmp.folder);
+        fprintf('Running subject %s\n',subj_chars{subj_i})
+        EEG_FULL = iclabel(EEG_FULL);
+        clssts = EEG_FULL.etc.ic_classification.ICLabel.classifications;
+        bad_eye_ics = find(clssts(:,3) > ICLABEL_EYE_CUTOFF);
+        %- figure out unmixing for cluster assignment
+        ics_orig = 1:size(EEG_FULL.icaweights,2);
+        tmp_cut = ics_orig;
+        tmp_cut(bad_eye_ics) = [];
+        [valc,ordc] = sort(tmp_cut);
+        unmix_mat = [valc; ordc];
+        %## NEW CODE
         %- load spca eeg
         % EEG = pop_loadset('filepath',spca_eeg_fpaths{subj_i},'filename',spca_eeg_fnames{subj_i});
-        EEG = load([spca_eeg_fpaths{subj_i} filesep spca_eeg_fnames{subj_i}],'-mat');
-        unmix_mat = EEG.etc.spca.unmix_mat;
-        bad_eye_ics = EEG.etc.spca.eye_ic_rej;
+        % EEG = load([spca_eeg_fpaths{subj_i} filesep spca_eeg_fnames{subj_i}],'-mat');
+        % unmix_mat = EEG.etc.spca.unmix_mat;
+        % bad_eye_ics = EEG.etc.spca.eye_ic_rej;
+        %(01/31/2025) this doesn't seem to be consistent with the above
+        %older code. Unsure if iclabel is calculating things wrong when I
+        %do the initial epoch generation or something.
         %- load ica eeg
         % EEG = pop_loadset('filepath',eeg_fpaths{subj_i},'filename',eeg_fnames{subj_i});
-        EEG_ICA = load([spca_eeg_fpaths{subj_i} filesep spca_eeg_fnames{subj_i}],'-mat');
+        EEG = load([eeg_fpaths{subj_i} filesep eeg_fnames{subj_i}],'-mat');
         fprintf('Running subject %s\n',EEG.subject)        
         ic_keep = EEG.etc.urreject.ic_keep;
         ic_rej = EEG.etc.urreject.ic_rej;
         %- perhaps a new way of determining clusters 
         tmp1 = cat(1,EEG.dipfit.model.posxyz);
-        tmp2 = cat(1,EEG_ICA.dipfit.model.posxyz);
+        tmp2 = cat(1,EEG_FULL.dipfit.model.posxyz);
         dips = zeros(size(tmp2,1),1);
         for i = 1:size(tmp1,1)
             ind = find(all(tmp1(i,:)==tmp2,2));

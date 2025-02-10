@@ -220,7 +220,19 @@ parfor subj_i = 1:length(eeg_fpaths)
         EEG = mim_load_one_subj(eeg_fnames{subj_i},eeg_fpaths{subj_i},...
             subj_chars{subj_i},cond_chars{subj_i},group_chars{subj_i},sess_chars{subj_i},...
             'LOAD_STRUCT',tmp_load_struct)
-    
+
+        %## IDENTIFY EYE IC'S
+        EEG = iclabel(EEG);
+        clssts = EEG.etc.ic_classification.ICLabel.classifications;
+        bad_eye_ics = find(clssts(:,3) > ICLABEL_EYE_CUTOFF);
+        EEG.etc.spca.eye_ic_rej = bad_eye_ics;
+        ics_orig = 1:size(EEG.icaweights,2);
+        tmp_cut = ics_orig;
+        tmp_cut(bad_eye_ics) = [];
+        [valc,ordc] = sort(tmp_cut);
+        unmix = [valc; ordc];
+        EEG.etc.spca.unmix_mat = unmix;
+
         %## REJECT ICS
         fprintf('%s) Rejecting EEG independent components...\n',subj_chars{subj_i});
         tmp_rej_struct.plot_save_dir = tmp_save_dir;
@@ -249,20 +261,9 @@ parfor subj_i = 1:length(eeg_fpaths)
                 EEG.icaact = (EEG.icaweights*EEG.icasphere)*EEG.data(EEG.icachansind,:);
                 EEG.icaact = reshape( EEG.icaact, size(EEG.icaact,1), EEG.pnts, EEG.trials);
             end
-
-            %## IDENTIFY & REMOVE EYE IC'S
-            EEG = iclabel(EEG);
-            clssts = EEG.etc.ic_classification.ICLabel.classifications;
-            bad_eye_ics = find(clssts(:,3) > ICLABEL_EYE_CUTOFF);
-            EEG = pop_subcomp(EEG,bad_eye_ics,0,0);
-            EEG = eeg_checkset(EEG,'loaddata');
-            EEG.etc.spca.eye_ic_rej = bad_eye_ics;
-            ics_orig = 1:size(EEG.icaweights,2);
-            tmp_cut = ics_orig;
-            tmp_cut(bad_eye_ics) = [];
-            [valc,ordc] = sort(tmp_cut);
-            unmix = [valc; ordc];
-            EEG.etc.spca.unmix_mat = unmix;
+            
+            %## REMOVE EYE IC'S
+            EEG = pop_subcomp(EEG,bad_eye_ics,0,0);            
             if isempty(EEG.icaact)
                 fprintf('%s) Recalculating ICA activations\n',EEG.subject);
                 EEG.icaact = (EEG.icaweights*EEG.icasphere)*EEG.data(EEG.icachansind,:);

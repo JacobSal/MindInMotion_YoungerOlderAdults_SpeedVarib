@@ -103,41 +103,20 @@ if ~exist(save_dir,'dir')
     mkdir(save_dir);
 end
 %% (LOAD STATISTICS & DATA EXCEL SHEET FROM R) ========================= %%
-%## RAW STEP-BY-STEP DATA
-KIN_TABLE = par_load(save_dir,'sbs_eeg_psd_meandesignb_nfslidingb5.mat');
-%- r-stats
-% RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_raw_stats_meandesignb.xlsx'], ...
-%     "FileType","spreadsheet","UseExcel",true);
+%## FNAMES
+%-- .mat
+fext = 'new_meancondb_nfsliding6';
+% fext = 'new_meandesignb_nfsliding6_stats';
+% fext = 'new_sliding6_stats';
+%-- r stats
+fextr = 'new_meancondb_nfsliding6';
 
-%- r-stats
-% KIN_TABLE = par_load(save_dir,'sbs_eeg_psd_slidingb5.mat');
-% RSTATS_IMPORT = readtable([r_stats_dir filesep 'lme_eeg_kin_raw_stats_meandesignb.xlsx'], ...
-%     "FileType","spreadsheet","UseExcel",true);
-%- chk
-subj_chars = unique(KIN_TABLE.subj_char);
-strides = zeros(length(subj_chars),1);
-for i = 1:length(subj_chars)
-    tmp = KIN_TABLE(strcmp(subj_chars{i},KIN_TABLE.subj_char),:);
-    strides(i) = max([tmp.mu_stride_n]);
-end
-fprintf('mean number of strides: %0.2f\n',mean(strides));
-fprintf('std number of strides: %0.2f\n',std(strides));
-
+%## IMPORT DATA
+KIN_TABLE = par_load(save_dir,sprintf('sbs_eeg_psd_%.mat',fext));
+%-- r-stats
+RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('013022025_lme_eeg_kin_%s_stats.xlsx',fextr)], ...
+    "FileType","spreadsheet","UseExcel",true);
 X_DIM = 2;
-
-%## MEAN & SD TABLE
-% KIN_TABLE = readtable([r_stats_dir filesep '01302025_lme_eeg_kin_meansd_slidingmeanb5_tbl.xlsx'], ...
-%     "FileType","spreadsheet", ...
-%     "UseExcel",true);
-% RSTATS_IMPORT = readtable([r_stats_dir filesep '01302025_lme_eeg_kin_meansd_slidingmeanb5.xlsx'], ...
-%     "FileType","spreadsheet","UseExcel",true);
-%-
-% KIN_TABLE = readtable([r_stats_dir filesep '013022025_lme_eeg_kin_raw_slidingavgb5.xlsx'], ...
-%     "FileType","spreadsheet", ...
-%     "UseExcel",true);
-% RSTATS_IMPORT = readtable([r_stats_dir filesep '013022025_lme_eeg_kin_meansd_slidingavgb5.xlsx'], ...
-%     "FileType","spreadsheet","UseExcel",true);
-% X_DIM = 2;
 %% MEASURES TO ANALYZE ================================================= %%
 %## SLIDING BASELINE MEASURES (RAW)
 EEG_MEASURES = {'mu_avg_theta','std_avg_theta', ...
