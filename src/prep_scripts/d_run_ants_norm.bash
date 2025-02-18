@@ -13,6 +13,8 @@
 #SBATCH --qos=dferris-b # Quality of service name
 #SBATCH --partition=hpg-default # cluster to run on, use slurm command 'sinfo -s'
 #%% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/prep_scripts/d_run_ants_norm.bash
+
+module purge
 ml gcc/5.2.0
 ml ants
 
@@ -53,12 +55,12 @@ export MNI_TEMPLATE="/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/_re
 #  "NH3112" "NH3113" "NH3114" "NH3123" "NH3128" "NH3129") # JACOB SAL(08/23/2023)
 # export SUBJ_RUN=("H2117")
 
-# export SUBJ_RUN=("H3046" "H3047" "H3073" "H3077" 
-# "H3092" "NH3023" "NH3025" "NH3027" 
-# "NH3028" "NH3051" "NH3056" "NH3071" 
-# "NH3082" "NH3123")
+export SUBJ_RUN=("H3046" "H3047" "H3073" "H3077" 
+"H3092" "NH3023" "NH3025" "NH3027" 
+"NH3028" "NH3051" "NH3056" "NH3071" 
+"NH3082" "NH3123")
 
-export SUBJ_RUN=("NH3023" "NH3028")
+# export SUBJ_RUN=("NH3023" "NH3028")
 
 for s in ${SUBJ_RUN[@]};
 do

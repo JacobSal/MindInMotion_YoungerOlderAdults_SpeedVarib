@@ -74,16 +74,18 @@ export SUBJ_HEADMOD="/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM
 #  "NH3076" "NH3086" "NH3090" "NH3102"
 #  "NH3104" "NH3105" "NH3106" "NH3108" "NH3110"
 #  "NH3112" "NH3113" "NH3114" "NH3123" "NH3128" "NH3129") # JACOB SAL(08/23/2023)
-export SUBJ_RUN=("H3046" "H3047" "H3073" "H3077" 
-"H3092" "NH3023" "NH3025" "NH3027" 
-"NH3028" "NH3051" "NH3056" "NH3071" 
-"NH3082" "NH3123")
+# export SUBJ_RUN=("H3046" "H3047" "H3073" "H3077" 
+# "H3092" "NH3023" "NH3025" "NH3027" 
+# "NH3028" "NH3051" "NH3056" "NH3071" 
+# "NH3082" "NH3123")
+export SUBJ_RUN=("NH3023" "NH3028")
 
 # %% LOOP through a particular cohort of subjects
 for s in ${SUBJ_RUN[@]};
 do
 	export curr_f=$SUBJ_EEG/$s/head_model/dipfit_struct.mat
 	export mri_f=$SUBJ_HEADMOD/$s/MRI
+	# export mri_f=$SUBJ_HEADMOD/$s/MRI/m2m_$s
 	export set_f=$SUBJ_EEG/$s/clean/*.set
 	export out_f=$SUBJ_EEG/$s/head_model/
 	# %% printouts

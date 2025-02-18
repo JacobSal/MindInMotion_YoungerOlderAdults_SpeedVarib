@@ -16,7 +16,7 @@ clearvars
 % opengl('dsave', 'software') % might be needed to plot dipole plots?
 %## TIME
 tic
-ADD_ALL_SUBMODS = true;
+ADD_ALL_SUBMODS = false;
 %## Determine Working Directories
 if ~ispc
     try
@@ -223,7 +223,6 @@ if ~exist([save_dir filesep STUDY_FNAME_CONT '.study'],'file') || RECALC_ICA_STU
                 EEG = mim_load_one_subj(eeg_fnames{subj_i},eeg_fpaths{subj_i},...
                     subj_chars{subj_i},cond_chars{subj_i},group_chars{subj_i},sess_chars{subj_i},...
                     'LOAD_STRUCT',tmp_load_struct)
-
                 %## REJECT ICS
                 fprintf('%s) Rejecting EEG independent components...\n',subj_chars{subj_i});
                 tmp_rej_struct.plot_save_dir = tmp_save_dir;

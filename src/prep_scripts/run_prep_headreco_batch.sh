@@ -5,20 +5,22 @@
 #SBATCH --nodes=1 # Use one node
 #SBATCH --ntasks=1 # Run a single task
 #SBATCH --cpus-per-task=4 # Number of CPU cores per task
-#SBATCH --mem-per-cpu=15000mb# Total memory limit
+#SBATCH --mem-per-cpu=8000mb# Total memory limit
 #SBATCH --distribution=cyclic:cyclic # Distribute tasks cyclically first among nodes and then among sockets within a node
-#SBATCH --time=24:00:00 # Time limit hrs:min:sec
+#SBATCH --time=06:00:00 # Time limit hrs:min:sec
 #SBATCH --output=/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_slurm_logs/run_headreco_batch-%j.log # Standard output
 #SBATCH --account=dferris # Account name
 #SBATCH --qos=dferris-b # Quality of service name
 #SBATCH --partition=hpg-default # cluster to run on  use slurm command "sinfo -s"
-# sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/prep_scripts/run_headreco_batch.sh
+# sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/prep_scripts/run_prep_headreco_batch.sh
+
 module purge
-module load matlab/2019a
+module load matlab/2020a
+#(02/09/2025) JS, need to use 2020a due to compatability issues with the headreco functions. (https://github.com/simnibs/simnibs/issues/343)
 export DONOT_RECREATE=true;
-cd /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/i_HEADMODEL/1_segmentation
-export PATH="/blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/0_DATA_PREP/3_MRI_PREP/SimNIBS/install/bin:$PATH"
-export SUBJ_DIR="/blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_dataset/"
+cd /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/prep_scripts/
+export PATH="/blue/dferris/jsalminen/GitHub/simnibs_install/bin:$PATH"
+export SUBJ_DIR="/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/"
 # export SUBJ_RUN=("H1002" "H1004" "H1007" "H1009"
 #  "H1010" "H1011" "H1012" "H1013" "H1017" "H1018" "H1019"
 #  "H1020" "H1022" "H1024" "H1025" "H1026" "H1027" "H1029" "H1030"
@@ -42,7 +44,9 @@ export SUBJ_DIR="/blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/_data/MIM_
 #  "NH3104" "NH3105" "NH3106" "NH3108" "NH3110"
 #  "NH3112" "NH3113" "NH3114" "NH3123" "NH3128" "NH3129") # JACOB SAL(08/23/2023)
 # export SUBJ_RUN=("H2012_FU" "H2018_FU" "H3120" "NH3129")
-export SUBJ_RUN=("H2012_FU" "H2018_FU" "H3120" "NH3129")
+# export SUBJ_RUN=("NH3023" "NH3028")
+export SUBJ_RUN=("NH3028")
+
 echo "Date              = $(date)"
 echo "Hostname          = $(hostname -s)"
 echo "Working Directory = $(pwd)"
@@ -51,7 +55,7 @@ echo "Number of Nodes Allocated      = $SLURM_JOB_NUM_NODES"
 echo "Number of Tasks Allocated      = $SLURM_NTASKS"
 echo "Number of Cores/Task Allocated = $SLURM_CPUS_PER_TASK"
 
-for s in $SUBJ_RUN; # LOOP through a particular cohort of subjects
+for s in ${SUBJ_RUN[@]}; # LOOP through a particular cohort of subjects
 do
     cd $SUBJ_DIR/$s/MRI #change directory to where the ACPC aligned mri is
     export curr_f=./m2m_"$s"/"$s"_masks_contr.nii
@@ -67,8 +71,7 @@ do
         echo "Segmentation for $s participant is done. Please manually transfer the file generated."
 	fi
 	# cd $SUBJ_DIR/$s/MRI/Processed_fiducials #change directory to where the ACPC aligned mri is
-    
-	
+
 done
 
 

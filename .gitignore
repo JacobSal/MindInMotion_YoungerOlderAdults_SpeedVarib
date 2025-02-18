@@ -32,3 +32,6 @@
 **/venv
 **/.Rproj.user
 **/_save*
+.Rproj.user
+/MindInMotion_Submodules
+/MindInMotion_Submodules

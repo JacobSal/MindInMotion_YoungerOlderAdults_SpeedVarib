@@ -70,9 +70,11 @@ ispc <- function() {
 #%% CLUSTERS TO PLOT
 clusters = c(3,4,5,7,10,12,13) # RSup/RSM, PreC, LSM, Mid Cing, LSup, LPPA, RPPA
 
-# #%% KIN PARAMS
-# kin_measures = c('mu_ml_exc_mm_gc_fn2','mu_step_dur_fn2');
-# kin_title_chars = c("ml exc. Std Dev.","step dur. Std Dev.")
+#%% KIN PARAMS
+kin_measures = c('mu_ml_exc_mm_gc_fn1','mu_step_dur_fn1',
+                 'mu_ml_exc_mm_gc_fn2','mu_step_dur_fn2');
+kin_title_chars = c("ml exc. mean","step dur. mean",
+                    "ml exc. std dev.","step dur. std dev.")
 
 #%% EEG PARAMS
 # -- EEG PARAMS (fn1 = mean, fn2 = sd)
@@ -135,7 +137,8 @@ if(ispc()){
 dtbl <- read_excel(excel_dir,sheet="Sheet1")
 dtbl <- dtbl %>%
   select(subj_char,cond_char,epoch_type,speed_n,group_n,group_char,cluster_n,model_n,mu_stride_n,
-         mu_ap_exponent,mu_ap_offset);
+         mu_ap_exponent,mu_ap_offset,
+         mu_ml_exc_mm_gc,mu_step_dur);
 #-- 
 dtbl <- dtbl %>%
   group_by(subj_char,cond_char,epoch_type,speed_n,model_n,group_char,cluster_n) %>%
@@ -166,7 +169,8 @@ if(ispc()){
 dtbl <- read_excel(excel_dir,sheet="Sheet1")
 dtbl <- dtbl %>%
   select(subj_char,cond_char,epoch_type,speed_n,group_n,group_char,cluster_n,model_n,mu_stride_n,
-         mu_ap_exponent,mu_ap_offset);
+         mu_ap_exponent,mu_ap_offset,
+         mu_ml_exc_mm_gc,mu_step_dur);
 
 #-- 
 dtbl <- dtbl %>%
@@ -198,7 +202,8 @@ if(ispc()){
 dtbl <- read_excel(excel_dir,sheet="Sheet1")
 dtbl <- dtbl %>%
   select(subj_char,cond_char,epoch_type,speed_n,group_n,group_char,cluster_n,model_n,mu_stride_n,
-         mu_ap_exponent,mu_ap_offset);
+         mu_ap_exponent,mu_ap_offset,
+         mu_ml_exc_mm_gc,mu_step_dur);
 #-- 
 dtbl <- dtbl %>%
   group_by(subj_char,cond_char,epoch_type,speed_n,model_n,group_char,cluster_n) %>%
@@ -420,10 +425,10 @@ for (i in 1:length(cis)){
 ```{r eegspeedgroup, echo=FALSE, message=FALSE, results="asis"}
 theme_set(theme_classic()) # This sets the default ggplot theme
 #%% LOOP VARS
-cis <- rep(NA,length(clusters)*length(eeg_measures)*length(tbl_groups))
-eis <- rep(NA,length(clusters)*length(eeg_measures)*length(tbl_groups))
-gis <- rep(NA,length(clusters)*length(eeg_measures)*length(tbl_groups))
-epis <- rep(NA,length(clusters)*length(eeg_measures)*length(tbl_etypes))
+cis <- rep(NA,length(clusters)*length(eeg_measures)*length(tbl_groups)*length(tbl_etypes))
+eis <- rep(NA,length(clusters)*length(eeg_measures)*length(tbl_groups)*length(tbl_etypes))
+gis <- rep(NA,length(clusters)*length(eeg_measures)*length(tbl_groups)*length(tbl_etypes))
+epis <- rep(NA,length(clusters)*length(eeg_measures)*length(tbl_groups)*length(tbl_etypes))
 cnt = 1;
 for (i in 1:length(clusters)) {
   for(k in 1:length(eeg_measures)){
@@ -479,7 +484,7 @@ for (i in 1:length(cis)){
 
   #%% PRINT TABLE
   t_out <- as_gt(tbl) %>%
-    gt::tab_header(title=c("Changes in ",ei,"for Cluster: ",ci)) %>%
+    gt::tab_header(title=c("Changes in ",ei,"(",gi,")","for Cluster: ",ci)) %>%
     gt::tab_options(table.layout = "fixed") %>%
     gt::as_raw_html()
   print(t_out)
@@ -557,4 +562,294 @@ for (i in 1:length(cis)){
   )
 }
 # write.xlsx(excel_df,"lme_eeg_kin_imufix_condb.xlsx")
+```
+# EEG-SPEED ALL) LME EEG ~ 1+speed+epochtype+epochtype:speed
+```{r eegspeedallintactept, echo=FALSE, message=FALSE, results="asis"}
+theme_set(theme_classic()) # This sets the default ggplot theme
+#%% LOOP VARS
+cis <- rep(NA,length(clusters)*length(eeg_measures))
+eis <- rep(NA,length(clusters)*length(eeg_measures))
+cnt = 1;
+for (i in 1:length(clusters)) {
+  for(k in 1:length(eeg_measures)){
+    cis[cnt] = i;
+    eis[cnt] = k;
+    cnt = cnt + 1;
+  }
+}
+
+for (i in 1:length(cis)){
+  #%% SET LOOP PARAMS
+  ci = clusters[cis[i]];
+  ei = eeg_measures[eis[i]];
+  #%% HTML TAG
+  cat(paste0("\n\n## ", ci,',',ei,"\n"))
+  
+  #%% SUBSET BY CLUSTER
+  tmpt <- filter_at(tmpt,vars('cluster_n'), any_vars(. %in% ci));
+  
+  #%% COMPUTE LME MODEL
+  mod_char = paste(ei," ~ 1 + speed_cond_num + epoch_type + speed_cond_num:epoch_type + (1|subj_char)");
+  mod <- lme4::lmer(str_glue(mod_char), data=tmpt);
+  tbl <- mod %>%
+    tbl_regression(tidy_fun = broom.mixed::tidy,
+                   pvalue_fun = purrr::partial(style_pvalue, digits = 2),
+                     intercept=TRUE) %>%
+    add_global_p() %>%
+    add_q()
+  
+  #%% PRINT TABLE
+  t_out <- as_gt(tbl) %>%
+    gt::tab_header(title=c("Changes in ",ei,"for Cluster: ",ci)) %>%
+    gt::tab_options(table.layout = "fixed") %>%
+    gt::as_raw_html()
+  print(t_out)
+  #-- extract fixed & random effects coeffs
+  anv_vals <- car::Anova(mod,type=3)
+  fix_effs <- fixef(mod)
+  ran_effs <- ranef(mod)$subj_char
+  print(anv_vals);
+  
+  #%% R-SQUARED VALUE
+  # r.squaredGLMM() %>%
+  #   print(str_glue("{outcome}\n R2m: {round(mod[1],4)},\tR2c: {round(mod[2],4)}\n\n"))
+  
+  #%% EFFECT SIZES
+  cat(paste0("\n\n### model effect sizes\n"))
+  #-- Intercept Model for Cohen's f^2
+  print('intercept model\n');
+  mod_char_int = paste(ei," ~ 1 + (1|subj_char)");
+  tmp_mod = lme4::lmer(str_glue(mod_char_int), data=tmpt)
+  cf_alt = calc_cohensf2(mod, tmp_mod)
+  
+  #-- calculate effect sizes using r-package 
+  etasq_res <- effectsize::eta_squared(mod, partial = TRUE)
+  cohens_fsq_res <- effectsize::cohens_f_squared(mod, partial = TRUE)
+  
+  #%% EXCEL PRINTS
+  new_row = data.frame(cluster_num=ci,
+                      group_char=c('all'),
+                      model_char=c('all_speed_epocht'),
+                      kinematic_char=c('none'),
+                      freq_band_char=c(ei),
+                      coeff_int=mod@beta[1],
+                      coeff_sp=mod@beta[2],
+                      coeff_kin=mod@beta[3],
+                      coeff_intact=mod@beta[4],
+                      pval_int=anv_vals$`Pr(>Chisq)`[1],
+                      pval_sp=anv_vals$`Pr(>Chisq)`[2],
+                      pval_kin=anv_vals$`Pr(>Chisq)`[3],
+                      pval_intact=anv_vals$`Pr(>Chisq)`[4],
+                      r2_m_int=cf_alt$r2m,
+                      r2_c_int=cf_alt$r2c,
+                      f2_m_int=cf_alt$f2m,
+                      f2_c_int=cf_alt$f2c,
+                      fsq_sp=cohens_fsq_res$Cohens_f2_partial[1],
+                      fsq_kin=cohens_fsq_res$Cohens_f2_partial[2],
+                      fsq_intact=cohens_fsq_res$Cohens_f2_partial[3],
+                      etasq_sp=etasq_res$Eta2_partial[1],
+                      etasq_kin=etasq_res$Eta2_partial[2],
+                      etasq_intact=etasq_res$Eta2_partial[3],
+                      ran_effs_char=paste(unlist(row.names(ran_effs)),collapse=','),
+                      ran_effs_n=paste(unlist(ran_effs$`(Intercept)`),collapse=','))
+  excel_df <- rbind(excel_df,new_row)
+  
+  #%% MODEL VALIDATION PLOTS
+  cat(paste0("\n\n### model validations\n"))
+  print(plot_model(mod, type = 'diag'))
+  cat("\n")
+  
+  #%% MODEL VALIDATIONS
+  cat(paste0("\n\n### model validations\n"))
+  # print(plot_model(mod, type = 'diag'))
+  cat("\n")
+  tmpt$fit.m <- predict(mod, re.form = NA)
+  tmpt$fit.c <- predict(mod, re.form = NULL)
+  
+  #%% VISUALIZATION OF MODELS
+  cat(paste0("\n\n### data plot\n"))
+  theme_set(theme_classic()) # This sets the default ggplot theme
+  print(
+    tmpt %>%
+      ggplot() +
+      geom_jitter(aes(x = speed_cond_num, y = .data[[ei]], color = subj_char), pch=20, size=10, alpha=0.2) +
+      geom_line(aes(x= speed_cond_num, y=fit.c, group = subj_char),linetype = "dashed", linewidth = .5) +
+      geom_line(aes(x= speed_cond_num, y=fit.m), linewidth = 2)+
+      facet_wrap(~epoch_type) + 
+      ggtitle(eeg_title_chars[eis[i]])+ 
+      xlab("Treadmill Speed (m/s)") +
+      ylab(eeg_title_chars[eis[i]]) +
+      guides(group="none")
+  )
+
+}
+# write.xlsx(excel_df,"lme_eeg_kin_mean_sd_stats.xlsx")
+```
+
+# MODERATION ALL) LME EEG ~ 1+speed+kin+speed:kin
+```{r eegspeedkininterall, echo=FALSE, message=FALSE, results="asis"}
+theme_set(theme_classic()) # This sets the default ggplot theme
+#%% LOOP VARS
+cis <- rep(NA,length(clusters)*length(kin_measures)*length(eeg_measures)*length(tbl_etypes))
+kis <- rep(NA,length(clusters)*length(kin_measures)*length(eeg_measures)*length(tbl_etypes))
+eis <- rep(NA,length(clusters)*length(kin_measures)*length(eeg_measures)*length(tbl_etypes))
+epis <- rep(NA,length(clusters)*length(kin_measures)*length(eeg_measures)*length(tbl_etypes))
+cnt = 1;
+for (i in 1:length(clusters)) {
+  for(j in 1:length(kin_measures)){
+    for(k in 1:length(eeg_measures)){
+      for(l in 1:length(tbl_etypes)){
+        cis[cnt] = i;
+        kis[cnt] = j;
+        eis[cnt] = k;
+        epis[cnt] = l;
+        cnt = cnt + 1;
+      }
+    }
+  }
+}
+
+for (i in 1:length(cis)){
+  #%% SET LOOP PARAMS
+  ci = clusters[cis[i]];
+  ki = kin_measures[kis[i]];
+  ei = eeg_measures[eis[i]];
+  epi = tbl_etypes[epis[i]];
+
+  #%% HTML TAG
+  cat(paste0("\n\n## ",epi,',', ci,',', ki,',',ei,"\n"))
+  
+  #%% SUBSET BY EPOCH TYPE
+  tmpt <- filter_at(dtbl,vars('epoch_type'), any_vars(. %in% epi));
+
+  #%% SUBSET BY CLUSTER
+  tmpt <- filter_at(tmpt,vars('cluster_n'), any_vars(. %in% ci));
+
+  #%% REMOVE KIN_MEASURES < 0.005 & THAT ARE GREATER THAN OR LESS THAN 3STD FROM MEAN
+  #- remove NAN cases
+  tmpt = tmpt[complete.cases(tmpt[[ki]]),];
+  # #- bad strides cutoff
+  # sub_s = tmpt[[ki]] < 0.005
+  # #(12/18/2024) JS, changing from 0.01 to 0.005 to see if I can retain some more data without it looking funky
+  # tmpt = tmpt[sub_s==FALSE, ]
+  # #- mean & std cutoff
+  # muc = mean(tmpt[[ki]])
+  # stdc = sd(tmpt[[ki]])
+  # inds_keep = tmpt[[ki]] > muc-3*stdc & tmpt[[ki]] < muc+3*stdc
+  # tmpt = tmpt[inds_keep,]
+
+  #%% COMPUTE LME MODEL
+  mod_char = paste(ei," ~ 1 + speed_cond_num + ",ki," + speed_cond_num:",ki," + (1|subj_char)");
+  mod <- lme4::lmer(str_glue(mod_char), data=tmpt);
+  tbl <- mod %>%
+    tbl_regression(tidy_fun = broom.mixed::tidy,
+                   pvalue_fun = purrr::partial(style_pvalue, digits = 2),
+                     intercept=TRUE) %>%
+    add_global_p() %>%
+    add_q()
+
+  #%% PRINT TABLE
+  t_out <- as_gt(tbl) %>%
+    gt::tab_header(title=c("Changes in ",ki,"for Cluster: ",ci)) %>%
+    gt::tab_options(table.layout = "fixed") %>%
+    gt::as_raw_html()
+  print(t_out)
+
+  #%% R-SQUARED VALUE
+  # r.squaredGLMM() %>%
+  #   print(str_glue("{outcome}\n R2m: {round(mod[1],4)},\tR2c: {round(mod[2],4)}\n\n"))
+
+  #%% EFFECT SIZES
+  cat(paste0("\n\n### model effect sizes\n"))
+  #-- Intercept Model for Cohen's f^2
+  print('intercept model\n');
+  mod_char_int = paste(ei," ~ 1 + (1|subj_char)");
+  tmp_mod = lme4::lmer(str_glue(mod_char_int), data=tmpt)
+  cf_alt = calc_cohensf2(mod, tmp_mod)
+  #-- extract fixed & random effects coeffs
+  anv_vals <- car::Anova(mod,type=3)
+  fix_effs <- fixef(mod)
+  ran_effs <- ranef(mod)$subj_char
+  #-- calculate effect sizes using r-package
+  etasq_res <- effectsize::eta_squared(mod, partial = TRUE)
+  cohens_fsq_res <- effectsize::cohens_f_squared(mod, partial = TRUE)
+
+  #%% EXCEL PRINTS
+  new_row = data.frame(cluster_num=ci,
+                      group_char=c('all'),
+                      model_char=c('all_ap_kin_intact'),
+                      kinematic_char=c(ki),
+                      freq_band_char=c(ei),
+                      coeff_int=mod@beta[1],
+                      coeff_sp=mod@beta[2],
+                      coeff_kin=mod@beta[3],
+                      coeff_intact=mod@beta[4],
+                      pval_int=anv_vals$`Pr(>Chisq)`[1],
+                      pval_sp=anv_vals$`Pr(>Chisq)`[2],
+                      pval_kin=anv_vals$`Pr(>Chisq)`[3],
+                      pval_intact=anv_vals$`Pr(>Chisq)`[4],
+                      r2_m_int=cf_alt$r2m,
+                      r2_c_int=cf_alt$r2c,
+                      f2_m_int=cf_alt$f2m,
+                      f2_c_int=cf_alt$f2c,
+                      fsq_sp=cohens_fsq_res$Cohens_f2_partial[1],
+                      fsq_kin=cohens_fsq_res$Cohens_f2_partial[2],
+                      fsq_intact=cohens_fsq_res$Cohens_f2_partial[3],
+                      etasq_sp=etasq_res$Eta2_partial[1],
+                      etasq_kin=etasq_res$Eta2_partial[2],
+                      etasq_intact=etasq_res$Eta2_partial[3],
+                      ran_effs_char=paste(unlist(row.names(ran_effs)),collapse=','),
+                      ran_effs_n=paste(unlist(ran_effs$`(Intercept)`),collapse=','))
+  excel_df <- rbind(excel_df,new_row)
+
+  #%% MODEL VALIDATION PLOTS
+  cat(paste0("\n\n### model validations\n"))
+  print(plot_model(mod, type = 'diag'))
+  cat("\n")
+
+  #%% SCATTER3D IMPLEMENTATION
+  cat(paste0("\n\n### plot\n"))
+  xc = "speed_cond_num";
+  yc = ki;
+  intc = paste0(xc,":",yc)
+  #- plot
+  pch_n = 1;
+  conds = rev(unique(tmpt[[xc]]))
+  for(i in 1:length(conds)){
+    ts <- filter_at(tmpt,vars(xc),all_vars(. == conds[i]))
+    if(i == 1){
+      scatter <- scatterplot3d(ts[[yc]], ts[[xc]], ts[[ei]],
+        main = paste0(eeg_title_chars[eis[i]],"plot"),
+        xlab = kin_title_chars[kis[i]],
+        ylab = "Speed (m/s)",
+        zlab = eeg_title_chars[eis[i]],
+        xlim = c(min(tmpt[[yc]]),max(tmpt[[yc]])),
+        ylim = c(min(tmpt[[xc]]),max(tmpt[[xc]])),
+        zlim = c(min(tmpt[[ei]]),max(tmpt[[ei]])),
+        pch = pch_n,
+        color = color_pal_subj[i],
+        angle = 30) # adjust the viewing angle
+    } else {
+    scatter$points3d(ts[[yc]], ts[[xc]], ts[[ei]] ,
+        main = paste0(eeg_title_chars[eis[i]],"plot"),
+        col = color_pal_subj[i],
+        pch=pch_n)
+    }
+  }
+  a <- fix_effs[xc]
+  b <- fix_effs[yc]
+  c <- fix_effs[intc]
+  d <- fix_effs["(Intercept)"]
+  # Create the plane's z-values using the equation of the plane
+  plane_z <- function(y,x){a*x+b*y+c*x*y+d}
+  scatter$contour3d(plane_z,y.count=4,
+                    x.count=4,
+                    y.resolution=10,
+                    x.resolution=10,
+                    lty="24",
+                    type="l")
+
+}
+# write.xlsx(excel_df,"013022025_lme_eeg_kin_raw_slidingavgb5.xlsx")
+write.xlsx(excel_df,paste0("013022025_lme_eeg_aperid_",fext,".xlsx"))
 ```

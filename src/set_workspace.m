@@ -58,7 +58,8 @@ if ADD_ALL_SUBMODS
     SUBMODULES_ITERS = (1:length(SUBMODULES));
 else
     SUBMODULES = {'fieldtrip','eeglab','sift','postamicautility',...
-            'iclabel','viewprops','powpowcat'};
+            'iclabel','viewprops','powpowcat','dipfit', ...
+            'bemobil_pipeline','gait_tracking_w_imu','eeglab_specparam'};
     SUBMODULES_GENPATH = {};
     SUBMODULES_ITERS = (1:length(SUBMODULES));
 end
@@ -218,7 +219,8 @@ function [p] = unix_genpath(d)
              ~strcmp( dirname,'private')    && ...
              ~strcmp( dirname,'resources') && ...
              ~strcmp( dirname,'__archive') && ...
-             ~strcmp( dirname,'_compiles')
+             ~strcmp( dirname,'_compiles') && ...
+             ~strcmp( dirname,'_mcc_funcs')
           p = [p genpath([d filesep dirname])]; % recursive calling of this function.
        end
     end

@@ -256,6 +256,13 @@ parfor subj_i = 1:length(STUDY.datasetinfo)
     settings = struct('peak_width_limits',[1,8],...
         'min_peak_height',0.05,...
         'max_n_peaks',5);
+    %-- general notes on fooof
+    % *** fr.gaussian_params is a 2d array where each row corresponds to a peak
+    % and the columns are [mean, hight, standard deviation] of that peak.
+    % *** fr.peak_params is a 2d array where each row corresponds to a
+    % peak's fitting parameters [CF, PW, BW] (see.
+    % https://www.nature.com/articles/s41593-020-00744-x, methods for more
+    % details)
     f_range = [3, 40];
     f_ind = find(freqs_orig > f_range(1) & freqs_orig < f_range(2));
     f_ind = sort([f_ind; min(f_ind)-1; max(f_ind)+1]);

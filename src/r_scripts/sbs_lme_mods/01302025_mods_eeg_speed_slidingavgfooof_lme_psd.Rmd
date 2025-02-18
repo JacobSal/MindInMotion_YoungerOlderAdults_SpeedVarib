@@ -576,7 +576,7 @@ for (i in 1:length(cis)){
   #%% SUBSET BY CLUSTER
   tmpt <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% ci));
   #-- remove NAN cases
-  # tmpt = tmpt[complete.cases(tmpt[[ki]]),];
+  tmpt = tmpt[complete.cases(tmpt[[ki]]),];
   
   #%% THAT ARE GREATER THAN OR LESS THAN 3STD FROM MEAN
   #- mean & std cutoff
@@ -1266,6 +1266,6 @@ for (i in 1:length(cis)){
                     type="l")
 
 }
-# write.xlsx(excel_df,"013022025_lme_eeg_kin_raw_slidingavgb5.xlsx")
-write.xlsx(excel_df,paste0("013022025_lme_eeg_kin_",fext,".xlsx"))
+# write.xlsx(excel_df,"01302025_lme_eeg_kin_raw_slidingavgb5.xlsx")
+write.xlsx(excel_df,paste0("01302025_lme_eeg_kin_",fext,".xlsx"))
 ```
