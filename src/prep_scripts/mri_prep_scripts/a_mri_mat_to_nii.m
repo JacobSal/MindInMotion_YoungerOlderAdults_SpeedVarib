@@ -67,7 +67,7 @@ M_MIND_IN_MOTION_DIR = load_dir_bluedrive;
 if ~exist(save_dir_bluedrive,'dir')
     mkdir(save_dir_bluedrive);
 end
-%% (TRANSFER MRI R->BLUE) ============================================== %%
+%% (CONVERT MRI .MAT TO .NII) ========================================== %%
 %## MRI .NII ACPC_RS
 subj_chars = [SUBJ_PICS{:}];
 for subj_i = 1:length(subj_chars)

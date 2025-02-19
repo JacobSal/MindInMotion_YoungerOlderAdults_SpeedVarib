@@ -55,9 +55,10 @@ fprintf(1,'Current folder: %s\n',SRC_DIR);
 set_workspace
 %% (DATASET INFORMATION) =============================================== %%
 % [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca');
-SUBJ_PICS = {{'H3046','H3047','H3073','H3077','H3092', ...
-    'NH3023','NH3025','NH3027',' NH3028', ...
-    'NH3051','NH3056','NH3071','NH3082','NH3123'}};
+% SUBJ_PICS = {{'H3046','H3047','H3073','H3077','H3092', ...
+%     'NH3023','NH3025','NH3027','NH3028', ...
+%     'NH3051','NH3056','NH3071','NH3082','NH3123'}};
+SUBJ_PICS = {{'NH3028'}};
 %% (PROCESSING PARAMS) ================================================= %%
 %## hard define
 %- dataset name
@@ -107,8 +108,8 @@ end
 %% (PARFOR) PREPROCESS EEG
 amica_cmd = cell(length(eeg_fpaths),1);
 params = cell(length(eeg_fpaths),1);
-parfor subj_i = 1:length(eeg_fpaths)
-% for subj_i = find(strcmp(subj_chars,'NH3113'))
+% parfor subj_i = 1:length(eeg_fpaths)
+for subj_i = 1:length(subj_chars) %find(strcmp(subj_chars,'NH3113'))
     fprintf('Running subject %s...\n',subj_chars{subj_i})
     %## PREP for MAIN_FUNC
     if ~exist([save_dir filesep subj_chars{subj_i}],'dir')

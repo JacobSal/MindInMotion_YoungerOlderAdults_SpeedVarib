@@ -56,7 +56,7 @@ export MNI_TEMPLATE="/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/_re
 # export SUBJ_RUN=("H2117")
 
 export SUBJ_RUN=("H3046" "H3047" "H3073" "H3077" 
-"H3092" "NH3023" "NH3025" "NH3027" 
+"H3092" "NH3023" "NH3025" 
 "NH3028" "NH3051" "NH3056" "NH3071" 
 "NH3082" "NH3123")
 
