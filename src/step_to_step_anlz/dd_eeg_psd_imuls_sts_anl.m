@@ -469,12 +469,19 @@ parfor subj_i = 1:length(STUDY.datasetinfo)
         inds_store{tci} = find(~all(squeeze(tmp_psd(:,:,tci))==0,1));
         fprintf('%i) number of epochs retained: %i\n',tci,length(inds_store{tci}));
     end
+    
     %-- delete 0'd events
     tmp_psd = tmp_psd(:,inds_store{1},:);
     tmp_psd_std = tmp_psd_std(:,inds_store{1},:);
     tmp_ap = tmp_ap(:,inds_store{1},:);
     tmp_ap_std = tmp_ap_std(:,inds_store{1},:);
     cond_struct = cond_struct(inds_store{1});
+    psd_struct = struct('psd_mean',tmp_psd, ...
+        'psd_std',tmp_psd_std, ...
+        'ap_mean',tmp_ap, ...
+        'ap_std',tmp_ap_std)
+    par_save(psd_struct,EEG.filepath,sprintf('psd_output_%s.mat',strjoin(fname_ext,'_')))
+    psd_struct = struct.empty;
     %-
     % inds_keep = find(~all(squeeze(tmp_psd(:,:,3))==0,1));
     % tmp_psd = tmp_psd(:,inds_keep,:);
@@ -790,6 +797,28 @@ parfor subj_i = 1:length(STUDY.datasetinfo)
                     % steps_struct(cnt).avg_theta_post = mean(std(tmp_psd(bband,cond_struct(iii+1).ind,comp_n),[],2),1);
                     % steps_struct(cnt).avg_alpha_post = mean(std(tmp_psd(bband,cond_struct(iii+1).ind,comp_n),[],2),1);
                     % steps_struct(cnt).avg_beta_post = mean(std(tmp_psd(bband,cond_struct(iii+1).ind,comp_n),[],2),1);
+
+                    %## COV MEAS.
+                    steps_struct(cnt).cov_stride_n = std([tmp_step_struct(ss_inds).stride_n])/mean([tmp_step_struct(ss_inds).stride_n]);
+                    steps_struct(cnt).cov_rhs_1 = std([tmp_step_struct(ss_inds).rhs_1])/mean([tmp_step_struct(ss_inds).rhs_1]);
+                    steps_struct(cnt).cov_rhs_2 = std([tmp_step_struct(ss_inds).rhs_2])/mean([tmp_step_struct(ss_inds).rhs_2]);
+                    steps_struct(cnt).cov_lhs_1 = std([tmp_step_struct(ss_inds).lhs_1])/mean([tmp_step_struct(ss_inds).lhs_1]);
+                    steps_struct(cnt).cov_lto_1 = std([tmp_step_struct(ss_inds).lto_1])/mean([tmp_step_struct(ss_inds).lto_1]);
+                    steps_struct(cnt).cov_rto_1 = std([tmp_step_struct(ss_inds).rto_1])/mean([tmp_step_struct(ss_inds).rto_1]);
+                    steps_struct(cnt).cov_gait_cycle_dur = std([tmp_step_struct(ss_inds).gait_cycle_dur])/mean([tmp_step_struct(ss_inds).gait_cycle_dur]);
+                    steps_struct(cnt).cov_stance_dur = std([tmp_step_struct(ss_inds).stance_dur])/mean([tmp_step_struct(ss_inds).stance_dur]);
+                    steps_struct(cnt).cov_swing_dur = std([tmp_step_struct(ss_inds).swing_dur])/mean([tmp_step_struct(ss_inds).swing_dur]);
+                    steps_struct(cnt).cov_double_sup_dur = std([tmp_step_struct(ss_inds).double_sup_dur])/mean([tmp_step_struct(ss_inds).double_sup_dur]);
+                    steps_struct(cnt).cov_single_sup_dur = std([tmp_step_struct(ss_inds).single_sup_dur])/mean([tmp_step_struct(ss_inds).single_sup_dur]);
+                    steps_struct(cnt).cov_step_dur = std([tmp_step_struct(ss_inds).step_dur])/mean([tmp_step_struct(ss_inds).step_dur]);
+                    %--
+                    steps_struct(cnt).cov_ml_exc_mm_gc = std([tmp_step_struct(ss_inds).ml_exc_mm_gc])/mean([tmp_step_struct(ss_inds).ml_exc_mm_gc]);
+                    steps_struct(cnt).cov_ap_exc_mm_gc = std([tmp_step_struct(ss_inds).ap_exc_mm_gc])/mean([tmp_step_struct(ss_inds).ap_exc_mm_gc]);
+                    steps_struct(cnt).cov_ud_exc_mm_gc = std([tmp_step_struct(ss_inds).ud_exc_mm_gc])/mean([tmp_step_struct(ss_inds).ud_exc_mm_gc]);
+                    %--             
+                    steps_struct(cnt).cov_avg_theta = mean(tmp_psd_std(tband,cond_struct(iii).ind,comp_n),1)/mean(tmp_psd(tband,cond_struct(iii).ind,comp_n),1);
+                    steps_struct(cnt).cov_avg_alpha = mean(tmp_psd_std(aband,cond_struct(iii).ind,comp_n),1)/mean(tmp_psd(aband,cond_struct(iii).ind,comp_n),1);
+                    steps_struct(cnt).cov_avg_beta = mean(tmp_psd_std(bband,cond_struct(iii).ind,comp_n),1)/mean(tmp_psd(bband,cond_struct(iii).ind,comp_n),1);
                     
                     %## AP PARAMS
                     steps_struct(cnt).mu_ap_exponent = mean(tmp_ap(2,cond_struct(iii).ind,comp_n),2);

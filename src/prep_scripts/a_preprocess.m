@@ -54,26 +54,18 @@ fprintf(1,'Current folder: %s\n',SRC_DIR);
 %## Set PWD_DIR, EEGLAB path, _functions path, and others...
 set_workspace
 %% (DATASET INFORMATION) =============================================== %%
-% [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca');
+[SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca_speed');
 % SUBJ_PICS = {{'H3046','H3047','H3073','H3077','H3092', ...
 %     'NH3023','NH3025','NH3027','NH3028', ...
 %     'NH3051','NH3056','NH3071','NH3082','NH3123'}};
-SUBJ_PICS = {{'NH3028'}};
+% SUBJ_PICS = {{'NH3028'}};
 %% (PROCESSING PARAMS) ================================================= %%
 %## hard define
 %- dataset name
 DATA_SET = 'MIM_dataset';
 %- datetime override
-% OA_PREP_FNAME = '05192023_YAN33_OAN79_prep_verified'; % JACOB,SAL(04/10/2023)
-% OA_PREP_FNAME = '07122023_OAN79_iccRX0p9_iccREMG0p3'; % JACOB,SAL(07/12/2023)
-% OA_PREP_FNAME = '07142023_OAN79_iccRX0p55_iccREMG0p3_changparams'; % JACOB,SAL(07/14/2023)
-% OA_PREP_FNAME = '08202023_OAN82_iccRX0p65_iccREMG0p4_changparams'; % JACOB,SAL(07/14/2023)
-% OA_PREP_FNAME = '08202023_OAN82_iccRX0p65_iccREMG0p3_newparams'; % JACOB,SAL(10/26/2023)
-% OA_PREP_FNAME = '10302023_OAN82_iccRX0p60_iccREMG0p4_newparams'; % JACOB,SAL(10/30/2023)
-% OA_PREP_FNAME = 'EMG_ANALYSIS'; % JACOB,SAL(07/14/2023)
-% OA_PREP_FNAME = '08202023_OAN82_iccRX0p60_iccREMG0p3_newparams'; % JACOB,SAL(07/14/2023)
-% OA_PREP_FNAME = '11262023_OAN82_iccRX0p65_iccREMG0p4_changparams'; % JACOB,SAL(07/14/2023)
-PREPROC_DNAME = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams';
+% PREPROC_DNAME = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams';
+PREPROC_DNAME = '02212025_YAOAN117_iccR0p65_iccREMG0p4_chanrej_samprej';
 %## soft define
 %- path for local data
 raw_dataset_dir = [PATHS.data_dir filesep DATA_SET]; % JACOB,SAL(02/23/2023)
@@ -108,8 +100,8 @@ end
 %% (PARFOR) PREPROCESS EEG
 amica_cmd = cell(length(eeg_fpaths),1);
 params = cell(length(eeg_fpaths),1);
-% parfor subj_i = 1:length(eeg_fpaths)
-for subj_i = 1:length(subj_chars) %find(strcmp(subj_chars,'NH3113'))
+parfor subj_i = 1:length(eeg_fpaths)
+% for subj_i = 1:length(subj_chars) %find(strcmp(subj_chars,'NH3113'))
     fprintf('Running subject %s...\n',subj_chars{subj_i})
     %## PREP for MAIN_FUNC
     if ~exist([save_dir filesep subj_chars{subj_i}],'dir')
@@ -131,17 +123,17 @@ for subj_i = 1:length(subj_chars) %find(strcmp(subj_chars,'NH3113'))
 end
 
 %% (AMICA PARAM FILE RECOVERY) 
-preprocess_pipeline = 'EMG_HP3std_iCC0p65_iCCEMG0p4_ChanRej0p7_TimeRej0p4_winTol10';
-for subj_i = 1:length(eeg_fpaths)
-    fpath = [save_dir filesep subj_chars{subj_i} filesep 'clean'];
-    float_fname = sprintf('%s_cleanEEG_%s.fdt',subj_chars{subj_i},preprocess_pipeline);    
-    set_fname = sprintf('%s_cleanEEG_%s.set',subj_chars{subj_i},preprocess_pipeline);
-    %-
-    EEG = pop_loadset('filepath',fpath,'filename',set_fname);
-    %-
-    [EEG,amica_cmd] = mim_prep_hpg_amica(EEG, ...
-        [fpath filesep float_fname], ...
-        fpath, ...
-        'jsalminen@ufl.edu', ...
-        1);
-end
+% preprocess_pipeline = 'EMG_HP3std_iCC0p65_iCCEMG0p4_ChanRej0p7_TimeRej0p4_winTol10';
+% for subj_i = 1:length(eeg_fpaths)
+%     fpath = [save_dir filesep subj_chars{subj_i} filesep 'clean'];
+%     float_fname = sprintf('%s_cleanEEG_%s.fdt',subj_chars{subj_i},preprocess_pipeline);    
+%     set_fname = sprintf('%s_cleanEEG_%s.set',subj_chars{subj_i},preprocess_pipeline);
+%     %-
+%     EEG = pop_loadset('filepath',fpath,'filename',set_fname);
+%     %-
+%     [EEG,amica_cmd] = mim_prep_hpg_amica(EEG, ...
+%         [fpath filesep float_fname], ...
+%         fpath, ...
+%         'jsalminen@ufl.edu', ...
+%         1);
+% end

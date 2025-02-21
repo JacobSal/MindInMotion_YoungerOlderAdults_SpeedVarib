@@ -45,9 +45,10 @@ fprintf(1,'Current folder: %s\n',SRC_DIR);
 set_workspace
 %% (DATASET INFORMATION) =============================================== %%
 % [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca_speed');
-SUBJ_PICS = {{'H3046','H3047','H3073','H3077','H3092', ...
-    'NH3023','NH3025','NH3027','NH3028', ...
-    'NH3051','NH3056','NH3071','NH3082','NH3123'}};
+% SUBJ_PICS = {{'H3046','H3047','H3073','H3077','H3092', ...
+%     'NH3023','NH3025','NH3027','NH3028', ...
+%     'NH3051','NH3056','NH3071','NH3082','NH3123'}};
+SUBJ_PICS = {{'NH3028'}};
 subj_chars = [SUBJ_PICS{:}];
 %% ===================================================================== %%
 %## MRI TEMPLATE FOR SOURCE DEPTH
@@ -76,8 +77,8 @@ STUDY_DNAME = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams';
 %## soft define
 ica_data_dir = [PATHS.data_dir filesep DATA_SET filesep '_studies' filesep STUDY_DNAME]; % JACOB,SAL(02/23/2023)
 %%
-parfor subj_i = 1:length(subj_chars)
-% for subj_i = 1:length(subj_names)
+% parfor subj_i = 1:length(subj_chars)
+for subj_i = 1:length(subj_chars)
     subj_name = subj_chars{subj_i};
     mri_path = [PATHS.data_dir filesep DATA_SET filesep subj_name filesep 'MRI'];
     in_fpath = [ica_data_dir filesep subj_name filesep 'head_model'];

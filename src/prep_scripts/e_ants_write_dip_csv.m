@@ -52,9 +52,10 @@ set_workspace
 %% (DATASET INFORMATION) =============================================== %%
 % [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa');
 % subj_names = [SUBJ_PICS{:}];
-SUBJ_PICS = {{'H3046','H3047','H3073','H3077','H3092', ...
-    'NH3023','NH3025','NH3027','NH3028', ...
-    'NH3051','NH3056','NH3071','NH3082','NH3123'}};
+% SUBJ_PICS = {{'H3046','H3047','H3073','H3077','H3092', ...
+%     'NH3023','NH3025','NH3027','NH3028', ...
+%     'NH3051','NH3056','NH3071','NH3082','NH3123'}};
+SUBJ_PICS = {{'NH3028'}};
 subj_chars = [SUBJ_PICS{:}];
 %%
 %## hard define
