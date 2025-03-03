@@ -112,7 +112,7 @@ eeg_title_chars = c("**THETA** Mean","**ALPHA** Mean","**BETA** Mean",
 # fext = "slidingb6";
 # fext = "new_slidingb6";
 # fext = "new_meandesignb_nfslidingb6";
-fext = "new_meancondb_nfslidingb6";
+# fext = "new_meancondb_nfslidingb6";
 # fext = "new_perstridefb_nfslidingb6";
 excel_dir <- paste0("/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/01192025_mim_yaoa_nopowpow_crit_speed/__iclabel_cluster_kmeansalt_rb3/icrej_5/11/kin_eeg_step_to_step/sbs_eeg_psd_",fext,".xlsx")
 

@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=8 # Number of CPU cores per task
 #SBATCH --mem-per-cpu=4000mb# Total memory limit
 #SBATCH --distribution=cyclic:cyclic # Distribute tasks cyclically first among nodes and then among sockets within a node
-#SBATCH --time=08:00:00 # Time limit hrs:min:sec
+#SBATCH --time=03:00:00 # Time limit hrs:min:sec
 #SBATCH --output=/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_slurm_logs/%j_f_ants_apply_trans.log # Standard output
 #SBATCH --account=dferris # Account name
 #SBATCH --qos=dferris-b # Quality of service name

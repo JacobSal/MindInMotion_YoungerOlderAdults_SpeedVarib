@@ -50,19 +50,19 @@ fprintf(1,'Current folder: %s\n',SRC_DIR);
 set_workspace
 
 %% (DATASET INFORMATION) =============================================== %%
-% [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa');
-% subj_names = [SUBJ_PICS{:}];
+[SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca_speed');
+subj_chars = [SUBJ_PICS{:}];
 % SUBJ_PICS = {{'H3046','H3047','H3073','H3077','H3092', ...
 %     'NH3023','NH3025','NH3027','NH3028', ...
 %     'NH3051','NH3056','NH3071','NH3082','NH3123'}};
-SUBJ_PICS = {{'NH3028'}};
-subj_chars = [SUBJ_PICS{:}];
+% SUBJ_PICS = {{'NH3028'}};
+% subj_chars = [SUBJ_PICS{:}];
 %%
 %## hard define
 %- datset name
 DATA_SET = 'MIM_dataset';
 %- eeglab_cluster.m spectral params
-OA_PREP_FPATH = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams'; 
+OA_PREP_FPATH = '02212025_YAOAN117_iccR0p65_iccREMG0p4_chanrej_samprej'; 
 %## soft define
 studies_dir = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
 ica_data_dir = [PATHS.data_dir filesep DATA_SET filesep '_studies' filesep OA_PREP_FPATH]; % JACOB,SAL(02/23/2023)

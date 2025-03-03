@@ -103,30 +103,19 @@ if ~exist(save_dir,'dir')
 end
 %% (LOAD STATISTICS & DATA EXCEL SHEET FROM R) ========================= %%
 %## FNAMES
-%-- .mat
-% fext = 'new_meancondb_nfslidingb6';
-% fext = 'new_meandesignb_nfslidingb6_stats';
-% fext = 'new_slidingb6_stats';
-%-- r stats
+%-- fextr
+fextr = 'new_slidingb6';
+% fextr = 'new_meandesignb_nfslidingb6';
 % fextr = 'meansd_new_meancondb_nfslidingb6'; 
-fextr = 'meansd_new_perstridefb_nfslidingb6'; 
-%-- r table
-% fextrt = 'meansd_new_meancondb_nfslidingb6'; % 01302025_lme_eeg_kin_meansd_new_meancondb_nfslidingb6_tbl
-
+% fextr = 'meansd_new_perstridefb_nfslidingb6';
 %## IMPORT DATA
-% KIN_TABLE = par_load(save_dir,sprintf('sbs_eeg_psd_%.mat',fext));
+% KIN_TABLE = par_load(save_dir,sprintf('sbs_eeg_psd_%s.mat',fextr));
 %-- r-stats
-% r_stats_dir = 'C:\Users\jsalminen\Documents';
-% RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('013022025_lme_eeg_kin_%s_stats.xlsx',fextr)], ...
-%     "FileType","spreadsheet","UseExcel",true);
 RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('02202025_lme_eeg_kin_%s_stats.xlsx',fextr)], ...
     "FileType","spreadsheet","UseExcel",true);
 %-- r-table
-% KIN_TABLE = readtable([r_stats_dir filesep sprintf('01302025_lme_eeg_kin_%s_tbl.xlsx',fextr)], ...
-%     "FileType","spreadsheet","UseExcel",true);
 KIN_TABLE = readtable([r_stats_dir filesep sprintf('02202025_lme_eeg_kin_%s_tbl.xlsx',fextr)], ...
     "FileType","spreadsheet","UseExcel",true);
-X_DIM = 2;
 %% MEASURES TO ANALYZE ================================================= %%
 %## CLUSTER INFO
 %-- 01192025_mim_yaoa_nopowpow_crit_speed (rb3)
@@ -145,18 +134,18 @@ cluster_inds_plot = [3,4,5,7,10,12,13];
 %% ===================================================================== %%
 %## PARAMETERS
 %-
-% designs = unique(KIN_TABLE.model_n);
+designs = unique(KIN_TABLE.model_n);
 % clusters = unique(KIN_TABLE.cluster_n);
-% groups = unique(KIN_TABLE.group_n);
-% group_chars = unique(KIN_TABLE.group_char);
-% cond_chars = unique(KIN_TABLE.cond_char);
-speed_ns = unique(KIN_TABLE.speed_n);
+groups = unique(KIN_TABLE.group_n);
+group_chars = unique(KIN_TABLE.group_char);
+cond_chars = unique(KIN_TABLE.cond_char);
+% speed_ns = unique(KIN_TABLE.speed_n);
 clusters = unique(RSTATS_IMPORT.cluster_num);
-models = unique(RSTATS_IMPORT.model_char);
+% models = unique(RSTATS_IMPORT.model_char);
 %- colors
-cmaps_terrain = linspecer(4);
-custom_yellow = [254,223,0]/255;
-cmaps_terrain = [cmaps_terrain(3,:);custom_yellow;cmaps_terrain(4,:);cmaps_terrain(2,:)];
+% cmaps_terrain = linspecer(4);
+% custom_yellow = [254,223,0]/255;
+% cmaps_terrain = [cmaps_terrain(3,:);custom_yellow;cmaps_terrain(4,:);cmaps_terrain(2,:)];
 cmaps_speed = linspecer(4*3);
 cmaps_speed = [cmaps_speed(1,:);cmaps_speed(2,:);cmaps_speed(3,:);cmaps_speed(4,:)];
 xtick_label_c = {'0.25 m/s','0.50 m/s','0.75 m/s','1.0 m/s'};
@@ -263,6 +252,17 @@ DEF_SIGLINE_STRUCT = struct('sig_sign','*',...
     'sig_offset_y',0);
 
 %## SLIDING BASELINE MEASURES (RAW)
+% EEG_MEASURES = {'std_avg_theta','mu_avg_theta', ...
+%     'std_avg_alpha','mu_avg_alpha', ...
+%     'std_avg_beta','mu_avg_beta'};
+% EEG_MEASURE_LABS = {'10*log_{10}(PSD_{N})','10*log_{10}(PSD_{N})', ...
+%     '10*log_{10}(PSD_{N})','10*log_{10}(PSD_{N})', ...
+%     '10*log_{10}(PSD_{N})','10*log_{10}(PSD_{N})'};
+% EEG_MEASURE_TITLES = {'Sliding Std. Dev. \theta','Sliding Mean \theta', ...
+%     'Sliding Std. Dev. \alpha','Sliding Mean \alpha', ...
+%     'Sliding Std. Dev. \beta','Sliding Mean \beta'};
+% meas_ext = 'stdmuraw';
+%## SLIDING BASELINE MEASURES (MEANSD)
 EEG_MEASURES = {'std_avg_theta_fn1','std_avg_theta_fn2', ...
     'std_avg_alpha_fn1','std_avg_alpha_fn2', ...
     'std_avg_beta_fn1','std_avg_beta_fn2'};
@@ -503,7 +503,7 @@ for c_i = 1:length(clusters)
     % exportgraphics(fig,[tmp_savedir filesep sprintf('cl%s_std_allsubj.tiff',string(clusters(c_i)))],...
     %     'Resolution',300)
     exportgraphics(fig,[tmp_savedir filesep sprintf('cl%s_%s_allsubj.tiff',string(clusters(c_i)),meas_ext)],...
-        'Resolution',300)
+        'Resolution',SAVE_RES)
     % close(fig)
 end
 %% (GROUP MODEL) ==================================================== %%
@@ -867,7 +867,7 @@ for c_i = 1:length(clusters)
     hold off;
     %##
     exportgraphics(fig,[tmp_savedir filesep sprintf('cl%s_%s_group.tiff',string(clusters(c_i)),meas_ext)],...
-        'Resolution',300)
+        'Resolution',SAVE_RES)
     % close(fig)
 end
 %% (INTERACTION MODEL) ============================================== %%
@@ -1171,6 +1171,6 @@ for c_i = 1:length(clusters)
     hold off;
     %##
     exportgraphics(fig,[tmp_savedir filesep sprintf('cl%s_intactallsubj.tiff',string(clusters(c_i)))],...
-        'Resolution',300)
+        'Resolution',SAVE_RES)
     % close(fig)
 end

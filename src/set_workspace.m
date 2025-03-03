@@ -86,6 +86,7 @@ for ss = SUBMODULES_ITERS
     if strcmp(SUBMODULES{ss},'spm12')
         path(path,[SUBMODS_DIR filesep SUBMODULES{ss} filesep SUBMODULES{ss}]);
     end
+    %(02/26/2025) JS, this could defintely use a robustness improvement
     PATHS.PATHS{ss} = [SUBMODS_DIR filesep SUBMODULES{ss}];
 end
 %## special paths
@@ -97,8 +98,6 @@ PATHS.submods_dir = SUBMODS_DIR;
 PATHS.src_dir = SRC_DIR;
 %- _data folder
 PATHS.data_dir = fullfile(fileparts(fileparts(SRC_DIR)),'_data');
-%- EEGLAB folder
-PATHS.eeglab_dir = [SUBMODS_DIR filesep 'eeglab'];
 %- _functions folder
 PATHS.functions_dir = FUNCS_DIR;
 a_ftmp = unix_genpath(PATHS.functions_dir);
@@ -109,17 +108,26 @@ cellfun(@(x) fprintf('Adding functions in: %s...\n',x),a_ftmp);
 a_ftmp = char.empty;
 % ----------------------------------------------------------------------- %
 %% ADDPATH for FIELDTRIP Toolboxbemobil
-if contains('fieldtrip',SUBMODULES)
+if contains('fieldtrip',SUBMODULES,'IgnoreCase',true)
+    fprintf('Starting fieldtrip...\n');
     ft_defaults;
 end
 %% INITIALIZE MIM & EEGLAB
 %start EEGLAB if necessary
-if contains('sift',SUBMODULES)
+if contains('sift',SUBMODULES,'IgnoreCase',true)
+    fprintf('Starting SIFT...\n');
     StartSIFT;
 end
 %- always start eeglab last.
 ALLEEG=[]; STUDY=[]; CURRENTSET=0; CURRENTSTUDY=0;
-eeglab;
+if contains('eeglab',SUBMODULES,'IgnoreCase',true)
+    fprintf('Starting EEGLAB...\n');
+    %- EEGLAB folder
+    PATHS.eeglab_dir = [SUBMODS_DIR filesep 'eeglab'];
+    eeglab nogui;
+    %(02/26/2025) JS, adding "nogui" keyword to see if improves scripting
+    %performance
+end
 
 %% PARPOOL SETUP ======================================================= %%
 if ~ispc
