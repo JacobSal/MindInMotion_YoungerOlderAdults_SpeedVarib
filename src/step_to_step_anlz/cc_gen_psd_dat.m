@@ -2,7 +2,7 @@
 %
 %   Code Designer: Jacob salminen
 %## SBATCH (SLURM KICKOFF SCRIPT)
-% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/_bash_sh_files/run_sts_cc_gen_psd_dat.sh
+% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/step_to_step_anlz/run_sts_cc_gen_psd_dat.sh
 
 %{
 %## RESTORE MATLAB
@@ -79,7 +79,7 @@ ERSP_PARAMS = struct('subbaseline','off',...
 DATA_SET = 'MIM_dataset';
 
 %## PROCESSED STUDY
-STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
+STUDY_DNAME = '02202025_mim_yaoa_powpow0p3_crit_speed';
 
 %## SAVE INFO
 STUDY_FNAME_EPOCH = 'kin_eeg_epoch_study';

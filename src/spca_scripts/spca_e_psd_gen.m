@@ -2,7 +2,7 @@
 %
 %   Code Designer: Jacob salminen
 %## SBATCH (SLURM KICKOFF SCRIPT)
-% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/spca_scripts/run_e_psd_gen.sh
+% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/spca_scripts/run_spca_e_psd_gen.sh
 
 %{
 %## RESTORE MATLAB
@@ -16,15 +16,17 @@ clearvars
 % opengl('dsave', 'software') % might be needed to plot dipole plots?
 %## TIME
 tic
-ADD_CLEANING_SUBMODS = false;
+ADD_ALL_SUBMODS = false;
 %## Determine Working Directories
 if ~ispc
     try
         SCRIPT_DIR = matlab.desktop.editor.getActiveFilename;
         SCRIPT_DIR = fileparts(SCRIPT_DIR);
-        SRC_DIR = fileparts(SRC_DIR);
+        STUDY_DIR = fileparts(SCRIPT_DIR); % change this if in sub folder
+        SRC_DIR = STUDY_DIR;
     catch e
         fprintf('ERROR. PWD_DIR couldn''t be set...\n%s',getReport(e))
+        STUDY_DIR = getenv('STUDY_DIR');
         SCRIPT_DIR = getenv('SCRIPT_DIR');
         SRC_DIR = getenv('SRC_DIR');
     end
@@ -37,10 +39,12 @@ else
         SCRIPT_DIR = dir(['.' filesep]);
         SCRIPT_DIR = SCRIPT_DIR(1).folder;
     end
-    SRC_DIR = fileparts(SCRIPT_DIR);    
+    STUDY_DIR = fileparts(SCRIPT_DIR); % change this if in sub folder
+    SRC_DIR = STUDY_DIR;
 end
 %## Add Study, Src, & Script Paths
 addpath(SRC_DIR);
+addpath(STUDY_DIR);
 cd(SRC_DIR);
 fprintf(1,'Current folder: %s\n',SRC_DIR);
 %## Set PWD_DIR, EEGLAB path, _functions path, and others...
@@ -60,11 +64,11 @@ DEF_EPOCH_PARAMS = struct('epoch_method','timewarp',...
     'cond_field','cond',...
     'appx_cond_len',3*60,...
     'slide_cond_chars',{{}},...
-    'gait_trial_chars',{{'0p25','0p5','0p75','1p0','flat','low','med','high'}},...
+    'gait_trial_chars',{{'0p25','0p5','0p75','1p0','flat','high','low','med'}},...
     'rest_trial_char',{{}},...
     'do_recalc_epoch',true);
 %- compute measures for spectrum and ersp
-FORCE_RECALC_PSD = false;
+FORCE_RECALC_PSD = true;
 %* ERSP PARAMS
 ERSP_STAT_PARAMS = struct('condstats','on',... % ['on'|'off]
     'groupstats','off',... %['on'|'off']
@@ -91,18 +95,20 @@ SPCA_PARAMS = struct('analysis_type','component',...
     'n_resamples',100,...
     'timewarp_events',{{'RHS','LHS','LTO','RTO'}},...
     'condition_base','rest',...
-    'condition_gait',{{'flat','low','med','high','0p25','0p5','0p75','1p0'}});
+    'condition_gait',{{'0p25','0p5','0p75','1p0','flat','high','low','med'}});
+%(03/05/2025) JS, for speed analysis removing the terrain conditions for
+%better calcs.
 %% (PATHS)
 %- datset name & 
 DATA_SET = 'MIM_dataset';
-ICA_DIR_FNAME = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams';
-STUDY_DNAME = '01102025_mim_yaoa_spca_calcs';
-STUDY_FNAME_GAIT = 'spca_gait_epoch_study';
-STUDY_FNAME_REST = 'spca_rest_slide_study';
-%-
-studies_dir = [PATHS.src_dir filesep '_data' filesep DATA_SET filesep '_studies'];
+ICA_DIR_FNAME = '02212025_YAOAN117_iccR0p65_iccREMG0p4_chanrej_samprej';
+STUDY_DNAME = '02202025_mim_yaoa_spca_calcs';
+STUDY_FNAME_GAIT = 'spca_gait_epoch_study_all';
+STUDY_FNAME_REST = 'spca_rest_slide_study_all';
+%## soft define
+studies_dir = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
+ica_data_dir = [studies_dir filesep ICA_DIR_FNAME]; % JACOB,SAL(02/23/2023)
 save_dir = [studies_dir filesep sprintf('%s',STUDY_DNAME)];
-ica_data_dir = [studies_dir filesep ICA_DIR_FNAME];
 %- create new study directory
 if ~exist(save_dir,'dir')
     mkdir(save_dir);
@@ -146,8 +152,11 @@ STUDY = pop_statparams(STUDY,'condstats',ERSP_STAT_PARAMS.condstats,...
 
 SPEC_PARAMS.subtractsubjectmean = 'on';
 STUDY = pop_specparams(STUDY,'subtractsubjectmean',SPEC_PARAMS.subtractsubjectmean,...
-    'freqrange',SPEC_PARAMS.plot_freqrange,'plotmode','condensed',...
-    'plotconditions','together','ylim',SPEC_PARAMS.plot_ylim,'plotgroups','together');
+    'freqrange',SPEC_PARAMS.plot_freqrange, ...
+    'plotmode','condensed',...
+    'plotconditions','together', ...
+    'ylim',SPEC_PARAMS.plot_ylim, ...
+    'plotgroups','together');
 %%
 %## ersp plot per cluster per condition
 STUDY_REST = pop_statparams(STUDY_REST,'condstats',ERSP_STAT_PARAMS.condstats,...
@@ -160,12 +169,16 @@ STUDY_REST = pop_statparams(STUDY_REST,'condstats',ERSP_STAT_PARAMS.condstats,..
 
 SPEC_PARAMS.subtractsubjectmean = 'on';
 STUDY_REST = pop_specparams(STUDY_REST,'subtractsubjectmean',SPEC_PARAMS.subtractsubjectmean,...
-    'freqrange',SPEC_PARAMS.plot_freqrange,'plotmode','condensed',...
-    'plotconditions','together','ylim',SPEC_PARAMS.plot_ylim,'plotgroups','together');
+    'freqrange',SPEC_PARAMS.plot_freqrange, ...
+    'plotmode','condensed',...
+    'plotconditions','together', ...
+    'ylim',SPEC_PARAMS.plot_ylim, ...
+    'plotgroups','together');
 %% (PRECOMPUTE MEASURES) COMPUTE ERSPs
 subj_chars = {STUDY_REST.datasetinfo.subject};
-parfor subj_i = 1:length(STUDY_REST.datasetinfo)
+parfor subj_i = 1:length(subj_chars)
     %-
+    %%
     fprintf('Running Subject %s\n',subj_chars{subj_i}); 
     tt = tic;    
     %## PARAMETERS
@@ -175,10 +188,13 @@ parfor subj_i = 1:length(STUDY_REST.datasetinfo)
     tmp_spec_params = SPEC_PARAMS;
     tmp_epoch_params = DEF_EPOCH_PARAMS;
     
+    %## DOUBLE CHECK SAME SUBJECT FROM STUDY
+    subj_ii = find(strcmp(subj_chars{subj_i},{tmp_study.datasetinfo.subject}));
+    
     %## CALCULATE GAIT PSD
     %- load EEG
-    EEG = pop_loadset('filepath',tmp_study.datasetinfo(subj_i).filepath,...
-        'filename',tmp_study.datasetinfo(subj_i).filename);       
+    EEG = pop_loadset('filepath',tmp_study.datasetinfo(subj_ii).filepath,...
+        'filename',tmp_study.datasetinfo(subj_ii).filename);       
     %-
     icaspec_f = [EEG.filepath filesep sprintf('%s.icaspec',EEG.subject)];
     if ~exist(icaspec_f,'file') || FORCE_RECALC_PSD
@@ -192,7 +208,7 @@ parfor subj_i = 1:length(STUDY_REST.datasetinfo)
             EEG.icaact = reshape(EEG.icaact, size(EEG.icaact,1), EEG.pnts, EEG.trials);
         end
         %- overrride datasetinfo to trick std_precomp to run.
-        tmp_study_calc.datasetinfo = tmp_study_calc.datasetinfo(subj_i);
+        tmp_study_calc.datasetinfo = tmp_study_calc.datasetinfo(subj_ii);
         tmp_study_calc.datasetinfo(1).index = 1;
         [~, ~] = std_precomp(tmp_study_calc, EEG,...
                     'components',...
@@ -208,8 +224,7 @@ parfor subj_i = 1:length(STUDY_REST.datasetinfo)
         EEG.data = tmp_fdt_fpath;
     else
         fprintf('PSDs already calculated for %s\n',EEG.subject);
-    end
-    
+    end    
 
     %## CALCULATE REST PSD
     %- load EEG
@@ -287,15 +302,44 @@ parfor subj_i = 1:length(STUDY_REST.datasetinfo)
         %## (APPLY SPCA) =============================================== %%
         fprintf('Running SPCA on All Conditions\n');
         % [psd_baselined,psd_avg,output_struct] = apply_spca_cond_psd(tmp,base_txf_mean);
-        [psd_f,freqs,trialinfo,psd_nolog_f] = spca_get_psd_dat(tmp)
+        [psd_f,freqs,trialinfo,psd_nolog_f] = spca_get_psd_dat(tmp);
+        %{
+        %## PLOT
+        i = 3;
+        psd_in = squeeze(psd_f(:,:,i)); % freq x epoch x chan
+        fig = figure();
+        set(gcf, 'position', [0 0 600 500]);
+        ax = axes();
+        % plot_psd(ax, psd_in, tmp.freqs);
+        plot(tmp.freqs,psd_in)
+        ylabel('Amplitude (\muV)');
+        xlabel('Frequency (Hz)');
+        grid on;
+        box off;
+        %}
         %- average across trials & baseline to rest
-        psd_f = permute(psd_f,[2,1,3]);
+        psd_f = permute(psd_f,[2,1,3]); % epoch x freq x chan
         psd_avg = mean(psd_f); 
         psd_avg = permute(psd_avg,[1,3,2]);
         psd_baselined = bsxfun(@minus,psd_avg,base_txf_mean);
         %- apply spca
         [psd_corr_based,based_psd_corr,psd_corr_psc1,psd_psc,coeffs] = specPCAdenoising(psd_baselined);
         
+        %{
+        %## PLOT
+        i = 3;
+        psd_in = squeeze(psd_corr_based(:,i,:));
+        fig = figure();
+        set(gcf, 'position', [0 0 600 500]);
+        ax = axes();
+        % plot_psd(ax, psd_in, tmp.freqs);
+        plot(tmp.freqs,psd_in)
+        ylabel('Amplitude (\muV)');
+        xlabel('Frequency (Hz)');
+        grid on;
+        box off;
+        %}
+
         %## SAVE PCA INFORMATION
         gait_ersp_struct = [];
         gait_ersp_struct.ID             = EEG.subject;
@@ -374,20 +418,22 @@ parfor subj_i = 1:length(STUDY_REST.datasetinfo)
             % psd_avg = mean(psd_f); % average over trials and take abs() to ensure amplitude calc
             % psd_avg = permute(psd_avg,[1,3,2]); % epoch x chan x freq
             
-            psd_f = permute(psd_f,[2,3,1])
-            psd_store = zeros(size(psd_f));
+            psd_in = permute(psd_f,[2,3,1]);
+            psd_store = zeros(size(psd_in));
+            psd_store_b = zeros(size(psd_in));
             for t_i = 1:size(psd_avg,1)
-                psd_baselined = bsxfun(@minus,psd_f(t_i,:,:),base_txf_mean);
+                psd_baselined = bsxfun(@minus,psd_in(t_i,:,:),base_txf_mean);
                 %- apply spca
                 [psd_corr_based,~,~,~,~] = specPCAdenoising(psd_baselined,coeffs);
                 psd_store(t_i,:,:) = psd_corr_based;
+                psd_store_b(t_i,:,:) = psd_baselined;
             end
             struct_out = struct('condition',conds{cond_i},...
-                'psd_corr_based',psd_corr_based,...
-                'psd_orig_avg',[],...
+                'psd_corr_based',psd_store,...
+                'psd_orig_avg',psd_in,...
                 'baseline_psd',base_txf_mean,...
                 'psd_corr_psc1',[],...
-                'psd_orig_baselined',[],...
+                'psd_orig_baselined',psd_store_b,...
                 'freqs',freqs,...
                 'coeffs',coeffs);
             par_save(struct_out,fpath,sprintf('cond%s_sbs_spca_psd.mat',conds{cond_i}));

@@ -77,6 +77,8 @@ export SUBJ_RUN=("H1002" "H1004" "H1007" "H1009"
  "NH3028" "NH3051" "NH3056" "NH3071"
  "NH3082" "NH3123") # JACOB SAL(08/23/2023); JS Updated (02/21/2025)
 
+# export SUBJ_RUN=("NH3105") # JACOB SAL(08/23/2023); JS Updated (02/21/2025)
+
 for s in ${SUBJ_RUN[@]};
 do
 	export mri_mtf="$SUBJ_HEADMOD/$s/MRI/ants1Warp.nii.gz"

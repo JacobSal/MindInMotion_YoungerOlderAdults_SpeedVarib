@@ -50,33 +50,35 @@ set_workspace
 % [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca');
 [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca_speed');
 %% (PARAMETERS) ======================================================== %%
-%## hard define
-%- datset name
-DATA_SET = 'MIM_dataset';
-%- study name
-% STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
-STUDY_DNAME =  '01192025_mim_yaoa_nopowpow_crit_speed';
-STUDY_FNAME = 'kin_eeg_epoch_study';
-ANALYSIS_DNAME = 'kin_eeg_step_to_step';
-%-
 cmap_terrain = linspecer(4);
 custom_yellow = [254,223,0]/255;
 cmap_terrain = [cmap_terrain(3,:);custom_yellow;cmap_terrain(4,:);cmap_terrain(2,:)];
 cmap_speed = linspecer(4*3);
 cmap_speed = [cmap_speed(1,:);cmap_speed(2,:);cmap_speed(3,:);cmap_speed(4,:)];
-%% (PATHS)
+%% (PATHS) ============================================================= %%
+%- datset name
+DATA_SET = 'MIM_dataset';
+%- study name
+% STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
+STUDY_DNAME = '02202025_mim_yaoa_powpow0p3_crit_speed';
+STUDY_FNAME = 'kin_eeg_epoch_study';
+ANALYSIS_DNAME = 'kin_eeg_step_to_step';
+%-
 studies_fpath = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
-%## CLUSTER LOADING
+%- load cluster
 CLUSTER_K = 11;
 CLUSTER_STUDY_NAME = 'temp_study_rejics5';
 % cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb10'];
-cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb3'];
 % cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb5'];
+% cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb3'];
+cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_allcond_rb3'];
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
 cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
-
-%## R-STATS LOADING
-r_stats_dir = [PATHS.src_dir filesep 'r_scripts' filesep 'sbs_lme_mods'];
+%-
+save_dir = [cluster_k_dir filesep ANALYSIS_DNAME];
+if ~exist(save_dir,'dir')
+    mkdir(save_dir);
+end
 %% ===================================================================== %%
 % if ~ispc
 %     [STUDY,ALLEEG] = pop_loadstudy('filename',[STUDY_FNAME '_UNIX.study'],'filepath',save_dir);
@@ -113,11 +115,12 @@ end
 
 %%
 fpaths = {STUDY.datasetinfo.filepath};
-fextr = 'slidingb6';
+fextr = 'slidingb36';
 dat = par_load(fpaths{1},sprintf('psd_output_%s.mat',fextr));
 %--
 fooof_freqs = dat.freqs;
-basel_chars = {'slidingb3','slidingb6','slidingb12','slidingb18','slidingb24','slidingb30','slidingb36'};
+% basel_chars = {'slidingb3','slidingb6','slidingb12','slidingb18','slidingb24','slidingb30','slidingb36'};
+basel_chars = {'slidingb36'};
 
 % basel_chars = {'slidingb1','slidingb3','slidingb6','slidingb12','slidingb18', ...
 %     'slidingb24','slidingb30','slidingb36'};

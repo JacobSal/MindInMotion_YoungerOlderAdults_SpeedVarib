@@ -72,7 +72,7 @@ EPOCH_PARAMS = struct('epoch_method','timewarp',...
     'cond_field','cond',...
     'appx_cond_len',3*60,...
     'slide_cond_chars',{{}},...
-    'gait_trial_chars',{{'0p25','0p5','0p75','1p0','flat','low','med','high'}},...
+    'gait_trial_chars',{{'0p25','0p5','0p75','1p0','flat','high','low','med'}},... %,'flat','low','med','high'
     'rest_trial_char',{{}},...
     'do_recalc_epoch',true,...
     'do_combine_trials',true);
@@ -80,12 +80,12 @@ EPOCH_PARAMS = struct('epoch_method','timewarp',...
 %- datset name
 DATA_SET = 'MIM_dataset';
 %## PREPROCESSED ICA 
-ICA_DIR_FNAME = '11262023_YAOAN104_iccRX0p65_iccREMG0p4_changparams';
-SUBJ_FNAME_REGEX = 'cleanEEG_EMG_HP3std_iCC0p65_iCCEMG0p4_ChanRej0p7_TimeRej0p4_winTol10';
+ICA_DIR_FNAME = '02212025_YAOAN117_iccR0p65_iccREMG0p4_chanrej_samprej';
+SUBJ_FNAME_REGEX = '%s_cleanEEG_EMG_HP3std_iCC0p65_iCCEMG0p4_ChanRej0p7_TimeRej0p4_winTol10.set';
 
 %## PROCESSED STUDY
-STUDY_DNAME = '01192025_mim_yaoa_nopowpow_crit_speed';
-STUDY_FNAME = 'all_comps_study';
+STUDY_DNAME = '02202025_mim_yaoa_powpow0p3_crit_speed';
+STUDY_FNAME = 'contin_study';
 
 %## SAVE INFO
 KIN_DNAME_EXT = 'kin_eeg_anl';
@@ -115,7 +115,7 @@ dipfit_norm_fPaths  = cell(1,length([SUBJ_PICS{:}]));
 %-
 for subj_i = 1:length(subj_chars)
     fPaths{subj_i} = [ica_data_dir filesep subj_chars{subj_i} filesep 'clean'];
-    fNames{subj_i} = sprintf('%s_%s.set',subj_chars{subj_i},SUBJ_FNAME_REGEX);
+    fNames{subj_i} = sprintf(SUBJ_FNAME_REGEX,subj_chars{subj_i});
     fprintf('Loading Subject %s\n',subj_chars{subj_i})
     if ~exist([fPaths{subj_i} filesep fNames{subj_i}],'file')
         fprintf('No .set file found...\n')

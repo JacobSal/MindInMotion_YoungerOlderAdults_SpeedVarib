@@ -26,8 +26,8 @@ else
     # otherwise: started with bash. Get the real location.
     TMP_PATH=$(realpath $0)
 fi
-export SCRIPT_DIR=$(dirname $TMP_PATH))
-export SRC_DIR=$(dirname $SCRIPT_DIR))
+export SCRIPT_DIR=$(dirname $TMP_PATH)
+export SRC_DIR=$(dirname $SCRIPT_DIR)
 export STUDY_DIR=$SRC_DIR
 
 cd $STUDY_DIR

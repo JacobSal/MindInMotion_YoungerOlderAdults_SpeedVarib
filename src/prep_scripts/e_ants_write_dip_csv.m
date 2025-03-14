@@ -51,12 +51,9 @@ set_workspace
 
 %% (DATASET INFORMATION) =============================================== %%
 [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca_speed');
-subj_chars = [SUBJ_PICS{:}];
-% SUBJ_PICS = {{'H3046','H3047','H3073','H3077','H3092', ...
-%     'NH3023','NH3025','NH3027','NH3028', ...
-%     'NH3051','NH3056','NH3071','NH3082','NH3123'}};
-% SUBJ_PICS = {{'NH3028'}};
 % subj_chars = [SUBJ_PICS{:}];
+% SUBJ_PICS = {{'NH3105'}}; %H2090','H2095','H2111','H2117','H3029','H3034','H3039','H3053'}};
+subj_chars = [SUBJ_PICS{:}];
 %%
 %## hard define
 %- datset name
@@ -83,18 +80,19 @@ for subj_i = 1:length(subj_chars)
         coords(~all(coords,2),:) = [];
         chan(~all(chan,2),:) = [];
         %--
-        x_coord = coords(:,1); 
-        y_coord = coords(:,2);
-        z_coord = coords(:,3);
-        %--
-        % x_coord = -coords(:,1); 
-        % y_coord = -coords(:,2);
+        % x_coord = coords(:,1); 
+        % y_coord = coords(:,2);
         % z_coord = coords(:,3);
+        %--
+        x_coord = -coords(:,1); 
+        y_coord = -coords(:,2);
+        z_coord = coords(:,3);
         % (05/09/2024) JS, flipping x,y signs to convert from LPS space to
         % RAS spcae. ANTs uses LPS but fieldtrip uses RAS (acpc as origin
         % still).
         % (02/19/2024) JS, can't remember if this change was made here, or
         % if I don't need to flip the signs before the ANTS transformation
+        %(03/04/2025) JS, I believe that the change was necessary.
         
         %-
         t_in = table(x_coord,y_coord,z_coord);

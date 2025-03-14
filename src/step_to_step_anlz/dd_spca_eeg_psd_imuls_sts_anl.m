@@ -65,14 +65,14 @@ DATA_SET = 'MIM_dataset';
 STUDY_DNAME = '02202025_mim_yaoa_powpow0p3_crit_speed';
 STUDY_FNAME = 'kin_eeg_epoch_study';
 ANALYSIS_DNAME = 'kin_eeg_step_to_step';
+%- spca study path
+SPCA_DNAME = '02202025_mim_yaoa_spca_calcs';
+STUDY_FNAME_GAIT = 'spca_gait_epoch_study_all';
 %-
 studies_fpath = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
 %- load cluster
 CLUSTER_K = 11;
 CLUSTER_STUDY_NAME = 'temp_study_rejics5';
-% cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb10'];
-% cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb5'];
-% cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb3'];
 cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_allcond_rb3'];
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
 cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
@@ -136,6 +136,18 @@ cl_struct = par_load(cluster_k_dir,sprintf('cl_inf_%i.mat',CLUSTER_K));
 STUDY.cluster = cl_struct;
 [comps_out,main_cl_inds,outlier_cl_inds] = eeglab_get_cluster_comps(STUDY);
 CLUSTER_PICS = main_cl_inds;
+%% (SPCA IMPLEMENTATION) =============================================== %%
+
+%## SPCA STUDY
+if ~ispc
+    tmp = load('-mat',[spca_dir filesep sprintf('%s_UNIX.study',STUDY_FNAME_GAIT)]);
+    STUDY_SPCA = tmp.STUDY;
+else
+    tmp = load('-mat',[spca_dir filesep sprintf('%s.study',STUDY_FNAME_GAIT)]);
+    STUDY_SPCA = tmp.STUDY;
+end
+
+
 %% (SUBJECT LOOP)
 %## PARAMETERS
 des_i = 2;
@@ -179,10 +191,10 @@ def_step_structs = struct('subj_char',{''}, ...
 cmaps_speed = linspecer(4*3);
 cmaps_speed = [cmaps_speed(1,:);cmaps_speed(2,:);cmaps_speed(3,:);cmaps_speed(4,:)];
 %##
-NUM_STRIDES_AVG = 36;
+NUM_STRIDES_AVG = 1;
 tmp_alleeg = cell(length(STUDY.datasetinfo));
-conds_keep = {'0p25','0p5','0p75','1p0','flat','low','med','high'};
-% xtick_label_g = {'0.25','0.50','0.75','1.0'}; %{'0.25','0.50','0.75','1.0'};
+conds_keep = {'0p25','0p5','0p75','1p0'};
+xtick_label_g = {'0.25','0.50','0.75','1.0'}; %{'0.25','0.50','0.75','1.0'};
 % fname_ext_store = '';
 %% SETUP PYTHON
 if ~ispc
@@ -251,6 +263,17 @@ parfor subj_i = 1:length(STUDY.datasetinfo)
     fprintf('Using conditions: %s\n',strjoin(unique({trialinfo.cond}),','));
     eeg_psd = eeg_psd(:,inds_cond,:);
     nolog_eeg_psd = 10.^(eeg_psd/10);
+
+    %## SPCA EXTRACTION
+    inds_subj = strcmp(tmp_study.datasetinfo(subj_i).subject,spca_table.subj_c);
+    tmp_st = spca_table(inds_subj,:);
+    comps = unique(tmp_st.comp_c);
+    for c_i = 1:length(comps)
+    inds_cl = spca_table.cluster_n == cl_i;
+    inds_cond = strcmp(spca_table.cond_c,c_chars{cond_i});
+    inds_grp = spca_table.group_n == group_i;
+    % inds_grp = cellfun(@(x) x==group_i,spca_table.group_n);
+    inds = inds_cl & inds_cond & inds_grp;
 
     %## RUN FOOOF
     fprintf('==== running FOOOF ====\n');
@@ -875,8 +898,7 @@ parfor subj_i = 1:length(STUDY.datasetinfo)
     %## SAVE
     steps_struct = struct2table(steps_struct);
     fname_ext = fname_ext(~cellfun(@isempty,fname_ext));
-    par_save(steps_struct,EEG.filepath,sprintf('kin_eeg_psd_meas_allcond_%s.mat',strjoin(fname_ext,'_')));
-    % par_save(steps_struct,EEG.filepath,sprintf('kin_eeg_psd_meas_speed_%s.mat',strjoin(fname_ext,'_')));
+    par_save(steps_struct,EEG.filepath,sprintf('kin_eeg_psd_meas_new_%s.mat',strjoin(fname_ext,'_')));
     fname_ext = fname_ext(~cellfun(@isempty,fname_ext));
     fname_ext_store = strjoin(fname_ext,'_');
     %- turn off when doing parallel processing.
@@ -915,49 +937,38 @@ for subj_i = 1:length(subj_chars)
     tmp_study = STUDY;
     tmp_cl_study = CL_STUDY;
     tmp_subjs = {tmp_cl_study.datasetinfo.subject};
-    try
-        %## LOAD SET FIlE
-        EEG = load([fpaths{subj_i} filesep fnames{subj_i}],'-mat');
-        
-        %## LOAD PSD DATA
-        dat = par_load(fpaths{subj_i},sprintf('psd_output_%s.mat',fextr));
-        %--
-        psd_mean = dat.psd_mean; %[frequency, epoch/splice, channel/component]
-        psd_std = dat.psd_std;
-        fooof_freqs = dat.freqs;
-        cond_struct = dat.cond_struct;
-        fprintf('conds: %s\n',strjoin(unique({cond_struct.cond}),','));
-        comp_arr = dat.indx_to_comp;
-        psd_mean = psd_mean(:,[cond_struct.ind],:);
-        psd_std = psd_std(:,[cond_struct.ind],:);
+
+    %## LOAD SET FIlE
+    EEG = load([fpaths{subj_i} filesep fnames{subj_i}],'-mat');
     
-        %## GET CLUSTER DATA
-        fprintf('Getting cluster information...\n');
-        [~,subs] = intersect(comp_arr(3,:),main_cl_inds);
-        tmp_arr = comp_arr(:,subs);
-        
-        %## EXTRACT DATA TO CLUSTERED ARRAYS
-        fprintf('Extract data and assigning to big array...\n');    
-        psd_dat_out(subj_i,:,1:size(psd_mean,2),tmp_arr(3,:)) = psd_mean(:,:,tmp_arr(1,:));
-        psd_std_dat_out(subj_i,:,1:size(psd_std,2),tmp_arr(3,:)) = psd_std(:,:,tmp_arr(1,:));
-        subj_dat_out(subj_i,1:size(psd_mean,2),tmp_arr(3,:)) = repmat(subj_i,[1,size(psd_mean,2),length(tmp_arr)]);
-        tmp = {cond_struct.cond};
-        cond_dat_out(subj_i,1:length(cond_struct),tmp_arr(3,:)) = repmat(tmp',[1,length(tmp_arr)]);
-        group_dat_out(subj_i,1:length(cond_struct),tmp_arr(3,:)) = repmat({EEG.group},[1,size(psd_mean,2),length(tmp_arr)]);
-        fprintf('psd len: %i\ncond len: %i\n',size(psd_mean,2),length(cond_struct));
-        % psd_dat_out(subj_i) = psd_mean(:,:,tmp_arr(1,:));
-    catch e
-        fprintf('Couldn''t load %s...\n%s\n',EEG.subject,getReport(e));
-    end
+    %## LOAD PSD DATA
+    dat = par_load(fpaths{subj_i},sprintf('psd_output_%s.mat',fextr));
+    %--
+    psd_mean = dat.psd_mean; %[frequency, epoch/splice, channel/component]
+    psd_std = dat.psd_std;
+    fooof_freqs = dat.freqs;
+    cond_struct = dat.cond_struct;
+    fprintf('conds: %s\n',strjoin(unique({cond_struct.cond}),','));
+    comp_arr = dat.indx_to_comp;
+    psd_mean = psd_mean(:,[cond_struct.ind],:);
+    psd_std = psd_std(:,[cond_struct.ind],:);
+
+    %## GET CLUSTER DATA
+    fprintf('Getting cluster information...\n');
+    [~,subs] = intersect(comp_arr(3,:),main_cl_inds);
+    tmp_arr = comp_arr(:,subs);
+    
+    %## EXTRACT DATA TO CLUSTERED ARRAYS
+    fprintf('Extract data and assigning to big array...\n');    
+    psd_dat_out(subj_i,:,1:size(psd_mean,2),tmp_arr(3,:)) = psd_mean(:,:,tmp_arr(1,:));
+    psd_std_dat_out(subj_i,:,1:size(psd_std,2),tmp_arr(3,:)) = psd_std(:,:,tmp_arr(1,:));
+    subj_dat_out(subj_i,1:size(psd_mean,2),tmp_arr(3,:)) = repmat(subj_i,[1,size(psd_mean,2),length(tmp_arr)]);
+    tmp = {cond_struct.cond};
+    cond_dat_out(subj_i,1:length(cond_struct),tmp_arr(3,:)) = repmat(tmp',[1,length(tmp_arr)]);
+    group_dat_out(subj_i,1:length(cond_struct),tmp_arr(3,:)) = repmat({EEG.group},[1,size(psd_mean,2),length(tmp_arr)]);
+    fprintf('psd len: %i\ncond len: %i\n',size(psd_mean,2),length(cond_struct));
+    % psd_dat_out(subj_i) = psd_mean(:,:,tmp_arr(1,:));
 end
-% tmp = all(isnan(psd_dat_out),[4,3,2]);
-% tmp = all(~isnan(subj_dat_out),[4,3,2]);
-inds = ~all(cellfun(@isempty,group_dat_out),[4,3,2]);
-psd_dat_out = psd_dat_out(inds,:,:,:);
-psd_std_dat_out = psd_std_dat_out(inds,:,:,:);
-cond_dat_out = cond_dat_out(inds,:,:,:);
-subj_dat_out = subj_dat_out(inds,:,:,:);
-group_dat_out = group_dat_out(inds,:,:,:);
 dat_out_struct = struct('psd_dat',psd_dat_out, ...
     'psd_std_dat',psd_std_dat_out, ...
     'cond_dat',{cond_dat_out}, ...
@@ -972,7 +983,7 @@ psd_dat_out = dat_out_struct.psd_dat;
 cond_dat_out = dat_out_struct.cond_dat;
 subj_dat_out = dat_out_struct.subj_dat;
 %}
-%% (CREATE BIG TABLE ACROSS SPEEDS) ==================================== %%
+%% (TEST CHANGES ACROSS SPEEDS) ======================================== %%
 % data_store = table.empty;
 groups = {'H1000','H2000','H3000'};
 group_name = {'younger_adults','older_high_function','older_low_function'};
@@ -981,7 +992,7 @@ data_store = cell(1,length(STUDY.datasetinfo));
 % fname_ext_store = 'meandesignb_nfslidingb6';
 % fname_ext_store = 'slidingb6';
 % fname_ext_store = 'slidingb24';
-fname_ext_store = 'slidingb1';
+fname_ext_store = 'slidingb30';
 % fname_ext_store = 'slidingb18';
 for i = 1:length(STUDY.datasetinfo)
     try

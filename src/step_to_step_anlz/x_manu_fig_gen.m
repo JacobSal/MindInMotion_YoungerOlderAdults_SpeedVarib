@@ -49,13 +49,6 @@ set_workspace
 %% (DATASET INFORMATION) =============================================== %%
 % [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca');
 [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca_speed');
-%% (PARAMETERS) ======================================================== %%
-%-- color maps
-cmap_terrain = linspecer(4);
-custom_yellow = [254,223,0]/255;
-cmap_terrain = [cmap_terrain(3,:);custom_yellow;cmap_terrain(4,:);cmap_terrain(2,:)];
-cmap_speed = linspecer(4*3);
-cmap_speed = [cmap_speed(1,:);cmap_speed(2,:);cmap_speed(3,:);cmap_speed(4,:)];
 %% (PATHS) ============================================================= %%
 %- datset name
 DATA_SET = 'MIM_dataset';
@@ -111,6 +104,78 @@ save_dir = [cluster_k_dir filesep ANALYSIS_DNAME];
 if ~exist(save_dir,'dir')
     mkdir(save_dir);
 end
+%% (LOAD & CONGREGATE PSD DATA) ===================================== %%
+% tmp = 'perstridefb_nfslidingb16';
+% fextr = 'perstridefb_nfslidingb26';
+fextr = 'slidingb6';
+% fextr = 'slidingb12';
+% fextr = 'slidingb18';
+% fextr = 'slidingb24';
+f_range = [3, 40];
+
+%## FNAMES
+fnames = {STUDY.datasetinfo.filename};
+fpaths = {STUDY.datasetinfo.filepath};
+subj_chars = {STUDY.datasetinfo.subject};
+
+%## GET FREQ DIMS
+dat = par_load(fpaths{1},sprintf('psd_output_%s.mat',fextr));
+psd_mean = dat.psd_mean;
+%--
+psd_dat_out = nan(length(subj_chars),size(psd_mean,1),250,length(CLUSTER_PICS));
+cond_dat_out = cell(length(subj_chars),250,length(CLUSTER_PICS));
+subj_dat_out = nan(length(subj_chars),250,length(CLUSTER_PICS));
+group_dat_out = cell(length(subj_chars),250,length(CLUSTER_PICS));
+conds_extract = {'0p25','0p5','0p75','1p0'};
+
+%##
+for subj_i = 1:length(subj_chars)
+    %-- initiate params
+    tmp_study = STUDY;
+    tmp_cl_study = CL_STUDY;
+    tmp_subjs = {tmp_cl_study.datasetinfo.subject};
+    %## LOAD SET FIlE
+    EEG = load([fpaths{subj_i} filesep fnames{subj_i}],'-mat');
+    
+    %## LOAD PSD DATA
+    dat = par_load(fpaths{subj_i},sprintf('psd_output_%s.mat',fextr));
+    %--
+    psd_mean = dat.psd_mean; %[frequency, epoch/splice, channel/component]
+    fooof_freqs = dat.freqs;
+    cond_struct = dat.cond_struct;
+    fprintf('conds: %s\n',strjoin(unique({cond_struct.cond}),','));
+    comp_arr = dat.indx_to_comp;
+    psd_mean = psd_mean(:,[cond_struct.ind],:);
+
+    %## GET CLUSTER DATA
+    fprintf('Getting cluster information...\n');
+    [~,subs] = intersect(comp_arr(3,:),main_cl_inds);
+    tmp_arr = comp_arr(:,subs);
+    
+    %## EXTRACT DATA TO CLUSTERED ARRAYS
+    fprintf('Extract data and assigning to big array...\n');    
+    psd_dat_out(subj_i,:,1:size(psd_mean,2),tmp_arr(1,:)) = psd_mean(:,:,tmp_arr(1,:));
+    subj_dat_out(subj_i,1:size(psd_mean,2),tmp_arr(1,:)) = repmat(subj_i,[1,size(psd_mean,2),length(tmp_arr)]);
+    tmp = {cond_struct.cond};
+    cond_dat_out(subj_i,1:length(cond_struct),tmp_arr(1,:)) = repmat(tmp',[1,length(tmp_arr)]);
+    group_dat_out(subj_i,1:length(cond_struct),tmp_arr(1,:)) = repmat({EEG.group},[1,size(psd_mean,2),length(tmp_arr)]);
+    fprintf('psd len: %i\ncond len: %i\n',size(psd_mean,2),length(cond_struct));
+    % psd_dat_out(subj_i) = psd_mean(:,:,tmp_arr(1,:));
+end
+dat_out_struct = struct('psd_dat',psd_dat_out, ...
+    'cond_dat',{cond_dat_out}, ...
+    'subj_dat',subj_dat_out, ...
+    'group_dat',{group_dat_out});
+par_save(dat_out_struct,[cluster_k_dir filesep 'kin_eeg_step_to_step' filesep sprintf('raw_psd_dat_%s.mat',fextr)]);
+dat_out_struct = struct.empty;
+%## LOAD
+%{
+dat_out_struct = par_load([cluster_k_dir filesep 'kin_eeg_step_to_step' filesep sprintf('raw_psd_dat_%s.mat',fextr)]);
+psd_dat_out = dat_out_struct.psd_dat;
+cond_dat_out = dat_out_struct.cond_dat;
+subj_dat_out = dat_out_struct.subj_dat;
+group_dat_out = dat_out_struct.group_dat;
+%}
 %% MEASURES TO ANALYZE ================================================= %%
 %## STATS
 try
@@ -132,7 +197,7 @@ stats.paired{2} = 'off'; % Group stats
 
 %## CLUSTER INFO
 %-- 01192025_mim_yaoa_nopowpow_crit_speed (rb3)
-cluster_titles = {'','','Right Sensorimotor', ...
+cluster_titles = {'Right Sensorimotor', ...
     'Precuneus', ...
     'Left Sensorimotor', ...
     'Right Occipital',...
@@ -145,7 +210,20 @@ cluster_titles = {'','','Right Sensorimotor', ...
     'Right Posterior Parietal'};
 xtick_label_c = {'0.25 m/s','0.50 m/s','0.75 m/s','1.0 m/s'};
 cluster_inds_plot = [3,4,5,7,10,12,13];
-% [~,~,cluster_inds] = intersect(cluster_inds_plot,CLUSTER_PICS);
+%- rb5
+output_titles = {'lsm','rppa','midc','rcun','rsm','lsupm','rocp','locp','ltemp','lppa','rtemp'};
+fig_n = [7,10,11,13,8,12,0,0,0,9,0];
+%##
+violin_ylimits = {{[],[],[],[],[],[],[],[],[],[],[],[]};...
+            {[],[],[],[],[],[],[],[],[],[],[],[]};...
+            {[],[],[],[],[],[],[],[],[],[],[],[]}};
+%--
+speed_xvals = (0:5)*0.25;
+c_chars = {'0.25 m/s','0.50 m/s','0.75 m/s','1.0 m/s'};
+g_chars_topo = {'Young Adults','Older High Functioning Adults','Older Low Functioning Adults'};
+g_chars_subp = {'YA','OHFA','OLFA'};
+dip_dir = [cluster_k_dir filesep 'topo_dip_inf'];
+
 %% ===================================================================== %%
 %## PARAMETERS
 %-- colors
@@ -238,20 +316,49 @@ stats_store = [];
 for cl_i = 1:length(cluster_inds_plot)
     %%
     %## INITIATE FIGURE
-    fig = figure('color','white');
-    set(fig,'Units','inches','Position',[0.5,0.5,6.5,9])
-    set(fig,'PaperUnits','inches','PaperSize',[1 1],'PaperPosition',[0 0 1 1])
+    %-- initiate params
+    cl_ii = find(cluster_inds_plot(cl_i) == double(string(clusters)));
+    cl_n = double(string(clusters(cl_ii)));
+    atlas_name = cluster_titles{cl_ii};
+    
+    %## INITIATE FIGURE
+    fig = figure('color','white', ...
+        'Renderer','Painters');
+    TITLE_XSHIFT = 0.4;
+    TITLE_YSHIFT = 0.975;
+    TITLE_BOX_SZ = [0.4,0.4];
     annotation('textbox',[TITLE_XSHIFT-(TITLE_BOX_SZ(1)/2/2),TITLE_YSHIFT-(TITLE_BOX_SZ(2)/2),TITLE_BOX_SZ(1),TITLE_BOX_SZ(2)],...
-        'String',cluster_titles{double(string(cluster_inds_plot(cl_i)))}, ...
+        'String',atlas_name, ...
         'HorizontalAlignment','center',...
         'VerticalAlignment','middle', ...
         'LineStyle','none', ...
-        'FontName',AX_FONT_NAME,...
-        'FontSize',TITLE_FONT_SIZE, ...
+        'FontName',FONT_NAME,...
+        'FontSize',14, ...
         'FontWeight','Bold', ...
-        'Units','normalized');        
+        'Units','normalized');
+    set(fig,'Units','inches', ...
+        'Position',FIGURE_POSITION, ...
+        'PaperUnits','inches', ...
+        'PaperSize',[1 1], ...
+        'PaperPosition',[0 0 1 1])
+    p_sz = get(fig,'Position');
+    set(gca,AXES_DEFAULT_PROPS{:});
     hold on;
-    set(gca,AXES_DEFAULT_PROPS{:})
+    
+    %## TOPOGRAPHY PLOT
+    IM_RESIZE = 0.225;
+    ax_position = [AX_INIT_HORIZ_TOPO,AX_INIT_VERT_TOPO,0,0];
+    plot_topography(fig,STUDY,cl_n, ...
+        groups,g_chars,g_chars_topo, ...
+        ax_position,IM_RESIZE);
+    
+    %## DIPOLE PLOT
+    IM_RESIZE = 1.1;
+    dip_fig_path = [dip_dir filesep sprintf('%i_dipplot_alldipspc_top.fig',cl_n)];
+    ax_position = [AX_INIT_HORIZ_DIP,AX_INIT_VERT_DIP,0,0];
+    label_position = [AX_INIT_HORIZ+LAB_A_XOFFSET+(0.1/2),1+LAB_A_YOFFSET+(0.1/2),.1,.1];
+    plot_dipole_slices(fig,dip_fig_path,IM_RESIZE, ...
+        p_sz,ax_position,label_position);
     
     %## EXTRACT PSD DATA
     tmp_dat = squeeze(psd_dat_out(:,:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]

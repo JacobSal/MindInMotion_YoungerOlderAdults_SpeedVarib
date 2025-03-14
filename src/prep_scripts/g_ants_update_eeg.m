@@ -4,7 +4,7 @@
 %   Summary: 
 
 %- run script
-% sbatch /blue/dferris/jsalminen/GitHub/par_EEGProcessing/src/1_PREPROC/mim/run_g_ants_update_eeg.sh
+% sbatch /blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/prep_scripts/run_prep_g_ants_update_eeg.sh
 
 %% SET WORKSPACE ======================================================= %%
 % opengl('dsave', 'software') % might be needed to plot dipole plots?
@@ -46,10 +46,7 @@ set_workspace
 %% (DATASET INFORMATION) =============================================== %%
 [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca_speed');
 subj_chars = [SUBJ_PICS{:}];
-% SUBJ_PICS = {{'H3046','H3047','H3073','H3077','H3092', ...
-%     'NH3023','NH3025','NH3027','NH3028', ...
-%     'NH3051','NH3056','NH3071','NH3082','NH3123'}};
-% SUBJ_PICS = {{'NH3028'}};
+% SUBJ_PICS = {{'NH3105'}}; %'H2090','H2095','H2111','H2117','H3029','H3034','H3039','H3053'}};
 % subj_chars = [SUBJ_PICS{:}];
 %% ===================================================================== %%
 %## MRI TEMPLATE FOR SOURCE DEPTH
