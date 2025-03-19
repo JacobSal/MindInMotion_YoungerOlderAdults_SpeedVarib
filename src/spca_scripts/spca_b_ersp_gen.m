@@ -179,8 +179,12 @@ STUDY_REST = pop_specparams(STUDY_REST,'subtractsubjectmean',SPEC_PARAMS.subtrac
     'freqrange',SPEC_PARAMS.plot_freqrange,'plotmode','condensed',...
     'plotconditions','together','ylim',SPEC_PARAMS.plot_ylim,'plotgroups','together');
 %% (PRECOMPUTE MEASURES) COMPUTE ERSPs
-skip_erspgen_subjs = {'H1010','H1012','H1017','H1019','H1007','H1011','H1009','H1004','H1013','H1018', ...
-    'H1035','H2042','H1031','H1026','H1047','H1039','H2023','H1034','H2018_FU','H2012_FU','H2034'};
+skip_b1 = {'H1010','H1012','H1017','H1019','H1007','H1011','H1009','H1004','H1013','H1018', ...
+    'H1035','H2042','H1031','H1026','H1047','H1039','H2023','H1034','H2018_FU','H2012_FU'};
+skip_b2 = {'H2034','H1038','H1033','H1024','H1030','H1045','H2017','H2039','H2022','H2008', ...
+'H2027','H1022','H1029','H1032','H1037','H1042','H2015','H2038','H2021','H2002','H2026', ...
+'H1020','H1041','H1027','H1036','H3103','H2013','H2037','H1048','H2020','H3120','NH3030','H2025'};
+skip_subjs = [skip_b1,skip_b2];
 subj_chars = {STUDY_GAIT.datasetinfo.subject};
 % for subj_i = 1:length(subj_chars)
 parfor subj_i = 1:length(STUDY_GAIT.datasetinfo)
@@ -194,7 +198,7 @@ parfor subj_i = 1:length(STUDY_GAIT.datasetinfo)
     %## DOUBLE CHECK SAME SUBJECT FROM STUDY
     subj_ii = find(strcmp(subj_char,{tmp_study_rest.datasetinfo.subject}));    
 
-    if ~any(strcmp(subj_char,skip_erspgen_subjs))
+    if ~any(strcmp(subj_char,skip_subjs))
         %## CHECK DATA EXISTENCE
         %- gait
         gait_fpath = tmp_study_gait.datasetinfo(subj_i).filepath;

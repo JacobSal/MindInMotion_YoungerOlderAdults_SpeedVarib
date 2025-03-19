@@ -270,88 +270,71 @@ parfor subj_i = 1:length(subj_chars)
         epoched_fPath = strjoin(epoched_fPath(1:end-1),filesep);
         fpath = [epoched_fPath filesep 'rest'];
         icaspec_f = [fpath filesep sprintf('%s.icaspec',EEG.subject)];
-        %- load .icaspec load-in parameters
-        fprintf('Loading Resting Frequency Data...\n');
-        tmp = load(icaspec_f,'-mat');
-        %- reshape data [pnts x chans x freq]
-        fn = fieldnames(tmp);
-        inds = find(contains(fieldnames(tmp),'comp'));
-        inds_not = find(~contains(fieldnames(tmp),'comp'));
-        tmp_out = [];
-        for i = 1:length(inds_not)
-            tmp_out.(fn{inds_not(i)}) = tmp.(fn{inds_not(i)});
-        end
-        test = tmp.(fn{inds(1)});
-        rest_psdf = zeros(size(test,1),size(test,2),length(inds),'double');
-        for i = 1:length(inds)
-            rest_psdf(:,:,i) = tmp.(fn{inds(i)}); % freq x epoch x chan
-        end
-        rest_psdf = permute(rest_psdf,[2,1,3]);
+        %-- load
+        [psd_log_f,etc_inf] = spca_get_psd_dat(icaspec_f,[]); % freq x epoch x chan
+        fprintf('Number of epochs: %i\n',size(psd_log_f,2))
+        rest_psdf = permute(psd_log_f,[2,1,3]);
         %- average over time, keep magnitude (not power -> would amplify outliers)
         base_txf_mean = mean(rest_psdf);
-        base_txf_mean = permute(base_txf_mean,[1,3,2]);
+        base_txf_mean = permute(base_txf_mean,[1,3,2]); % 1 x chan x freq
         %- clear rest_txf
+        par_save(rest_psdf,fpath,sprintf('rest_avg_psdf.mat'));
         rest_psdf = double.empty;
-        par_save(tmp,fpath,sprintf('rest_avg_psdf.mat'));
+
         %## (LOAD GAIT TIMEWARP) ======================================= %%
         fprintf('Loading Gait Frequency Data...\n');
         fpath = [epoched_fPath filesep [tmp_epoch_params.gait_trial_chars{:}]];
         icaspec_f = [fpath filesep sprintf('%s.icaspec',EEG.subject)];
-        %- load .icaspec load-in parameters
-        tmp = load(icaspec_f,'-mat');
-        %## (APPLY SPCA) =============================================== %%
-        fprintf('Running SPCA on All Conditions\n');
-        % [psd_baselined,psd_avg,output_struct] = apply_spca_cond_psd(tmp,base_txf_mean);
-        [psd_f,freqs,trialinfo,psd_nolog_f] = spca_get_psd_dat(tmp);
-        %{
-        %## PLOT
-        i = 3;
-        psd_in = squeeze(psd_f(:,:,i)); % freq x epoch x chan
-        fig = figure();
-        set(gcf, 'position', [0 0 600 500]);
-        ax = axes();
-        % plot_psd(ax, psd_in, tmp.freqs);
-        plot(tmp.freqs,psd_in)
-        ylabel('Amplitude (\muV)');
-        xlabel('Frequency (Hz)');
-        grid on;
-        box off;
-        %}
-        %- average across trials & baseline to rest
-        psd_f = permute(psd_f,[2,1,3]); % epoch x freq x chan
-        psd_avg = mean(psd_f); 
+        %-- load .icaspec load-in parameters
+        [psd_log_f,etc_inf] = spca_get_psd_dat(icaspec_f,[]); % freq x epoch x chan
+        %-- average across trials & baseline to rest
+        psd_log_f = permute(psd_log_f,[2,1,3]); % epoch x freq x chan
+        psd_avg = mean(psd_log_f); 
         psd_avg = permute(psd_avg,[1,3,2]);
         psd_baselined = bsxfun(@minus,psd_avg,base_txf_mean);
-        %- apply spca
-        [psd_corr_based,based_psd_corr,psd_corr_psc1,psd_psc,coeffs] = specPCAdenoising(psd_baselined);
-        
-        %{
-        %## PLOT
-        i = 3;
-        psd_in = squeeze(psd_corr_based(:,i,:));
+        %-- plot
+        fprintf('Running SPCA on All Conditions\n');
+        psd_in = squeeze(psd_baselined(:,:,:));
         fig = figure();
         set(gcf, 'position', [0 0 600 500]);
         ax = axes();
-        % plot_psd(ax, psd_in, tmp.freqs);
-        plot(tmp.freqs,psd_in)
+        plot(etc_inf.freqs,psd_in,'-k')
         ylabel('Amplitude (\muV)');
         xlabel('Frequency (Hz)');
         grid on;
         box off;
-        %}
+        exportgraphics(fig,[fpath filesep 'allcond_avg_psds_uncorr.jpg']);
+
+        %## (APPLY SPCA) =============================================== %%
+
+        %-- apply spca
+        [psd_corr_based,based_psd_corr,psd_corr_psc1,psd_psc,coeffs] = specPCAdenoising(psd_baselined);
+        
+        %## PLOT 
+        psd_in = squeeze(psd_corr_based(:,:,:));
+        fig = figure();
+        set(gcf, 'position', [0 0 600 500]);
+        ax = axes();
+        plot(etc_inf.freqs,psd_in,'-k')
+        ylabel('Amplitude (\muV)');
+        xlabel('Frequency (Hz)');
+        grid on;
+        box off;
+        exportgraphics(fig,[fpath filesep 'allcond_avg_psds_corr.jpg']);
 
         %## SAVE PCA INFORMATION
-        gait_ersp_struct = [];
-        gait_ersp_struct.ID             = EEG.subject;
-        gait_ersp_struct.noise_cov      = []; % noise cov for kernel computation
-        gait_ersp_struct.psd_orig_avg   = psd_avg;
-        gait_ersp_struct.psd_orig_based = psd_baselined;
-        gait_ersp_struct.psd_corr       = psd_corr_based;
-        gait_ersp_struct.based_psd_corr = based_psd_corr;
-        gait_ersp_struct.psdc1          = psd_corr_psc1;
-        gait_ersp_struct.chanlocs       = EEG.chanlocs;
-        gait_ersp_struct.icatimefopts   = tmp_out;
-        par_save(gait_ersp_struct,fpath,'gait_psd_spca.mat');
+        psd_struct = [];
+        psd_struct.ID             = EEG.subject;
+        psd_struct.noise_cov      = []; % noise cov for kernel computation
+        psd_struct.psd_orig_avg   = psd_avg;
+        psd_struct.psd_orig_based = psd_baselined;
+        psd_struct.psd_corr       = psd_corr_based;
+        psd_struct.based_psd_corr = based_psd_corr;
+        psd_struct.psdc1          = psd_corr_psc1;
+        psd_struct.chanlocs       = EEG.chanlocs;
+        psd_struct.icatimefopts   = tmp_out;
+        par_save(psd_struct,fpath,'gait_psd_spca.mat');
+
         %## PLOT
         fig = figure(); set(gcf, 'position', [0 0 600 500]);
         plot(tmp.freqs, squeeze(base_txf_mean)', 'k-');
@@ -361,43 +344,22 @@ parfor subj_i = 1:length(subj_chars)
         title('Baseline ERSP (rest)');
         exportgraphics(fig,[fpath filesep 'allcond_baseline_avgs_psds.jpg']);
 
-        %## VALIDATION PLOTS
-        %{
-        CHAN_INT = randi(size(ERSP,2),1);
-        fig = plot_txf(squeeze(ERSP_corr(:,CHAN_INT,:)),[],tmp.freqs);
-        exportgraphics(fig,[fpath filesep sprintf('chan%i_allcond_ersp_corr.jpg',CHAN_INT)]);
-        %-
-        fig = plot_txf(squeeze(GPM_corr(:,CHAN_INT,:)),[],tmp.freqs);
-        exportgraphics(fig,[fpath filesep sprintf('chan%i_allcond_gpm_corr.jpg',CHAN_INT)]);
-        %-
-        fig = plot_txf(squeeze(ERSP(:,CHAN_INT,:)),[],tmp.freqs);
-        exportgraphics(fig,[fpath filesep sprintf('chan%i_allcond_ersp_orig.jpg',CHAN_INT)]);
-        %-
-        fig = plot_txf(squeeze(GPM(:,CHAN_INT,:)),[],tmp.freqs);
-        exportgraphics(fig,[fpath filesep sprintf('chan%i_allcond_gpm_orig.jpg',CHAN_INT)]);
-        %-
-        fig = plot_txf(squeeze(PSC1(:,CHAN_INT,:)),[],tmp.freqs);
-        exportgraphics(fig,[fpath filesep sprintf('chan%i_allcond_psc1_orig.jpg',CHAN_INT)]);
-        %}
-        %% DENOISE
+        %% DENOISE BY CONDITION ======================================== %%
         fprintf('\nRunning Denoising with sPCA\n');
-        conds = unique({tmp.trialinfo.cond});
+        conds = unique({etc_inf.trialinfo.cond});
+        fpath = [epoched_fPath filesep [tmp_epoch_params.gait_trial_chars{:}]];
+        icaspec_f = [fpath filesep sprintf('%s.icaspec',EEG.subject)];
+        psd_store = zeros(length(conds),size(psd_corr_based,2),size(psd_corr_based,3));
         for cond_i = 1:length(conds)
-            % COND_STR = conds{cond_i};
-            % [psd_corr_based,psd_avg,output_struct] = apply_spca_cond_psd(tmp,base_txf_mean,...
-            %     'COEFFS',coeffs,...
-            %     'COND_STR',conds{cond_i});
-
             %## (APPLY SPCA) =============================================== %%
             fprintf('Running SPCA on %s\n',conds{cond_i});
-            [psd_f,freqs,~,~] = spca_get_psd_dat(tmp, ...
-                'COND_STR',conds{cond_i});
-            %- average across trials
-            psd_avg = permute(psd_f,[2,1,3]); % epoch x freq x chan
+            [psd_log_f,etc_inf] = spca_get_psd_dat(icaspec_f,conds{cond_i});
+            %-- average across trials
+            psd_avg = permute(psd_log_f,[2,1,3]); % epoch x freq x chan
             psd_avg = mean(psd_avg);
             psd_avg = permute(psd_avg,[1,3,2]); % epoch x chan x freq
             psd_baselined = bsxfun(@minus,psd_avg,base_txf_mean);
-            %- apply spca
+            %-- apply spca
             [psd_corr_based,based_psd_corr,psd_corr_psc1,psd_psc,~] = specPCAdenoising(psd_baselined,coeffs);
             struct_out = struct('condition',conds{cond_i},...
                 'psd_corr_based',psd_corr_based,...
@@ -405,71 +367,103 @@ parfor subj_i = 1:length(subj_chars)
                 'baseline_psd',base_txf_mean,...
                 'psd_corr_psc1',psd_corr_psc1,...
                 'psd_orig_baselined',psd_baselined,...
-                'freqs',freqs,...
+                'freqs',etc_inf.freqs,...
                 'coeffs',coeffs);
             par_save(struct_out,fpath,sprintf('cond%s_spca_psd.mat',conds{cond_i}));
-            
-            %## STRIDE-BY-STRIDE IMPLEMENT
-            fprintf('Running stride-by-stride SPCA on %s\n',conds{cond_i});
-            % [psd_f,freqs,~,~] = spca_get_psd_dat(tmp, ...
-            %     'COND_STR',conds{cond_i}); % freq x epoch x chan
-            %- average across trials
-            % psd_f = permute(psd_f,[2,1,3]); % epoch x freq x chan
-            % psd_avg = mean(psd_f); % average over trials and take abs() to ensure amplitude calc
-            % psd_avg = permute(psd_avg,[1,3,2]); % epoch x chan x freq
-            
-            psd_in = permute(psd_f,[2,3,1]);
-            psd_store = zeros(size(psd_in));
-            psd_store_b = zeros(size(psd_in));
-            for t_i = 1:size(psd_avg,1)
-                psd_baselined = bsxfun(@minus,psd_in(t_i,:,:),base_txf_mean);
-                %- apply spca
-                [psd_corr_based,~,~,~,~] = specPCAdenoising(psd_baselined,coeffs);
-                psd_store(t_i,:,:) = psd_corr_based;
-                psd_store_b(t_i,:,:) = psd_baselined;
-            end
-            struct_out = struct('condition',conds{cond_i},...
-                'psd_corr_based',psd_store,...
-                'psd_orig_avg',psd_in,...
-                'baseline_psd',base_txf_mean,...
-                'psd_corr_psc1',[],...
-                'psd_orig_baselined',psd_store_b,...
-                'freqs',freqs,...
-                'coeffs',coeffs);
-            par_save(struct_out,fpath,sprintf('cond%s_sbs_spca_psd.mat',conds{cond_i}));
-
-            %## VALIDATION PLOTS
-            %{
-            fig = plot_txf(squeeze(ERSP_corr(:,CHAN_INT,:)),[],tmp.freqs);
-            title(sprintf('%s) ERSP corrected',conds{cond_i}));
-            if ~isempty(fpath)
-                exportgraphics(fig,[fpath filesep sprintf('chan%i_cond%s_ersp_corr.jpg',CHAN_INT,conds{cond_i})]);
-            end
-            %-
-            fig = plot_txf(squeeze(GPM_corr(:,CHAN_INT,:)),[],tmp.freqs);
-            title(sprintf('%s) GPM corrected',conds{cond_i}));
-            if ~isempty(fpath)
-                exportgraphics(fig,[fpath filesep sprintf('chan%i_cond%s_gpm_corr.jpg',CHAN_INT,conds{cond_i})]);
-            end
-            %-
-            fig = plot_txf(squeeze(output_struct.erds_orig(:,CHAN_INT,:)),[],tmp.freqs);
-            title(sprintf('%s) ERSP original',conds{cond_i}));
-            if ~isempty(fpath)
-                exportgraphics(fig,[fpath filesep sprintf('chan%i_cond%s_ersp_orig.jpg',CHAN_INT,conds{cond_i})]);
-            end
-            %-
-            fig = plot_txf(squeeze(output_struct.gpm_orig(:,CHAN_INT,:)),[],tmp.freqs);
-            title(sprintf('%s) GPM original',conds{cond_i}));
-            if ~isempty(fpath)
-                exportgraphics(fig,[fpath filesep sprintf('chan%i_cond%s_gpm_orig.jpg',CHAN_INT,conds{cond_i})]);
-            end
-            %##
-            % fig = plot_txf(squeeze(PSC1(:,CHAN_INT,:)),[],tmp.freqs);
-            % title(sprintf('%s) PSC1 original',SPCA_PARAMS.condition_gait{cond_i}));
-            % exportgraphics(fig,[fpath filesep sprintf('chan%i_cond%s_psc1_orig.jpg',CHAN_INT,SPCA_PARAMS.condition_gait{cond_i})]);
-            %}
+            %-- plotting var
+            psd_store(cond_i,:,:) = psd_corr_based;
         end
 
+        %## VALIDATION PLOT COND-BY-COND
+        AXES_DEFAULT_PROPS = {'box','off', ...
+            'xtick',[], ...
+            'ytick',[],...
+            'ztick',[], ...
+            'xcolor',[1,1,1], ...
+            'ycolor',[1,1,1]};
+        [~,co_i] = max(EEG.etc.ic_classification.ICLabel.classifications(:,1));
+        co_i = co_i - sum(EEG.etc.ic_classification.ICLabel.classifications(:,3) > 0.75);
+        % co_i = 10;
+        cmaps = linspecer(length(conds));
+        fig = figure();
+        set(gcf, 'position', [0 0 920 920]);
+        set(gca,AXES_DEFAULT_PROPS{:})
+        hold on;
+        ax = axes();
+        lis = [];
+        LINE_STRUCT = struct('line_alpha',0.75, ...
+            'err_alpha',0.3, ...
+            'do_err_shading',false)
+        for cond_i = 1:length(conds)
+            psd_in = squeeze(psd_store(cond_i,co_i,:));
+            LINE_STRUCT.line_color = cmaps(cond_i,:);
+            LINE_STRUCT.err_color = cmaps(cond_i,:);
+            %--            
+            [~,~,li] = plot_psd(ax,psd_in,etc_inf.freqs, ...
+                'LINE_STRUCT',LINE_STRUCT);
+            li.DisplayName = conds{cond_i};
+            lis = [lis,li];
+        end
+        legend(lis)
+        ylabel('Amplitude (\muV)');
+        xlabel('Frequency (Hz)');
+        grid on;
+        exportgraphics(fig,[fpath,sprintf('allcond_comp%i_spca_psd.jpg',co_i)]);
+
+        %## STRIDE-BY-STRIDE IMPLEMENT
+        fprintf('Running stride-by-stride SPCA\n');
+        [psd_log_f,etc_inf] = spca_get_psd_dat(icaspec_f,[]);
+        psd_in = permute(psd_log_f,[2,3,1]);
+        psd_store = zeros(size(psd_in));
+        % psd_store_b = zeros(size(psd_in));
+        tt = tic();
+        for t_i = 1:size(psd_in,1)
+            if mod(t_i,10) == 0
+                fprintf('.');
+            end
+            psd_baselined = bsxfun(@minus,psd_in(t_i,:,:),base_txf_mean);
+            %-- apply spca
+            [psd_corr_based,~,~,~,~] = specPCAdenoising(psd_baselined,coeffs);
+            psd_store(t_i,:,:) = psd_corr_based;
+            % psd_store_b(t_i,:,:) = psd_baselined;
+        end
+        fprintf('done. %0.2f min',toc(tt)/(60))
+        struct_out = struct('psd_corr_based',psd_store,...
+            'baseline_psd',base_txf_mean,...
+            'psd_corr_psc1',[],...
+            'etc_inf',etc_inf,...
+            'coeffs',coeffs);
+        par_save(struct_out,fpath,sprintf('allcond_sbs_spca_psd.mat'));        
+        
+        %## VALIDATION PLOT STEP-BY-STEP
+        % co_i = 1;
+        cmaps = linspecer(length(conds));
+        fig = figure();
+        set(gcf, 'position', [0 0 920 920]);
+        set(gca,AXES_DEFAULT_PROPS{:})
+        hold on;
+        ax = axes();
+        lis = [];
+        LINE_STRUCT = struct.empty;
+        for cond_i = 1:length(conds)
+            t_ii = strcmp(conds{cond_i},{etc_inf.trialinfo.cond});
+            psd_in = squeeze(psd_store(t_ii,co_i,:))';
+            LINE_STRUCT.line_color = cmaps(cond_i,:);
+            LINE_STRUCT.err_color = cmaps(cond_i,:);
+            LINE_STRUCT.line_alpha = 0.75;
+            LINE_STRUCT.err_alpha = 0.3;
+            %--            
+            [~,~,li] = plot_psd(ax,psd_in,etc_inf.freqs, ...
+                'LINE_STRUCT',LINE_STRUCT);
+            li.DisplayName = conds{cond_i};
+            lis = [lis,li];
+        end
+        legend(lis)
+        ylabel('Amplitude (\muV)');
+        xlabel('Frequency (Hz)');
+        grid on;
+        exportgraphics(fig,[fpath,sprintf('allcond_comp%i_sbs_spca_psd.jpg',co_i)]);
+        
         %## CLEANUP AND FREE UP DRIVE SPACE
         % fpath = [epoched_fPath filesep [tmp_epoch_params.gait_trial_chars{:}]];
         % icaspec_f = [fpath filesep sprintf('%s.icaspec',EEG.subject)];

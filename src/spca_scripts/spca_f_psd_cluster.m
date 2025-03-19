@@ -178,7 +178,7 @@ parfor subj_i = 1:length(STUDY.datasetinfo)
         %-- load clustered eeg
         % EEG = pop_loadset('filepath',eeg_fpaths{subj_i},'filename',eeg_fnames{subj_i});
         EEG = load([tmp_study.datasetinfo(subj_i).filepath filesep tmp_study.datasetinfo(subj_i).filename],'-mat');
-        eeg_comps = 1:size(EEG.icaweights,1);
+        eeg_comps = 1:size(EEG.icaweights,2);
         fprintf('Running subject %s\n',EEG.subject)        
         ic_keep = EEG.etc.urreject.ic_keep;
         ic_rej = EEG.etc.urreject.ic_rej;

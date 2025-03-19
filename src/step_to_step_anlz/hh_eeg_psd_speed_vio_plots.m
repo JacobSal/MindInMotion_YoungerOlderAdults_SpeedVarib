@@ -49,25 +49,27 @@ set_workspace
 %% (DATASET INFORMATION) =============================================== %%
 % [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca');
 [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca_speed');
+
 %% (PATHS) ============================================================= %%
 %- datset name
 DATA_SET = 'MIM_dataset';
 %- study name
 % STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
-% STUDY_DNAME =  '01192025_mim_yaoa_nopowpow_crit_speed';
 STUDY_DNAME = '02202025_mim_yaoa_powpow0p3_crit_speed';
 STUDY_FNAME = 'kin_eeg_epoch_study';
 ANALYSIS_DNAME = 'kin_eeg_step_to_step';
+%-
 studies_fpath = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
-
-%## CLUSTER LOADING
+%- load cluster
 CLUSTER_K = 11;
 CLUSTER_STUDY_NAME = 'temp_study_rejics5';
 % cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb10'];
+% cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb5'];
 % cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb3'];
 cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_allcond_rb3'];
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
 cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
+
 %## R-STATS LOADING
 r_stats_dir = [PATHS.src_dir filesep 'r_scripts' filesep 'sbs_lme_mods'];
 %-
@@ -81,15 +83,6 @@ end
 % else
 %     [STUDY,ALLEEG] = pop_loadstudy('filename',[STUDY_FNAME '.study'],'filepath',save_dir);
 % end
-%## LOAD CLUSTER STUDY
-if ~ispc
-    tmp = load('-mat',[cluster_study_fpath filesep sprintf('%s_UNIX.study',CLUSTER_STUDY_NAME)]);
-    CL_STUDY = tmp.STUDY;
-else
-    tmp = load('-mat',[cluster_study_fpath filesep sprintf('%s.study',CLUSTER_STUDY_NAME)]);
-    CL_STUDY = tmp.STUDY;
-end
-
 %## LOAD STUDY
 if ~ispc
     tmp = load('-mat',[studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep sprintf('%s_UNIX.study',STUDY_FNAME)]);
@@ -103,22 +96,10 @@ cl_struct = par_load(cluster_k_dir,sprintf('cl_inf_%i.mat',CLUSTER_K));
 STUDY.cluster = cl_struct;
 [comps_out,main_cl_inds,outlier_cl_inds] = eeglab_get_cluster_comps(STUDY);
 CLUSTER_PICS = main_cl_inds;
-
-%%
-fpaths = {STUDY.datasetinfo.filepath};
-fextr = 'slidingb1';
-dat = par_load(fpaths{1},sprintf('psd_output_%s.mat',fextr));
-%--
-fooof_freqs = dat.freqs;
-% basel_chars = {'slidingb3','slidingb6','slidingb12','slidingb18','slidingb24','slidingb30','slidingb36'};
-basel_chars = {'slidingb36'};
-
-% basel_chars = {'slidingb1','slidingb3','slidingb6','slidingb12','slidingb18', ...
-%     'slidingb24','slidingb30','slidingb36'};
-dat_out_structs = cell(1,length(basel_chars));
-%## LOAD
-for b_i = 1:length(basel_chars)
-    dat_out_structs{b_i} = par_load([cluster_k_dir filesep 'kin_eeg_step_to_step' filesep sprintf('raw_psd_dat_%s.mat',basel_chars{b_i})]);
+%-
+save_dir = [cluster_k_dir filesep ANALYSIS_DNAME];
+if ~exist(save_dir,'dir')
+    mkdir(save_dir);
 end
 %% (LOAD STATISTICS & DATA EXCEL SHEET FROM R) ========================= %%
 %## FNAMES
@@ -139,6 +120,7 @@ KIN_TABLE = readtable([r_stats_dir filesep sprintf('02202025_lme_eeg_kin_meansd_
 %-- r-stats
 RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('03122025_lme_eeg_kin_meansd_%s_stats.xlsx',fextr)], ...
     "FileType","spreadsheet","UseExcel",true);
+
 %% MEASURES TO ANALYZE ================================================= %%
 %## CLUSTER INFO
 %-- 01192025_mim_yaoa_nopowpow_crit_speed (rb3)
@@ -191,20 +173,24 @@ G_ORDER = categorical(g_chars);
 %## PARAMETERS
 %-
 designs = unique(KIN_TABLE.model_n);
+% clusters = unique(KIN_TABLE.cluster_n);
+% groups = unique(KIN_TABLE.group_n);
 group_chars = unique(KIN_TABLE.group_char);
 cond_chars = unique(KIN_TABLE.cond_char);
+% speed_ns = unique(KIN_TABLE.speed_n);
 clusters = unique(RSTATS_IMPORT.cluster_num);
+% models = unique(RSTATS_IMPORT.model_char);
 %--
 SAVE_RES = 300;
 TITLE_TXT_SIZE = 14;
-% IM_RESIZE = 0.8;
-% AX_W = 0.3;
-% AX_H = 0.25;
-% AX_FONT_NAME = 'Arial';
-% AX_X_SHIFT = 1.7;
-% AX_Y_SHIFT = -1.4;
-% AX_INIT_X = 0.09;
-% AX_INIT_Y = 0.7;
+IM_RESIZE = 0.8;
+AX_W = 0.3;
+AX_H = 0.25;
+AX_FONT_NAME = 'Arial';
+AX_X_SHIFT = 1.7;
+AX_Y_SHIFT = -1.4;
+AX_INIT_X = 0.09;
+AX_INIT_Y = 0.7;
 % AX_INIT_Y = 0.09; %0.08
 X_DIM = 2;
 %--
@@ -235,6 +221,33 @@ AXES_DEFAULT_PROPS = {'box','off', ...
     'ycolor',[1,1,1]};
 
 %## VIOLIN PLOTS
+% PLOT_STRUCT = struct('color_map',cmaps_speed,...
+%     'cond_labels',{{'0.25','0.50','0.75','1.0'}},...
+%     'cond_offsets',[-0.35,-0.1,0.15,0.40],...
+%     'do_group_labels',false, ...
+%     'group_labels',{{'All'}},...
+%     'group_offsets',[0.125,0.475,0.812],...
+%     'group_lab_yoffset',-0.26,...
+%     'group_lab_fontweight','normal',...
+%     'group_lab_fontsize',12,...
+%     'y_label','',...
+%     'y_label_fontsize',12,...
+%     'y_label_fontweight','bold',...
+%     'ylim',[],...
+%     'x_label',{''},...
+%     'x_label_fontsize',12,...
+%     'x_label_fontweight','bold',...
+%     'x_label_yoffset',-0.12,...
+%     'xlim',[],...
+%     'title',{{''}},...
+%     'title_fontsize',12,...
+%     'title_fontweight','normal',...
+%     'font_size',12,...
+%     'font_name','Arial',...
+%     'do_combine_groups',false,...
+%     'ax_position',[0,0,1,1],...
+%     'ax_line_width',1,...
+%     'xtick_angle',75);
 PLOT_STRUCT = struct('color_map',[],...
     'cond_labels',{{}},...
     'cond_offsets',[-0.35,-0.10,0.15,0.4],...
@@ -293,6 +306,17 @@ SIGLINE_STRUCT = struct('sig_sign','*',...
     'sig_offset_x',0,...
     'sig_offset_y',0); 
 
+%## SLIDING BASELINE MEASURES (RAW)
+% EEG_MEASURES = {'std_avg_theta','mu_avg_theta', ...
+%     'std_avg_alpha','mu_avg_alpha', ...
+%     'std_avg_beta','mu_avg_beta'};
+% EEG_MEASURE_LABS = {'10*log_{10}(PSD_{N})','10*log_{10}(PSD_{N})', ...
+%     '10*log_{10}(PSD_{N})','10*log_{10}(PSD_{N})', ...
+%     '10*log_{10}(PSD_{N})','10*log_{10}(PSD_{N})'};
+% EEG_MEASURE_TITLES = {'Sliding Std. Dev. \theta','Sliding Mean \theta', ...
+%     'Sliding Std. Dev. \alpha','Sliding Mean \alpha', ...
+%     'Sliding Std. Dev. \beta','Sliding Mean \beta'};
+% meas_ext = 'stdmuraw';
 %## SLIDING BASELINE MEASURES (MEANSD)
 EEG_MEASURES = {'mu_avg_theta_fn1','std_avg_theta_fn1', ...
     'mu_avg_alpha_fn1','std_avg_alpha_fn1', ...
@@ -308,6 +332,17 @@ violin_ylimits = {{[],[],[],[],[],[],[],[],[],[],[],[]};...
             {[],[],[],[],[],[],[],[],[],[],[],[]};...
             {[],[],[],[],[],[],[],[],[],[],[],[]}};
 %--
+%--
+% EEG_MEASURES = {'mu_avg_theta_fn1','mu_avg_theta_fn2', ...
+%     'mu_avg_alpha_fn1','mu_avg_alpha_fn2', ...
+%     'mu_avg_beta_fn1','mu_avg_beta_fn2'};
+% EEG_MEASURE_LABS = {'10*log_{10}(PSD_{N})','10*log_{10}(PSD_{N})', ...
+%     '10*log_{10}(PSD_{N})','10*log_{10}(PSD_{N})', ...
+%     '10*log_{10}(PSD_{N})','10*log_{10}(PSD_{N})'};
+% EEG_MEASURE_TITLES = {'Mean of Sliding Mean \theta','Std. Dev. of Sliding Mean \theta', ...
+%     'Mean of Sliding Mean \alpha','Std. Dev. of Sliding Mean \alpha', ...
+%     'Mean of Sliding Mean \beta','Std. Dev. of Sliding Mean \beta'};
+% meas_ext = 'mu';
 %## MODELS
 % MODEL_CHARS = {'speed_only_all'};
 % GROUP_CHARS = {'all'};
@@ -330,15 +365,15 @@ ANV_CHARS_GROUP = {'(Intercept)','speed_cond_num','group_char'};
 COEFF_CHARS_GROUP = {'(Intercept)','speed_cond_num','group_char1','group_char2'};
 %--
 %% (ALL SUBJS MODEL) =================================================== %%
+%-
+m_i = 1;
+g_i = 1;
+% tmp_savedir = [save_dir filesep fext];
 tmp_savedir = [save_dir filesep fextr];
 mkdir(tmp_savedir);
-%#%--
-% x_shift = AX_INIT_X;
-% x_cnt = 1;
-% y_shift = AX_INIT_Y;
-% vert_shift = 0;
-% horiz_shift = 0;
-% stats_store = [];
+des_i = 2;
+
+%##
 for cl_i = 1:length(cluster_inds_plot)
     %%
     %## INITIATE FIGURE
@@ -346,14 +381,15 @@ for cl_i = 1:length(cluster_inds_plot)
     cl_ii = find(cluster_inds_plot(cl_i) == double(string(clusters)));
     cl_n = double(string(clusters(cl_ii)));
     atlas_name = cluster_titles{cl_ii};
-    
+
     %## INITIATE FIGURE
     fig = figure('color','white', ...
         'Renderer','Painters');
     TITLE_XSHIFT = 0.4;
     TITLE_YSHIFT = 0.975;
     TITLE_BOX_SZ = [0.4,0.4];
-    annotation('textbox',[TITLE_XSHIFT-(TITLE_BOX_SZ(1)/2/2),TITLE_YSHIFT-(TITLE_BOX_SZ(2)/2),TITLE_BOX_SZ(1),TITLE_BOX_SZ(2)],...
+    annotation('textbox',[TITLE_XSHIFT-(TITLE_BOX_SZ(1)/2/2), ...
+        TITLE_YSHIFT-(TITLE_BOX_SZ(2)/2),TITLE_BOX_SZ(1),TITLE_BOX_SZ(2)],...
         'String',atlas_name, ...
         'HorizontalAlignment','center',...
         'VerticalAlignment','middle', ...
@@ -370,220 +406,14 @@ for cl_i = 1:length(cluster_inds_plot)
     p_sz = get(fig,'Position');
     set(gca,AXES_DEFAULT_PROPS{:});
     hold on;
-    
-    %## TOPOGRAPHY PLOT
-    IM_RESIZE = 0.225;
-    ax_position = [AX_INIT_HORIZ_TOPO,AX_INIT_VERT_TOPO,0,0];
-    local_plot_topography(fig,STUDY,cl_n, ...
-        groups,g_chars,g_chars_topo, ...
-        ax_position,IM_RESIZE);
-    
-    %## DIPOLE PLOT
-    IM_RESIZE = 1.1;
-    dip_fig_path = [dip_dir filesep sprintf('%i_dipplot_alldipspc_top.fig',cl_n)];
-    ax_position = [AX_INIT_HORIZ_DIP,AX_INIT_VERT_DIP,0,0];
-    label_position = [AX_INIT_HORIZ+LAB_A_XOFFSET+(0.1/2),1+LAB_A_YOFFSET+(0.1/2),.1,.1];
-    local_plot_dipole_slices(fig,dip_fig_path,IM_RESIZE, ...
-        p_sz,ax_position,label_position);
-
-    
-    %## EXTRACT PSD DATA =============================================== %%
-    IM_RESIZE = 0.8;
-    AX_W = 0.3;
-    AX_H = 0.25;
-    AX_FONT_NAME = 'Arial';
-    AX_X_SHIFT = 1.7;
-    AX_Y_SHIFT = -1.4;
-    AX_INIT_X = 0.09;
-    AX_INIT_Y = 0.7;
-    %--
-    ax_store = [];
-    psd_avg_char = [];
-    y_lim_store = zeros(length(cluster_inds_plot),2);
-    ycnt = 1;
-    %--
-    x_shift = AX_INIT_X;
-    x_cnt = 1;
-    y_shift = AX_INIT_Y;
-    leg_store = [];
-    %--
-    for g_i = 1:length(g_chars)
-        % psd_dat_out1 = dat_out_structs{d_i}.psd_dat;      
-        % psd_dat_out2 = dat_out_structs{d_i}.psd_std_dat;
-        % psd_dat_out = psd_dat_out2./psd_dat_out1;
-        %--
-        % psd_dat_out = dat_out_structs{d_i}.psd_dat; 
-        % %--
-        psd_dat_out = dat_out_structs{d_i}.psd_std_dat;
-        if cl_i == 1
-            % psd_avg_char = [psd_avg_char,'mean'];
-            psd_avg_char = [psd_avg_char,'std'];
-            % psd_avg_char = [psd_avg_char,'cov'];
-        end
-        cond_dat_out = dat_out_structs{d_i}.cond_dat;
-        subj_dat_out = dat_out_structs{d_i}.subj_dat;
-        group_dat_out = dat_out_structs{d_i}.group_dat;
-        %--
-        tmp_dat = squeeze(psd_dat_out(:,:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]
-        tmp_dat = reshape(permute(tmp_dat,[3,1,2]),size(tmp_dat,1)*size(tmp_dat,3),size(tmp_dat,2)); %[subject x epoch/splice, frequency];
-        chk = all(~isnan(tmp_dat),2);
-        tmp_dat = tmp_dat(chk,:);
-        chk = ~all(tmp_dat==0,2);
-        tmp_dat = tmp_dat(chk,:);
-        % if all(chk)
-        %     chk = ~all(tmp_dat==0,2);
-        % end
-        % tmp_dat = tmp_dat(chk,:);
-        % sum(chk)
-        %--
-        tmp_cond = squeeze(cond_dat_out(:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]    
-        tmp_cond = reshape(permute(tmp_cond,[2,1]),[size(cond_dat_out,1)*size(cond_dat_out,2),1]);
-        chk = cellfun(@isempty,tmp_cond);
-        tmp_cond = tmp_cond(~chk);
-        conds = unique(tmp_cond);
-        %--
-        tmp_subj = squeeze(subj_dat_out(:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]    
-        tmp_subj = reshape(permute(tmp_subj,[2,1]),[size(subj_dat_out,1)*size(subj_dat_out,2),1]);
-        % chk = ~all(isnan(tmp_subj),2);
-        chk = all(~isnan(tmp_subj),2);
-        tmp_subj = tmp_subj(chk,:);
-        chk = ~all(tmp_subj==0,2);
-        tmp_subj = tmp_subj(chk,:);
-        % if all(chk)
-        %     chk = ~all(tmp_subj==0,2);
-        % end
-        % tmp_subj = tmp_subj(chk,:);
-        subjs = unique(tmp_subj);
-        %--
-        tmp_group = squeeze(group_dat_out(:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]    
-        tmp_group = reshape(permute(tmp_group,[2,1]),[size(group_dat_out,1)*size(group_dat_out,2),1]);
-        chk = cellfun(@isempty,tmp_group);
-        tmp_group = tmp_group(~chk);
-        %--  get good indices
-        conds = unique(tmp_cond);        
-        groups = unique(tmp_group);
-        indsc = cellfun(@(x) any(strcmp(x,DESIGNS{des_i})),conds);
-        conds = conds(indsc);
-        indsc = cellfun(@(x) any(strcmp(x,conds)),tmp_cond);        
-        indsg = strcmp(tmp_group,groups{g_i});
-        indsg = indsg & indsc;
-        %--
-        tmp_cond = tmp_cond(indsg,:);
-        tmp_subj = tmp_subj(indsg,:);
-        tmp_dat = tmp_dat(indsg,:);
-        % tmp_group = tmp_cond(indsg,:);
-        %## STATISTICS
-        %-- Ho : all samples come from the same distribution
-        %-- Ha : all samples come from different distributions
-        tmp_psd_in = cell(length(conds),1);
-        for c_ii = 1:length(conds)
-            indc = strcmp(tmp_cond,conds{c_ii});
-            tmp = nan(size(tmp_dat,2),length(subjs));
-            for s_i = 1:length(subjs)
-                inds = tmp_subj == subjs(s_i);
-                chk = indc & inds;
-                tmp(:,s_i) = mean(tmp_dat(chk,:),1);
-                % tmp(:,s_i) = std(tmp_dat(chk,:),[],1);        
-                % tmp(:,s_i) = prctile(tmp_dat(chk,:),75,1) - prctile(tmp_dat(chk,:),25,1);
-                if c_ii == 1 && s_i == 1 && cl_i == 1
-                    psd_avg_char = [psd_avg_char,'mean'];
-                    % psd_avg_char = [psd_avg_char,'std'];
-                    % psd_avg_char = [psd_avg_char,'prct'];
-                end
-            end
-            % tmp = tmp(:,all(tmp ~= 0,1));
-            tmp = tmp(:,all(~isnan(tmp),1));
-            tmp_psd_in{c_ii,1} = tmp; %tmp_dat(inds,:);
-        end
-        [pcond, pgroup, pinter, ~, ~, ~] = ...
-            std_stat(tmp_psd_in, stats);    
-        pcond=pcond{1} < 0.05;
-        %## PLOT
-        ax = axes();
-        for c_i = 1:length(conds)
-            %--
-            % ind = find(cluster_inds_plot(cl_i) == cluster_inds_plot);
-            PLOT_STRUCT.title = {sprintf('%s',cluster_titles{cluster_inds_plot(cl_i)})};
-            PLOT_STRUCT.ax_position = [x_shift,y_shift,AX_W*IM_RESIZE,AX_H*IM_RESIZE];
-            PLOT_STRUCT.xlim = [3,40];
-            % PLOT_STRUCT.ylim = [-2.5,5]; %sort([prctile([tmp_psd_in{:}],99,'all'),prctile([tmp_psd_in{:}],1,'all')]);
-            mu = mean(cat(2,tmp_psd_in{:}),[2,1]);
-            sd = std(cat(2,tmp_psd_in{:}),[],[2,1]);
-            y_lim_store(ycnt,:) = [mu-1.75*sd,mu+1.75*sd];
-            PLOT_STRUCT.ylim = y_lim_store(ycnt,:);
-            ycnt = ycnt+1;
-           
-            disp(PLOT_STRUCT.ylim);
-            %--
-            LINE_STRUCT.line_avg_fcn = @(x) mean(x,2);
-            LINE_STRUCT.line_color = cmaps_speed(c_i,:);
-            LINE_STRUCT.line_alpha = 0.7;
-            LINE_STRUCT.line_label = xtick_label_c{c_i};
-            %--
-            LINE_STRUCT.do_err_shading = true;
-            LINE_STRUCT.err_color = cmaps_speed(c_i,:)+0.15;
-            LINE_STRUCT.err_alpha = 0.3;
-            LINE_STRUCT.err_upr_bnd_fcn = @(x) mean(x,2) + std(x,[],2);
-            LINE_STRUCT.err_lwr_bnd_fcn = @(x) mean(x,2) - std(x,[],2);
-            %--
-            [ax,Pa,Li] = plot_psd(ax,tmp_psd_in{c_i,1},fooof_freqs, ...
-                'LINE_STRUCT',LINE_STRUCT, ...
-                'PLOT_STRUCT',PLOT_STRUCT);
-            if c_i == 1
-                ax_store = [ax_store, ax];
-            end
-            if cl_i == 1
-                leg_store = [leg_store, Li];
-            end
-            hold on;
-        end        
-        [axsignif,Pa] = plot_psd_stats(ax,fooof_freqs,pcond, ...
-            'background','Frequency (Hz)');
-        if cl_i < length(cluster_inds_plot)-1
-            xlabel('');
-        end
-        %--
-        y_lim_store = [min(y_lim_store,[],'all'),max(y_lim_store,[],'all')];
-        for aa = 1:length(ax_store)
-            set(ax_store(aa),'YLim',y_lim_store)
-        end
-        
-        %## AX SHIFT
-        if x_cnt < X_DIM
-            x_shift = x_shift + AX_X_SHIFT*IM_RESIZE*AX_W;
-        else
-            y_shift = y_shift + AX_Y_SHIFT*IM_RESIZE*AX_H;
-            x_shift = AX_INIT_X;
-            x_cnt = 0;
-        end
-        x_cnt = x_cnt + 1;
-    end
-
-    %## LEGEND
-    % %- lg2                
-    % legend(gca,leg_store);
-    % [lg2,icons,plots,txt]  = legend('boxoff');
-    % tmp = get(lg2,'String');
-    % cnt = 1;
-    % for i = 1:length(leg_store)
-    %     tmp{i} = sprintf('%s',leg_chars{cnt});
-    %     cnt = cnt + 1;
-    % end
-    % set(lg2,'String',tmp,'FontName',AX_FONT_NAME,'FontSize',LEG_TXT_SIZE)
-    % set(lg2,'Orientation','horizontal')
-    % set(lg2,'Units','normalized')
-    % set(lg2,'Position',[AX_INIT_X+LEG_X_SHIFT*IM_RESIZE*AX_W,...
-    %     y_shift+AX_H*IM_RESIZE+LEG_Y_SHIFT*IM_RESIZE*AX_H,lg2.Position(3),lg2.Position(4)]);
-    % lg2.ItemTokenSize(1) = LEG_TOKEN_SIZE;
-    % hold off;
-
-    
-
-    %## VIOLIN PLOTS) ================================================== %%
     %-
     x_shift = AX_INIT_X;
     x_cnt = 1;
     y_shift = AX_INIT_Y;
+    %##
+    vert_shift = 0;
+    horiz_shift = 0;
+    stats_store = [];
     for e_i = 1:length(EEG_MEASURES)
         %##
         cond_plot_store = [];
@@ -934,13 +764,33 @@ for cl_i = 1:length(cluster_inds_plot)
             x_shift = AX_INIT_X;
             x_cnt = 0;
         end
-        x_cnt = x_cnt + 1; 
+        x_cnt = x_cnt + 1;
+
+        %## LEGEND
+        % if e_i == length(EEG_MEASURES)
+        %     %- lg2                
+        %     legend(gca,cond_plot_store);
+        %     [lg2,icons,plots,txt]  = legend('boxoff');
+        %     tmp = get(lg2,'String');
+        %     cnt = 1;
+        %     for i = 1:length(cond_plot_store)
+        %         tmp{i} = sprintf('%0.2g m/s',double(string(speed_ns(cnt))));
+        %         cnt = cnt + 1;
+        %     end
+        %     set(lg2,'String',tmp,'FontName',AX_FONT_NAME,'FontSize',LEG_TXT_SIZE)
+        %     set(lg2,'Orientation','horizontal')
+        %     set(lg2,'Units','normalized')
+        %     set(lg2,'Position',[AX_INIT_X+LEG_X_SHIFT*IM_RESIZE,...
+        %         y_shift+AX_H*IM_RESIZE+LEG_Y_SHIFT*IM_RESIZE,lg2.Position(3),lg2.Position(4)]);
+        %     lg2.ItemTokenSize(1) = LEG_TOKEN_SIZE;
+        % end
     end
     hold off;
     %##
     % exportgraphics(fig,[tmp_savedir filesep sprintf('cl%s_std_allsubj.tiff',string(clusters(c_i)))],...
     %     'Resolution',300)
-    exportgraphics(fig,[tmp_savedir filesep sprintf('cl%s_%s_muscript_plot.tiff',string(clusters(c_i)),meas_ext)],...
+    exportgraphics(fig,[tmp_savedir filesep sprintf('cl%s_%s_allsubj.tiff',string(clusters(cl_i)),meas_ext)],...
         'Resolution',SAVE_RES)
     % close(fig)
 end
+

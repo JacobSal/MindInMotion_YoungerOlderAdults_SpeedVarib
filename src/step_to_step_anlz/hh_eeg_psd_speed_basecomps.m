@@ -74,6 +74,9 @@ CLUSTER_STUDY_NAME = 'temp_study_rejics5';
 cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_allcond_rb3'];
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
 cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
+
+%## R-STATS LOADING
+r_stats_dir = [PATHS.src_dir filesep 'r_scripts' filesep 'sbs_lme_mods'];
 %-
 save_dir = [cluster_k_dir filesep ANALYSIS_DNAME];
 if ~exist(save_dir,'dir')
@@ -119,16 +122,16 @@ fextr = 'slidingb36';
 dat = par_load(fpaths{1},sprintf('psd_output_%s.mat',fextr));
 %--
 fooof_freqs = dat.freqs;
-% basel_chars = {'slidingb3','slidingb6','slidingb12','slidingb18','slidingb24','slidingb30','slidingb36'};
+% basel_chars = {'slidingb1','slidingb3','slidingb6','slidingb12','slidingb15','slidingb18','slidingb21','slidingb36'};
+% basel_chars = {'slidingb6','slidingb12','slidingb15','slidingb18','slidingb21','slidingb36'};
 basel_chars = {'slidingb36'};
-
-% basel_chars = {'slidingb1','slidingb3','slidingb6','slidingb12','slidingb18', ...
-%     'slidingb24','slidingb30','slidingb36'};
+%(03/18/2025) JS, b1 & b2 are pretty memory heavy, skipping for now.
 dat_out_structs = cell(1,length(basel_chars));
 %## LOAD
 for b_i = 1:length(basel_chars)
     dat_out_structs{b_i} = par_load([cluster_k_dir filesep 'kin_eeg_step_to_step' filesep sprintf('raw_psd_dat_%s.mat',basel_chars{b_i})]);
 end
+
 %% MEASURES TO ANALYZE ================================================= %%
 %## STATS
 try
@@ -150,20 +153,20 @@ stats.paired{2} = 'off'; % Group stats
 
 %## CLUSTER INFO
 %-- 01192025_mim_yaoa_nopowpow_crit_speed (rb3)
-cluster_titles = {'','','Right Sensorimotor', ...
-    'Precuneus', ...
+cluster_titles = {'Right Cuneus', ...
+    'Right Sensorimotor', ...
+    'Anterior Cingulate', ...
     'Left Sensorimotor', ...
-    'Right Occipital',...
-    'Mid Cingulate', ...
-    'Left Occipital', ...
-    'Left Temporal', ...
-    'Left Supplementary Motor',...
-    'Right Temporal',...
+    'Right Premotor',...
     'Left Posterior Parietal', ...
-    'Right Posterior Parietal'};
+    'Left Supplementary Motor', ...
+    'Right Occipital', ...
+    'Mid Cingulate',...
+    'Left Temporal',...
+    'Left Occipital'};
 xtick_label_c = {'0.25 m/s','0.50 m/s','0.75 m/s','1.0 m/s'};
-% cluster_inds_plot = [3,4,5,7,10,12,13];
-cluster_inds_plot = [3,5,12,13,7];
+cluster_inds_plot = [3,4,5,6,7,8];
+% cluster_inds_plot = [9,11,12];
 % [~,~,cluster_inds] = intersect(cluster_inds_plot,CLUSTER_PICS);
 %% ===================================================================== %%
 %## PARAMETERS
@@ -173,7 +176,7 @@ TITLE_TXT_SIZE = 14;
 % IM_RESIZE = 0.9;
 % AX_W = 0.3;
 % AX_H = 0.25;
-AX_W = 0.325;
+AX_W = 0.375;
 AX_H = 0.25;
 IM_RESIZE = 0.8;
 AX_FONT_NAME = 'Arial';
@@ -232,15 +235,12 @@ LINE_STRUCT = struct('line_width',2, ...
     'line_color',[1,1,1], ...
     'line_label',{'label'}, ...
     'line_avg_fcn',@mean, ...
-    'line_avg_fcn_params',{{2}}, ...
     'do_err_shading',true, ...
     'err_alpha',0.6, ...
     'err_color',[0.5,0.5,0.5], ...
     'err_edge_color',[], ...
     'err_upr_bnd_fcn',@(x,p) 1*std(x,p{:}), ...
     'err_lwr_bnd_fcn',@(x,p) -1*std(x,p{:}), ...
-    'err_upr_bnd_params',{{[],2}}, ...
-    'err_lwr_bnd_params',{{[],2}}, ...
     'err_line_style',':', ...
     'err_line_width',3);
 %% (CLUSTER FIGURE FOR BASELINE CONDS) ============================== %%
@@ -256,7 +256,9 @@ cmaps_speed = linspecer(4*3);
 cmaps_speed = [cmaps_speed(1,:);cmaps_speed(2,:);cmaps_speed(3,:);cmaps_speed(4,:)];
 %## EXTRACT PSD DATA
 % for d_i = 2
+DESIGNS = {{'flat','low','med','high'},{'0p25','0p5','0p75','1p0'}};
 g_i = 1;
+des_i = 2;
 for d_i = 1:length(dat_out_structs)
     %## INITIATE FIGURE
     x_shift = AX_INIT_X;
@@ -283,15 +285,16 @@ for d_i = 1:length(dat_out_structs)
     y_lim_store = zeros(length(cluster_inds_plot),2);
     ycnt = 1;
     for cl_i = 1:length(cluster_inds_plot)        
-        % psd_dat_out1 = dat_out_structs{d_i}.psd_dat;        
+        % psd_dat_out1 = dat_out_structs{d_i}.psd_dat;      
         % psd_dat_out2 = dat_out_structs{d_i}.psd_std_dat;
         % psd_dat_out = psd_dat_out2./psd_dat_out1;
         %--
-        psd_dat_out = dat_out_structs{d_i}.psd_dat;        
-        % psd_dat_out = dat_out_structs{d_i}.psd_std_dat;
+        % psd_dat_out = dat_out_structs{d_i}.psd_dat; 
+        % %--
+        psd_dat_out = dat_out_structs{d_i}.psd_std_dat;
         if cl_i == 1
-            psd_avg_char = [psd_avg_char,'mean'];
-            % psd_avg_char = [psd_avg_char,'std'];
+            % psd_avg_char = [psd_avg_char,'mean'];
+            psd_avg_char = [psd_avg_char,'std'];
             % psd_avg_char = [psd_avg_char,'cov'];
         end
         cond_dat_out = dat_out_structs{d_i}.cond_dat;
@@ -333,9 +336,15 @@ for d_i = 1:length(dat_out_structs)
         tmp_group = reshape(permute(tmp_group,[2,1]),[size(group_dat_out,1)*size(group_dat_out,2),1]);
         chk = cellfun(@isempty,tmp_group);
         tmp_group = tmp_group(~chk);
-        conds = unique(tmp_group);
+        %--  get good indices
+        conds = unique(tmp_cond);        
         groups = unique(tmp_group);
+        indsc = cellfun(@(x) any(strcmp(x,DESIGNS{des_i})),conds);
+        conds = conds(indsc);
+        indsc = cellfun(@(x) any(strcmp(x,conds)),tmp_cond);        
         indsg = strcmp(tmp_group,groups{g_i});
+        indsg = indsg & indsc;
+        %--
         tmp_cond = tmp_cond(indsg,:);
         tmp_subj = tmp_subj(indsg,:);
         tmp_dat = tmp_dat(indsg,:);
@@ -383,10 +392,7 @@ for d_i = 1:length(dat_out_structs)
            
             disp(PLOT_STRUCT.ylim);
             %--
-            % LINE_STRUCT.line_avg_fcn = @(x,p) std(x,p{:});
-            % LINE_STRUCT.line_avg_fcn_params = {[],2};
-            LINE_STRUCT.line_avg_fcn = @(x,p) mean(x,p{:});
-            LINE_STRUCT.line_avg_fcn_params = {2};
+            LINE_STRUCT.line_avg_fcn = @(x) mean(x,2);
             LINE_STRUCT.line_color = cmaps_speed(c_i,:);
             LINE_STRUCT.line_alpha = 0.7;
             LINE_STRUCT.line_label = xtick_label_c{c_i};
@@ -394,14 +400,8 @@ for d_i = 1:length(dat_out_structs)
             LINE_STRUCT.do_err_shading = true;
             LINE_STRUCT.err_color = cmaps_speed(c_i,:)+0.15;
             LINE_STRUCT.err_alpha = 0.3;
-            LINE_STRUCT.err_upr_bnd_fcn = @(x,p) mean(x,2) + std(x,p{:});
-            LINE_STRUCT.err_lwr_bnd_fcn = @(x,p) mean(x,2) - std(x,p{:});
-            LINE_STRUCT.err_upr_bnd_params = {[],2};
-            LINE_STRUCT.err_lwr_bnd_params = {[],2};
-            % LINE_STRUCT.err_upr_bnd_fcn = @(x,p) prctile(x,p{:});
-            % LINE_STRUCT.err_lwr_bnd_fcn = @(x,p) prctile(x,p{:});
-            % LINE_STRUCT.err_upr_bnd_params = {25,2};
-            % LINE_STRUCT.err_lwr_bnd_params = {75,2};
+            LINE_STRUCT.err_upr_bnd_fcn = @(x) mean(x,2) + std(x,[],2);
+            LINE_STRUCT.err_lwr_bnd_fcn = @(x) mean(x,2) - std(x,[],2);
             %--
             [ax,Pa,Li] = plot_psd(ax,tmp_psd_in{c_i,1},fooof_freqs, ...
                 'LINE_STRUCT',LINE_STRUCT, ...
@@ -455,7 +455,7 @@ for d_i = 1:length(dat_out_structs)
     %##
     % exportgraphics(fig,[tmp_savedir filesep sprintf('cl%s_std_allsubj.tiff',string(clusters(c_i)))],...
     %     'Resolution',300)
-    exportgraphics(fig,[tmp_savedir filesep sprintf('allclusts_base_%s_%s.tiff',psd_avg_char,basel_chars{d_i})],...
+    exportgraphics(fig,[tmp_savedir filesep sprintf('cls%s_clusts_base_%s_%s.tiff',strjoin(string(cluster_inds_plot),''),psd_avg_char,basel_chars{d_i})],...
         'Resolution',SAVE_RES)
     % close(fig)
 end
@@ -499,16 +499,16 @@ for g_i = 1:length(groups_proc)
         y_lim_store = zeros(length(cluster_inds_plot),2);
         ycnt = 1;
         for cl_i = 1:length(cluster_inds_plot)        
-            % psd_dat_out1 = dat_out_structs{d_i}.psd_dat;        
-            % psd_dat_out2 = dat_out_structs{d_i}.psd_std_dat;
-            % psd_dat_out = psd_dat_out2./psd_dat_out1;
+            psd_dat_out1 = dat_out_structs{d_i}.psd_dat;        
+            psd_dat_out2 = dat_out_structs{d_i}.psd_std_dat;
+            psd_dat_out = psd_dat_out2./psd_dat_out1;
             %--
-            psd_dat_out = dat_out_structs{d_i}.psd_dat;        
+            % psd_dat_out = dat_out_structs{d_i}.psd_dat;        
             % psd_dat_out = dat_out_structs{d_i}.psd_std_dat;
             if cl_i == 1
-                psd_avg_char = [psd_avg_char,'mean'];
+                % psd_avg_char = [psd_avg_char,'mean'];
                 % psd_avg_char = [psd_avg_char,'std'];
-                % psd_avg_char = [psd_avg_char,'cov'];
+                psd_avg_char = [psd_avg_char,'cov'];
             end
             cond_dat_out = dat_out_structs{d_i}.cond_dat;
             subj_dat_out = dat_out_structs{d_i}.subj_dat;
@@ -567,12 +567,12 @@ for g_i = 1:length(groups_proc)
                 for s_i = 1:length(subjs)
                     inds = tmp_subj == subjs(s_i);
                     chk = indc & inds;
-                    % tmp(:,s_i) = mean(tmp_dat(chk,:),1);
-                    tmp(:,s_i) = std(tmp_dat(chk,:),[],1);        
+                    tmp(:,s_i) = mean(tmp_dat(chk,:),1);
+                    % tmp(:,s_i) = std(tmp_dat(chk,:),[],1);        
                     % tmp(:,s_i) = prctile(tmp_dat(chk,:),75,1) - prctile(tmp_dat(chk,:),25,1);
                     if c_ii == 1 && s_i == 1 && cl_i == 1
-                        % psd_avg_char = [psd_avg_char,'mean'];
-                        psd_avg_char = [psd_avg_char,'std'];
+                        psd_avg_char = [psd_avg_char,'mean'];
+                        % psd_avg_char = [psd_avg_char,'std'];
                         % psd_avg_char = [psd_avg_char,'prct'];
                     end
                 end
@@ -601,9 +601,7 @@ for g_i = 1:length(groups_proc)
                 disp(PLOT_STRUCT.ylim);
                 %--
                 % LINE_STRUCT.line_avg_fcn = @(x,p) std(x,p{:});
-                % LINE_STRUCT.line_avg_fcn_params = {[],2};
                 LINE_STRUCT.line_avg_fcn = @(x,p) mean(x,p{:});
-                LINE_STRUCT.line_avg_fcn_params = {2};
                 LINE_STRUCT.line_color = cmaps_speed(c_i,:);
                 LINE_STRUCT.line_alpha = 0.7;
                 LINE_STRUCT.line_label = xtick_label_c{c_i};
@@ -613,12 +611,6 @@ for g_i = 1:length(groups_proc)
                 LINE_STRUCT.err_alpha = 0.3;
                 LINE_STRUCT.err_upr_bnd_fcn = @(x,p) mean(x,2) + std(x,p{:});
                 LINE_STRUCT.err_lwr_bnd_fcn = @(x,p) mean(x,2) - std(x,p{:});
-                LINE_STRUCT.err_upr_bnd_params = {[],2};
-                LINE_STRUCT.err_lwr_bnd_params = {[],2};
-                % LINE_STRUCT.err_upr_bnd_fcn = @(x,p) prctile(x,p{:});
-                % LINE_STRUCT.err_lwr_bnd_fcn = @(x,p) prctile(x,p{:});
-                % LINE_STRUCT.err_upr_bnd_params = {25,2};
-                % LINE_STRUCT.err_lwr_bnd_params = {75,2};
                 %--
                 [ax,Pa,Li] = plot_psd(ax,tmp_psd_in{c_i,1},fooof_freqs, ...
                     'LINE_STRUCT',LINE_STRUCT, ...
@@ -672,7 +664,7 @@ for g_i = 1:length(groups_proc)
         %##
         % exportgraphics(fig,[tmp_savedir filesep sprintf('cl%s_std_allsubj.tiff',string(clusters(c_i)))],...
         %     'Resolution',300)
-        exportgraphics(fig,[tmp_savedir filesep sprintf('g%s_base_%s_%s.tiff',groups{g_i},psd_avg_char,basel_chars{d_i})],...
+        exportgraphics(fig,[tmp_savedir filesep sprintf('cl%s_g%s_base_%s_%s.tiff',strjoin(string(cluster_inds_plot),''),groups{g_i},psd_avg_char,basel_chars{d_i})],...
             'Resolution',SAVE_RES)
         close(fig)
     end

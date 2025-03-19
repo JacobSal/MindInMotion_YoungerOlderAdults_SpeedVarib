@@ -140,6 +140,24 @@ KIN_TABLE = readtable([r_stats_dir filesep sprintf('02202025_lme_eeg_kin_meansd_
 RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('03122025_lme_eeg_kin_meansd_%s_stats.xlsx',fextr)], ...
     "FileType","spreadsheet","UseExcel",true);
 %% MEASURES TO ANALYZE ================================================= %%
+%## STATS
+try
+    STUDY.etc = rmfield(STUDY.etc,'statistics');
+end
+STUDY = pop_statparams(STUDY,...
+    'groupstats','off',...
+    'condstats','on',...
+    'method','perm',...
+    'singletrials','off',...
+    'mode','fieldtrip',...
+    'fieldtripalpha',NaN,...
+    'fieldtripmethod','montecarlo',...
+    'fieldtripmcorrect','fdr',...
+    'fieldtripnaccu',2000);
+stats = STUDY.etc.statistics;
+stats.paired{1} = 'on'; % Condition stats
+stats.paired{2} = 'off'; % Group stats
+
 %## CLUSTER INFO
 %-- 01192025_mim_yaoa_nopowpow_crit_speed (rb3)
 cluster_titles = {'Right Cuneus', ...
@@ -167,7 +185,10 @@ speed_xvals = (0:5)*0.25;
 c_chars = {'0.25 m/s','0.50 m/s','0.75 m/s','1.0 m/s'};
 g_chars_topo = {'Young Adults','Older High Functioning Adults','Older Low Functioning Adults'};
 g_chars_subp = {'YA','OHFA','OLFA'};
-dip_dir = [cluster_k_dir filesep 'topo_dip_inf'];
+dip_dir = [cluster_k_dir filesep 'topo_dip_inf' filesep 'all'];
+cmaps_speed = linspecer(4*3);
+cmaps_speed = [cmaps_speed(1,:);cmaps_speed(2,:);cmaps_speed(3,:);cmaps_speed(4,:)];
+%## EXTRACT PSD DATA
 color_dark = cmaps_speed; %color.speed;
 color_light = cmaps_speed+0.15; %color.speed_shade;
 xtick_label_g = {'0.25','0.50','0.75','1.0'};
@@ -190,6 +211,7 @@ G_ORDER = categorical(g_chars);
 %% ===================================================================== %%
 %## PARAMETERS
 %-
+% group_chars = unique(KIN_TABLE.group_char)
 designs = unique(KIN_TABLE.model_n);
 group_chars = unique(KIN_TABLE.group_char);
 cond_chars = unique(KIN_TABLE.cond_char);
@@ -204,6 +226,7 @@ TITLE_TXT_SIZE = 14;
 % AX_X_SHIFT = 1.7;
 % AX_Y_SHIFT = -1.4;
 % AX_INIT_X = 0.09;
+AX_INIT_X = 0.09;
 % AX_INIT_Y = 0.7;
 % AX_INIT_Y = 0.09; %0.08
 X_DIM = 2;
@@ -213,9 +236,22 @@ TITLE_XSHIFT = 0.4;
 TITLE_YSHIFT = 0.975;
 TITLE_BOX_SZ = [0.4,0.4];
 FIGURE_POSITION =[1,1,6.5,9];
-PG_SIZE = [6.5,9];
 FONT_NAME = 'Arial';
-FONT_WEIGHT_PSD = 'normal';
+%--
+DIP_IM_DPI = 1000;
+AX_INIT_HORIZ_TOPO = 0.085;
+AX_INIT_VERT_TOPO = 0.765;
+AX_INIT_VERT_DIP = 0.83; %0.79; %0.8 --- %7.2; % inches for some reason, maybe a bug with normal units
+AX_INIT_HORIZ_DIP = 0.3846; %2.5; % inches for some reason, maybe a bug with normal units
+%--
+LAB_A_YOFFSET = -0.16;
+LAB_A_XOFFSET = -0.125;
+LAB_B_YOFFSET = 0.065;
+LAB_B_XOFFSET = -0.125;
+LAB_C_YOFFSET = 0.06; %0.075
+LAB_C_XOFFSET = -0.125;
+LAB_D_YOFFSET = 0.09;
+LAB_D_XOFFSET = -0.125;
 %--
 % DO_PLOT_R2 = true;
 % REG_TXT_SIZE = 8; % 7
@@ -375,19 +411,20 @@ for cl_i = 1:length(cluster_inds_plot)
     IM_RESIZE = 0.225;
     ax_position = [AX_INIT_HORIZ_TOPO,AX_INIT_VERT_TOPO,0,0];
     local_plot_topography(fig,STUDY,cl_n, ...
-        groups,g_chars,g_chars_topo, ...
+        group_chars,g_chars,g_chars_topo, ...
         ax_position,IM_RESIZE);
     
     %## DIPOLE PLOT
     IM_RESIZE = 1.1;
     dip_fig_path = [dip_dir filesep sprintf('%i_dipplot_alldipspc_top.fig',cl_n)];
     ax_position = [AX_INIT_HORIZ_DIP,AX_INIT_VERT_DIP,0,0];
-    label_position = [AX_INIT_HORIZ+LAB_A_XOFFSET+(0.1/2),1+LAB_A_YOFFSET+(0.1/2),.1,.1];
+    label_position = [AX_INIT_X+LAB_A_XOFFSET+(0.1/2),1+LAB_A_YOFFSET+(0.1/2),.1,.1];
     local_plot_dipole_slices(fig,dip_fig_path,IM_RESIZE, ...
         p_sz,ax_position,label_position);
 
     
     %## EXTRACT PSD DATA =============================================== %%
+    %%
     IM_RESIZE = 0.8;
     AX_W = 0.3;
     AX_H = 0.25;
@@ -395,7 +432,10 @@ for cl_i = 1:length(cluster_inds_plot)
     AX_X_SHIFT = 1.7;
     AX_Y_SHIFT = -1.4;
     AX_INIT_X = 0.09;
-    AX_INIT_Y = 0.7;
+    AX_INIT_Y = 0.7;    
+    DESIGNS = {{'flat','low','med','high'},{'0p25','0p5','0p75','1p0'}};
+    d_i = 1;
+    des_i = 2;
     %--
     ax_store = [];
     psd_avg_char = [];
@@ -461,11 +501,11 @@ for cl_i = 1:length(cluster_inds_plot)
         tmp_group = tmp_group(~chk);
         %--  get good indices
         conds = unique(tmp_cond);        
-        groups = unique(tmp_group);
+        group_chars = unique(tmp_group);
         indsc = cellfun(@(x) any(strcmp(x,DESIGNS{des_i})),conds);
         conds = conds(indsc);
         indsc = cellfun(@(x) any(strcmp(x,conds)),tmp_cond);        
-        indsg = strcmp(tmp_group,groups{g_i});
+        indsg = strcmp(tmp_group,group_chars{g_i});
         indsg = indsg & indsc;
         %--
         tmp_cond = tmp_cond(indsg,:);
