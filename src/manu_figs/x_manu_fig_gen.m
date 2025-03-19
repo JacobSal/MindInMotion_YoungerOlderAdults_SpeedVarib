@@ -106,7 +106,7 @@ CLUSTER_PICS = main_cl_inds;
 
 %%
 fpaths = {STUDY.datasetinfo.filepath};
-fextr = 'slidingb1';
+fextr = 'slidingb3';
 dat = par_load(fpaths{1},sprintf('psd_output_%s.mat',fextr));
 %--
 fooof_freqs = dat.freqs;
