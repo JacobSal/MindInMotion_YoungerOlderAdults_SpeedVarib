@@ -238,11 +238,6 @@ TITLE_BOX_SZ = [0.4,0.4];
 FIGURE_POSITION =[1,1,6.5,9];
 FONT_NAME = 'Arial';
 %--
-DIP_IM_DPI = 1000;
-AX_INIT_HORIZ_TOPO = 0.085;
-AX_INIT_VERT_TOPO = 0.765;
-AX_INIT_VERT_DIP = 0.83; %0.79; %0.8 --- %7.2; % inches for some reason, maybe a bug with normal units
-AX_INIT_HORIZ_DIP = 0.3846; %2.5; % inches for some reason, maybe a bug with normal units
 %--
 LAB_A_YOFFSET = -0.16;
 LAB_A_XOFFSET = -0.125;
@@ -258,10 +253,10 @@ LAB_D_XOFFSET = -0.125;
 % REG_X_SHIFT = 0.18; % 0.08
 % REG_Y_SHIFT = 0.13; % 0.1k
 %--
-% LEG_X_SHIFT = -0.125; %-0.1
-% LEG_Y_SHIFT =  -0.33; %-0.38
-% LEG_TXT_SIZE = 9;
-% LEG_TOKEN_SIZE = 15;
+LEG_X_SHIFT = 0; %-0.1
+LEG_Y_SHIFT =  0; %-0.38
+LEG_TXT_SIZE = 9;
+LEG_TOKEN_SIZE = 15;
 %## 
 AXES_DEFAULT_PROPS = {'box','off', ...
     'xtick',[], ...
@@ -270,8 +265,43 @@ AXES_DEFAULT_PROPS = {'box','off', ...
     'xcolor',[1,1,1], ...
     'ycolor',[1,1,1]};
 
+%## PSD PLOTS
+PLOT_STRUCT = struct('y_label',{'10*log_{10}(PSD)'},...
+    'y_label_fontsize',12,...
+    'y_label_fontweight','bold',...
+    'ylim',[],...
+    'x_label',{'Frequency (Hz)'},...
+    'x_label_fontsize',12,...
+    'x_label_fontweight','bold',...
+    'x_label_yoffset',0,...
+    'xtick_labs',{{}}, ...
+    'xticks',[], ...
+    'xlim',[],...
+    'title',{{''}},...
+    'title_fontsize',12,...
+    'title_fontweight','normal',...
+    'font_size',12,...
+    'font_name','Arial',...
+    'ax_position',[0,0,1,1],...
+    'ax_line_width',1,...
+    'xtick_angle',45);
+LINE_STRUCT = struct('do_line_avg',false, ...
+    'line_width',2, ...
+    'line_style','-', ...
+    'line_alpha',1, ...
+    'line_color',[1,1,1], ...
+    'line_label',{'label'}, ...
+    'line_avg_fcn',@mean, ...
+    'do_err_shading',true, ...
+    'err_alpha',0.6, ...
+    'err_color',[0.5,0.5,0.5], ...
+    'err_edge_color',[], ...
+    'err_bnd_vec',[], ...
+    'err_line_style',':', ...
+    'err_line_width',3);
+
 %## VIOLIN PLOTS
-PLOT_STRUCT = struct('color_map',[],...
+VIO_PLOT_STRUCT = struct('color_map',[],...
     'cond_labels',{{}},...
     'cond_offsets',[-0.35,-0.10,0.15,0.4],...
     'do_group_labels',true, ...
@@ -298,7 +328,7 @@ PLOT_STRUCT = struct('color_map',[],...
     'ax_position',[0,0,1,1],...
     'ax_line_width',1,...
     'xtick_angle',75);
-VIOLIN_STRUCT = struct('Width',0.15,...
+VIO_STRUCT = struct('Width',0.15,...
     'ShowWhiskers',false,...
     'ShowNotches',false,...
     'ShowBox',true,...
@@ -366,15 +396,9 @@ ANV_CHARS_GROUP = {'(Intercept)','speed_cond_num','group_char'};
 COEFF_CHARS_GROUP = {'(Intercept)','speed_cond_num','group_char1','group_char2'};
 %--
 %% (ALL SUBJS MODEL) =================================================== %%
-tmp_savedir = [save_dir filesep fextr];
+tmp_savedir = [save_dir filesep fextr '_manufigs'];
 mkdir(tmp_savedir);
-%#%--
-% x_shift = AX_INIT_X;
-% x_cnt = 1;
-% y_shift = AX_INIT_Y;
-% vert_shift = 0;
-% horiz_shift = 0;
-% stats_store = [];
+%##
 for cl_i = 1:length(cluster_inds_plot)
     %%
     %## INITIATE FIGURE
@@ -408,13 +432,18 @@ for cl_i = 1:length(cluster_inds_plot)
     hold on;
     
     %## TOPOGRAPHY PLOT
-    IM_RESIZE = 0.225;
+    IM_RESIZE = 0.2;
+    AX_INIT_VERT_TOPO = 0.765;
+    AX_INIT_HORIZ_TOPO = 0.085;
     ax_position = [AX_INIT_HORIZ_TOPO,AX_INIT_VERT_TOPO,0,0];
     local_plot_topography(fig,STUDY,cl_n, ...
         group_chars,g_chars,g_chars_topo, ...
         ax_position,IM_RESIZE);
     
     %## DIPOLE PLOT
+    DIP_IM_DPI = 1000;
+    AX_INIT_VERT_DIP = 0.6; %0.79; %0.8 --- %7.2; % inches for some reason, maybe a bug with normal units
+    AX_INIT_HORIZ_DIP = 0.085; %2.5; % inches for some reason, maybe a bug with normal units
     IM_RESIZE = 1.1;
     dip_fig_path = [dip_dir filesep sprintf('%i_dipplot_alldipspc_top.fig',cl_n)];
     ax_position = [AX_INIT_HORIZ_DIP,AX_INIT_VERT_DIP,0,0];
@@ -425,202 +454,122 @@ for cl_i = 1:length(cluster_inds_plot)
     
     %## EXTRACT PSD DATA =============================================== %%
     %%
-    IM_RESIZE = 0.8;
-    AX_W = 0.3;
-    AX_H = 0.25;
-    AX_FONT_NAME = 'Arial';
     AX_X_SHIFT = 1.7;
-    AX_Y_SHIFT = -1.4;
-    AX_INIT_X = 0.09;
-    AX_INIT_Y = 0.7;    
-    DESIGNS = {{'flat','low','med','high'},{'0p25','0p5','0p75','1p0'}};
-    d_i = 1;
-    des_i = 2;
+    AX_Y_SHIFT = -0.9;
+    AX_INIT_X = 0.3;
+    AX_INIT_Y = 0.7;
+    X_DIM = 1;
     %--
-    ax_store = [];
-    psd_avg_char = [];
+    params.im_resize = 0.6;
+    params.ax_w = 0.3;
+    params.ax_h = 0.25;
+    params.x_shift = AX_INIT_X; %AX_INIT_X;
+    params.y_shift = AX_INIT_Y; %AX_INIT_Y;    
+    params.designs = {{'flat','low','med','high'},{'0p25','0p5','0p75','1p0'}};
+    params.d_i = 1;
+    params.des_i = 2;
+    % params.g_i = 1;
+    params.cl_i = cluster_inds_plot(cl_i);
+    % params.cmaps = cmaps_speed;
+    params.cmaps = linspecer(length(g_chars_subp));
+    % params.xtick_label = xtick_label_c;
+    params.xtick_label = g_chars_subp;
+    params.stats = stats;
+    params.freqs = fooof_freqs;
+    %--
+    x_cnt = 1;
+    leg_chars = g_chars_subp;
+    leg_store = cell(length(g_chars),1);
+    ax_store = cell(length(g_chars),1);
+    psd_avg_char = cell(length(g_chars),1);
     y_lim_store = zeros(length(cluster_inds_plot),2);
     ycnt = 1;
-    %--
-    x_shift = AX_INIT_X;
-    x_cnt = 1;
-    y_shift = AX_INIT_Y;
-    leg_store = [];
-    %--
+    %## GET PSD DATA
+    dat_out_struct = dat_out_structs{1};
+    dat_calcs = {'std','mean'};
+    conds_out = {'0p25','0p5','0p75','1p0'};
+    groups_out = g_chars;
+    [psd_dat_out] = extract_psd_sbs(dat_out_struct,dat_calcs,cl_n,conds_out,groups_out);
+    %-- all subjs per cond
+    psd_dat_in = cell(size(psd_dat_out,1),1);
+    for c_i = 1:size(psd_dat_out,1)
+        psd_dat_in{c_i,1} = cat(2,psd_dat_out{c_i,:});
+    end
+    params.stats.paired = {'on','off'};
+    %-- all conds per group
+    psd_dat_in = cell(size(psd_dat_out,2),1);
+    for g_i = 1:size(psd_dat_out,2)
+        psd_dat_in{g_i,1} = cat(2,psd_dat_out{:,g_i});
+    end
+    params.stats.paired = {'off','off'};
+    %## PLOT
+    ax = axes();
+    [paramso] = local_psd_plot_grp(ax,psd_dat_in,params,PLOT_STRUCT,LINE_STRUCT);
+    
+    %-- loop
+    ax = axes();
     for g_i = 1:length(g_chars)
-        % psd_dat_out1 = dat_out_structs{d_i}.psd_dat;      
-        % psd_dat_out2 = dat_out_structs{d_i}.psd_std_dat;
-        % psd_dat_out = psd_dat_out2./psd_dat_out1;
-        %--
-        % psd_dat_out = dat_out_structs{d_i}.psd_dat; 
-        % %--
-        psd_dat_out = dat_out_structs{d_i}.psd_std_dat;
-        if cl_i == 1
-            % psd_avg_char = [psd_avg_char,'mean'];
-            psd_avg_char = [psd_avg_char,'std'];
-            % psd_avg_char = [psd_avg_char,'cov'];
-        end
-        cond_dat_out = dat_out_structs{d_i}.cond_dat;
-        subj_dat_out = dat_out_structs{d_i}.subj_dat;
-        group_dat_out = dat_out_structs{d_i}.group_dat;
-        %--
-        tmp_dat = squeeze(psd_dat_out(:,:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]
-        tmp_dat = reshape(permute(tmp_dat,[3,1,2]),size(tmp_dat,1)*size(tmp_dat,3),size(tmp_dat,2)); %[subject x epoch/splice, frequency];
-        chk = all(~isnan(tmp_dat),2);
-        tmp_dat = tmp_dat(chk,:);
-        chk = ~all(tmp_dat==0,2);
-        tmp_dat = tmp_dat(chk,:);
-        % if all(chk)
-        %     chk = ~all(tmp_dat==0,2);
-        % end
-        % tmp_dat = tmp_dat(chk,:);
-        % sum(chk)
-        %--
-        tmp_cond = squeeze(cond_dat_out(:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]    
-        tmp_cond = reshape(permute(tmp_cond,[2,1]),[size(cond_dat_out,1)*size(cond_dat_out,2),1]);
-        chk = cellfun(@isempty,tmp_cond);
-        tmp_cond = tmp_cond(~chk);
-        conds = unique(tmp_cond);
-        %--
-        tmp_subj = squeeze(subj_dat_out(:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]    
-        tmp_subj = reshape(permute(tmp_subj,[2,1]),[size(subj_dat_out,1)*size(subj_dat_out,2),1]);
-        % chk = ~all(isnan(tmp_subj),2);
-        chk = all(~isnan(tmp_subj),2);
-        tmp_subj = tmp_subj(chk,:);
-        chk = ~all(tmp_subj==0,2);
-        tmp_subj = tmp_subj(chk,:);
-        % if all(chk)
-        %     chk = ~all(tmp_subj==0,2);
-        % end
-        % tmp_subj = tmp_subj(chk,:);
-        subjs = unique(tmp_subj);
-        %--
-        tmp_group = squeeze(group_dat_out(:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]    
-        tmp_group = reshape(permute(tmp_group,[2,1]),[size(group_dat_out,1)*size(group_dat_out,2),1]);
-        chk = cellfun(@isempty,tmp_group);
-        tmp_group = tmp_group(~chk);
-        %--  get good indices
-        conds = unique(tmp_cond);        
-        group_chars = unique(tmp_group);
-        indsc = cellfun(@(x) any(strcmp(x,DESIGNS{des_i})),conds);
-        conds = conds(indsc);
-        indsc = cellfun(@(x) any(strcmp(x,conds)),tmp_cond);        
-        indsg = strcmp(tmp_group,group_chars{g_i});
-        indsg = indsg & indsc;
-        %--
-        tmp_cond = tmp_cond(indsg,:);
-        tmp_subj = tmp_subj(indsg,:);
-        tmp_dat = tmp_dat(indsg,:);
-        % tmp_group = tmp_cond(indsg,:);
-        %## STATISTICS
-        %-- Ho : all samples come from the same distribution
-        %-- Ha : all samples come from different distributions
-        tmp_psd_in = cell(length(conds),1);
-        for c_ii = 1:length(conds)
-            indc = strcmp(tmp_cond,conds{c_ii});
-            tmp = nan(size(tmp_dat,2),length(subjs));
-            for s_i = 1:length(subjs)
-                inds = tmp_subj == subjs(s_i);
-                chk = indc & inds;
-                tmp(:,s_i) = mean(tmp_dat(chk,:),1);
-                % tmp(:,s_i) = std(tmp_dat(chk,:),[],1);        
-                % tmp(:,s_i) = prctile(tmp_dat(chk,:),75,1) - prctile(tmp_dat(chk,:),25,1);
-                if c_ii == 1 && s_i == 1 && cl_i == 1
-                    psd_avg_char = [psd_avg_char,'mean'];
-                    % psd_avg_char = [psd_avg_char,'std'];
-                    % psd_avg_char = [psd_avg_char,'prct'];
-                end
-            end
-            % tmp = tmp(:,all(tmp ~= 0,1));
-            tmp = tmp(:,all(~isnan(tmp),1));
-            tmp_psd_in{c_ii,1} = tmp; %tmp_dat(inds,:);
-        end
-        [pcond, pgroup, pinter, ~, ~, ~] = ...
-            std_stat(tmp_psd_in, stats);    
-        pcond=pcond{1} < 0.05;
+        %-- tmp params
+        params.title = {g_chars_subp{g_i}}; %{sprintf('%s',cluster_titles{cluster_inds_plot(cl_i)})};
+        params.g_i = g_i;        
+
         %## PLOT
-        ax = axes();
-        for c_i = 1:length(conds)
-            %--
-            % ind = find(cluster_inds_plot(cl_i) == cluster_inds_plot);
-            PLOT_STRUCT.title = {sprintf('%s',cluster_titles{cluster_inds_plot(cl_i)})};
-            PLOT_STRUCT.ax_position = [x_shift,y_shift,AX_W*IM_RESIZE,AX_H*IM_RESIZE];
-            PLOT_STRUCT.xlim = [3,40];
-            % PLOT_STRUCT.ylim = [-2.5,5]; %sort([prctile([tmp_psd_in{:}],99,'all'),prctile([tmp_psd_in{:}],1,'all')]);
-            mu = mean(cat(2,tmp_psd_in{:}),[2,1]);
-            sd = std(cat(2,tmp_psd_in{:}),[],[2,1]);
-            y_lim_store(ycnt,:) = [mu-1.75*sd,mu+1.75*sd];
-            PLOT_STRUCT.ylim = y_lim_store(ycnt,:);
-            ycnt = ycnt+1;
-           
-            disp(PLOT_STRUCT.ylim);
-            %--
-            LINE_STRUCT.line_avg_fcn = @(x) mean(x,2);
-            LINE_STRUCT.line_color = cmaps_speed(c_i,:);
-            LINE_STRUCT.line_alpha = 0.7;
-            LINE_STRUCT.line_label = xtick_label_c{c_i};
-            %--
-            LINE_STRUCT.do_err_shading = true;
-            LINE_STRUCT.err_color = cmaps_speed(c_i,:)+0.15;
-            LINE_STRUCT.err_alpha = 0.3;
-            LINE_STRUCT.err_upr_bnd_fcn = @(x) mean(x,2) + std(x,[],2);
-            LINE_STRUCT.err_lwr_bnd_fcn = @(x) mean(x,2) - std(x,[],2);
-            %--
-            [ax,Pa,Li] = plot_psd(ax,tmp_psd_in{c_i,1},fooof_freqs, ...
-                'LINE_STRUCT',LINE_STRUCT, ...
-                'PLOT_STRUCT',PLOT_STRUCT);
-            if c_i == 1
-                ax_store = [ax_store, ax];
-            end
-            if cl_i == 1
-                leg_store = [leg_store, Li];
-            end
-            hold on;
-        end        
-        [axsignif,Pa] = plot_psd_stats(ax,fooof_freqs,pcond, ...
-            'background','Frequency (Hz)');
+        [paramso] = local_psd_plot(ax,dat_out_structs,params,PLOT_STRUCT,LINE_STRUCT);
+        %--
+        % paramso.ax_store;
+        % paramso.leg_store;
+        % paramso.psd_char;
+        % params.y_lim_store;
+        leg_store{g_i} = paramso.leg_store{1};
+        
+        %##
         if cl_i < length(cluster_inds_plot)-1
             xlabel('');
         end
         %--
-        y_lim_store = [min(y_lim_store,[],'all'),max(y_lim_store,[],'all')];
-        for aa = 1:length(ax_store)
-            set(ax_store(aa),'YLim',y_lim_store)
-        end
+        % y_lim_store = [min(y_lim_store,[],'all'),max(y_lim_store,[],'all')];
+        % for aa = 1:length(ax_store)
+        %     set(ax_store(aa),'YLim',y_lim_store)
+        % end
         
         %## AX SHIFT
-        if x_cnt < X_DIM
-            x_shift = x_shift + AX_X_SHIFT*IM_RESIZE*AX_W;
-        else
-            y_shift = y_shift + AX_Y_SHIFT*IM_RESIZE*AX_H;
-            x_shift = AX_INIT_X;
-            x_cnt = 0;
-        end
-        x_cnt = x_cnt + 1;
-    end
+        % if x_cnt < X_DIM
+        %     params.x_shift = params.x_shift + AX_X_SHIFT*IM_RESIZE*AX_W;
+        % else
+        %     params.y_shift = params.y_shift + AX_Y_SHIFT*IM_RESIZE*AX_H;
+        %     params.x_shift = AX_INIT_X;
+        %     x_cnt = 0;
+        % end
+        % x_cnt = x_cnt + 1;
+    end        
 
     %## LEGEND
-    % %- lg2                
-    % legend(gca,leg_store);
-    % [lg2,icons,plots,txt]  = legend('boxoff');
-    % tmp = get(lg2,'String');
-    % cnt = 1;
-    % for i = 1:length(leg_store)
-    %     tmp{i} = sprintf('%s',leg_chars{cnt});
-    %     cnt = cnt + 1;
-    % end
-    % set(lg2,'String',tmp,'FontName',AX_FONT_NAME,'FontSize',LEG_TXT_SIZE)
-    % set(lg2,'Orientation','horizontal')
-    % set(lg2,'Units','normalized')
-    % set(lg2,'Position',[AX_INIT_X+LEG_X_SHIFT*IM_RESIZE*AX_W,...
-    %     y_shift+AX_H*IM_RESIZE+LEG_Y_SHIFT*IM_RESIZE*AX_H,lg2.Position(3),lg2.Position(4)]);
-    % lg2.ItemTokenSize(1) = LEG_TOKEN_SIZE;
-    % hold off;
+    %- lg2
+    leg_store = [leg_store{:}];
+    legend(gca,leg_store);
+    [lg2,icons,plots,txt]  = legend('boxoff');
+    tmp = get(lg2,'String');
+    cnt = 1;
+    for i = 1:length(leg_store)
+        tmp{i} = sprintf('%s',leg_chars{cnt});
+        cnt = cnt + 1;
+    end
+    set(lg2,'String',tmp, ...
+        'FontName',AX_FONT_NAME, ...
+        'FontSize',LEG_TXT_SIZE)
+    set(lg2,'Orientation','horizontal')
+    set(lg2,'Units','normalized')
+    set(lg2,'Position',[AX_INIT_X+LEG_X_SHIFT*IM_RESIZE*AX_W,...
+        y_shift+AX_H*IM_RESIZE+LEG_Y_SHIFT*IM_RESIZE*AX_H, ...
+        lg2.Position(3), ...
+        lg2.Position(4)]);
+    lg2.ItemTokenSize(1) = LEG_TOKEN_SIZE;
+    hold off;
 
     
 
     %## VIOLIN PLOTS) ================================================== %%
-    %-
+    %%
     x_shift = AX_INIT_X;
     x_cnt = 1;
     y_shift = AX_INIT_Y;
@@ -932,23 +881,23 @@ for cl_i = 1:length(cluster_inds_plot)
         %## PLOT
         ax = axes();
         %-- set parameters
-        PLOT_STRUCT.group_labels = g_chars_subp;
-        PLOT_STRUCT.color_map = color_dark;
-        PLOT_STRUCT.cond_labels = xtick_label_g;
-        PLOT_STRUCT.title = EEG_MEASURE_TITLES(e_i);
+        VIO_PLOT_STRUCT.group_labels = g_chars_subp;
+        VIO_PLOT_STRUCT.color_map = color_dark;
+        VIO_PLOT_STRUCT.cond_labels = xtick_label_g;
+        VIO_PLOT_STRUCT.title = EEG_MEASURE_TITLES(e_i);
         if e_i == 1
-            PLOT_STRUCT.y_label ='10*log_{10}(PSD) - AP. Fit';
+            VIO_PLOT_STRUCT.y_label ='10*log_{10}(PSD) - AP. Fit';
         else
-            PLOT_STRUCT.y_label ='';
+            VIO_PLOT_STRUCT.y_label ='';
         end
-        PLOT_STRUCT.ylim = prc_ylim;
-        PLOT_STRUCT.ax_position = [x_shift,y_shift, ...
+        VIO_PLOT_STRUCT.ylim = prc_ylim;
+        VIO_PLOT_STRUCT.ax_position = [x_shift,y_shift, ...
             AX_W*IM_RESIZE,AX_H*IM_RESIZE];
         %-- group violin plot
         ax = group_violin(tmp_kint,EEG_MEASURES{e_i},'speed_n','group_char',...
             ax,...
-            'VIOLIN_STRUCT',VIOLIN_STRUCT,...
-            'PLOT_STRUCT',PLOT_STRUCT,...
+            'VIOLIN_STRUCT',VIO_STRUCT,...
+            'PLOT_STRUCT',VIO_PLOT_STRUCT,...
             'STATS_STRUCT',STATS_STRUCT,...
             'BRACKET_STRUCT',BRACKET_STRUCT,...
             'SIGLINE_STRUCT',SIGLINE_STRUCT, ...

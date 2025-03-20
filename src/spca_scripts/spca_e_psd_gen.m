@@ -68,7 +68,7 @@ DEF_EPOCH_PARAMS = struct('epoch_method','timewarp',...
     'rest_trial_char',{{}},...
     'do_recalc_epoch',true);
 %- compute measures for spectrum and ersp
-FORCE_RECALC_PSD = true;
+FORCE_RECALC_PSD = false;
 %* ERSP PARAMS
 ERSP_STAT_PARAMS = struct('condstats','on',... % ['on'|'off]
     'groupstats','off',... %['on'|'off']
@@ -323,21 +323,21 @@ parfor subj_i = 1:length(subj_chars)
         exportgraphics(fig,[fpath filesep 'allcond_avg_psds_corr.jpg']);
 
         %## SAVE PCA INFORMATION
-        psd_struct = [];
-        psd_struct.ID             = EEG.subject;
-        psd_struct.noise_cov      = []; % noise cov for kernel computation
-        psd_struct.psd_orig_avg   = psd_avg;
-        psd_struct.psd_orig_based = psd_baselined;
-        psd_struct.psd_corr       = psd_corr_based;
-        psd_struct.based_psd_corr = based_psd_corr;
-        psd_struct.psdc1          = psd_corr_psc1;
-        psd_struct.chanlocs       = EEG.chanlocs;
-        psd_struct.icatimefopts   = tmp_out;
+        psd_struct = struct('ID', {EEG.subject}, ...
+            'noise_cov', [], ... % noise covariance for kernel computation
+            'psd_orig_avg', psd_avg, ...
+            'psd_orig_based', psd_baselined, ...
+            'psd_corr', psd_corr_based, ...
+            'based_psd_corr', based_psd_corr, ...
+            'psdc1', psd_corr_psc1, ...
+            'chanlocs', EEG.chanlocs, ...
+            'etc_inf', etc_inf ...
+        );
         par_save(psd_struct,fpath,'gait_psd_spca.mat');
 
         %## PLOT
         fig = figure(); set(gcf, 'position', [0 0 600 500]);
-        plot(tmp.freqs, squeeze(base_txf_mean)', 'k-');
+        plot(etc_inf.freqs, squeeze(base_txf_mean)', 'k-');
         ylabel('Amplitude (\muV)');
         xlabel('Frequency (Hz)');
         grid on; box off
