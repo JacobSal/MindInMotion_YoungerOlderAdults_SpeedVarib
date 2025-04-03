@@ -18,11 +18,12 @@
 *.scss
 *.RData
 *.Rproj
-*Rhistory
+*.Rhistory
 
 # .gitignore folders
 **/TEST
-**/submodules
+**/_legacy
+**/hlp_scripts
 **/_data
 **/__archive
 **/_test
