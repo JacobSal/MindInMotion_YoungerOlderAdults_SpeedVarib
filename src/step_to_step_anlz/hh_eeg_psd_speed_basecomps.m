@@ -118,14 +118,14 @@ end
 
 %%
 fpaths = {STUDY.datasetinfo.filepath};
-fextr = 'slidingb36';
+fextr = 'perstridefb_nfslidingb36';
 dat = par_load(fpaths{1},sprintf('psd_output_%s.mat',fextr));
 %--
 fooof_freqs = dat.freqs;
-% basel_chars = {'slidingb1','slidingb3','slidingb6','slidingb12','slidingb15','slidingb18','slidingb21','slidingb36'};
-% basel_chars = {'slidingb6','slidingb12','slidingb15','slidingb18','slidingb21','slidingb36'};
-basel_chars = {'slidingb36'};
+basel_chars = {'perstridefb_nfslidingb48'};
+% basel_chars = {'perstridefb_nfslidingb36'};
 %(03/18/2025) JS, b1 & b2 are pretty memory heavy, skipping for now.
+%(03/26/2025) JS, using perstride as recommended by mim team
 dat_out_structs = cell(1,length(basel_chars));
 %## LOAD
 for b_i = 1:length(basel_chars)
@@ -165,11 +165,14 @@ cluster_titles = {'Right Cuneus', ...
     'Left Temporal',...
     'Left Occipital'};
 xtick_label_c = {'0.25 m/s','0.50 m/s','0.75 m/s','1.0 m/s'};
-cluster_inds_plot = [3,4,5,6,7,8];
-% cluster_inds_plot = [9,11,12];
+% cluster_inds_plot = [3,4,5,6,7,8];
+cluster_inds_plot = [9,11,12];
 % [~,~,cluster_inds] = intersect(cluster_inds_plot,CLUSTER_PICS);
 %% ===================================================================== %%
 %## PARAMETERS
+%-- colors
+cmaps_speed = linspecer(4*3);
+cmaps_speed = [cmaps_speed(1,:);cmaps_speed(2,:);cmaps_speed(3,:);cmaps_speed(4,:)];
 %--
 SAVE_RES = 600;
 TITLE_TXT_SIZE = 14;
@@ -234,31 +237,20 @@ LINE_STRUCT = struct('line_width',2, ...
     'line_alpha',1, ...
     'line_color',[1,1,1], ...
     'line_label',{'label'}, ...
-    'line_avg_fcn',@mean, ...
+    'line_avg_fcn',@(x) mean(x,2), ...
     'do_err_shading',true, ...
     'err_alpha',0.6, ...
     'err_color',[0.5,0.5,0.5], ...
     'err_edge_color',[], ...
-    'err_upr_bnd_fcn',@(x,p) 1*std(x,p{:}), ...
-    'err_lwr_bnd_fcn',@(x,p) -1*std(x,p{:}), ...
     'err_line_style',':', ...
     'err_line_width',3);
 %% (CLUSTER FIGURE FOR BASELINE CONDS) ============================== %%
 meas_ext = 'clusterwise_baseline_comps';
 tmp_savedir = [save_dir filesep meas_ext];
 mkdir(tmp_savedir);
-leg_chars = {'0.25 m/s','0.50 m/s','0.75 m/s','1.0 m/s'}; %{'b6','b12','b18','b24'};
-
-% leg_store = [];
-%##
-%-- colors
-cmaps_speed = linspecer(4*3);
-cmaps_speed = [cmaps_speed(1,:);cmaps_speed(2,:);cmaps_speed(3,:);cmaps_speed(4,:)];
-%## EXTRACT PSD DATA
-% for d_i = 2
+leg_chars = {'0.25 m/s','0.50 m/s','0.75 m/s','1.0 m/s'}; 
 DESIGNS = {{'flat','low','med','high'},{'0p25','0p5','0p75','1p0'}};
-g_i = 1;
-des_i = 2;
+%## LOOP
 for d_i = 1:length(dat_out_structs)
     %## INITIATE FIGURE
     x_shift = AX_INIT_X;
@@ -280,112 +272,50 @@ for d_i = 1:length(dat_out_structs)
         'Units','normalized');        
     hold on;
     set(gca,AXES_DEFAULT_PROPS{:})
+    %-- loop
     ax_store = [];
-    psd_avg_char = [];
+    % psd_avg_char = [];
     y_lim_store = zeros(length(cluster_inds_plot),2);
     ycnt = 1;
-    for cl_i = 1:length(cluster_inds_plot)        
-        % psd_dat_out1 = dat_out_structs{d_i}.psd_dat;      
-        % psd_dat_out2 = dat_out_structs{d_i}.psd_std_dat;
-        % psd_dat_out = psd_dat_out2./psd_dat_out1;
-        %--
-        % psd_dat_out = dat_out_structs{d_i}.psd_dat; 
-        % %--
-        psd_dat_out = dat_out_structs{d_i}.psd_std_dat;
-        if cl_i == 1
-            % psd_avg_char = [psd_avg_char,'mean'];
-            psd_avg_char = [psd_avg_char,'std'];
-            % psd_avg_char = [psd_avg_char,'cov'];
+    for cl_i = 1:length(cluster_inds_plot)
+        %-- initiate params
+        cl_ii = find(cluster_inds_plot(cl_i) == double(string(clusters)));
+        cl_n = double(string(clusters(cl_ii)));
+        atlas_name = cluster_titles{cl_ii};
+
+        %## GET PSD DATA
+        dat_out_struct = dat_out_structs{1};
+        dat_calcs = {'std','mean'}; % opt 1
+        % dat_calcs = {'mean','mean'}; % opt 2
+        psd_avg_char = strjoin(dat_calcs,'');
+        conds_out = {'0p25','0p5','0p75','1p0'};
+        groups_out = g_chars;
+        [psd_dat_out] = extract_psd_sbs(dat_out_struct,dat_calcs,cl_n,conds_out,groups_out);
+        %-- get all subjs into one group
+        psd_dat_in = cell(size(psd_dat_out,1),1);
+        for c_i = 1:size(psd_dat_out,1)
+            psd_dat_in{c_i,1} = cat(2,psd_dat_out{c_i,:});
         end
-        cond_dat_out = dat_out_structs{d_i}.cond_dat;
-        subj_dat_out = dat_out_structs{d_i}.subj_dat;
-        group_dat_out = dat_out_structs{d_i}.group_dat;
-        %--
-        tmp_dat = squeeze(psd_dat_out(:,:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]
-        tmp_dat = reshape(permute(tmp_dat,[3,1,2]),size(tmp_dat,1)*size(tmp_dat,3),size(tmp_dat,2)); %[subject x epoch/splice, frequency];
-        chk = all(~isnan(tmp_dat),2);
-        tmp_dat = tmp_dat(chk,:);
-        chk = ~all(tmp_dat==0,2);
-        tmp_dat = tmp_dat(chk,:);
-        % if all(chk)
-        %     chk = ~all(tmp_dat==0,2);
-        % end
-        % tmp_dat = tmp_dat(chk,:);
-        % sum(chk)
-        %--
-        tmp_cond = squeeze(cond_dat_out(:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]    
-        tmp_cond = reshape(permute(tmp_cond,[2,1]),[size(cond_dat_out,1)*size(cond_dat_out,2),1]);
-        chk = cellfun(@isempty,tmp_cond);
-        tmp_cond = tmp_cond(~chk);
-        conds = unique(tmp_cond);
-        %--
-        tmp_subj = squeeze(subj_dat_out(:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]    
-        tmp_subj = reshape(permute(tmp_subj,[2,1]),[size(subj_dat_out,1)*size(subj_dat_out,2),1]);
-        % chk = ~all(isnan(tmp_subj),2);
-        chk = all(~isnan(tmp_subj),2);
-        tmp_subj = tmp_subj(chk,:);
-        chk = ~all(tmp_subj==0,2);
-        tmp_subj = tmp_subj(chk,:);
-        % if all(chk)
-        %     chk = ~all(tmp_subj==0,2);
-        % end
-        % tmp_subj = tmp_subj(chk,:);
-        subjs = unique(tmp_subj);
-        %--
-        tmp_group = squeeze(group_dat_out(:,:,cluster_inds_plot(cl_i))); %[subject, frequency, epoch/splice, channel/component]    
-        tmp_group = reshape(permute(tmp_group,[2,1]),[size(group_dat_out,1)*size(group_dat_out,2),1]);
-        chk = cellfun(@isempty,tmp_group);
-        tmp_group = tmp_group(~chk);
-        %--  get good indices
-        conds = unique(tmp_cond);        
-        groups = unique(tmp_group);
-        indsc = cellfun(@(x) any(strcmp(x,DESIGNS{des_i})),conds);
-        conds = conds(indsc);
-        indsc = cellfun(@(x) any(strcmp(x,conds)),tmp_cond);        
-        indsg = strcmp(tmp_group,groups{g_i});
-        indsg = indsg & indsc;
-        %--
-        tmp_cond = tmp_cond(indsg,:);
-        tmp_subj = tmp_subj(indsg,:);
-        tmp_dat = tmp_dat(indsg,:);
-        % tmp_group = tmp_cond(indsg,:);
-        %## STATISTICS
-        %-- Ho : all samples come from the same distribution
-        %-- Ha : all samples come from different distributions
-        tmp_psd_in = cell(length(conds),1);
-        for c_ii = 1:length(conds)
-            indc = strcmp(tmp_cond,conds{c_ii});
-            tmp = nan(size(tmp_dat,2),length(subjs));
-            for s_i = 1:length(subjs)
-                inds = tmp_subj == subjs(s_i);
-                chk = indc & inds;
-                tmp(:,s_i) = mean(tmp_dat(chk,:),1);
-                % tmp(:,s_i) = std(tmp_dat(chk,:),[],1);        
-                % tmp(:,s_i) = prctile(tmp_dat(chk,:),75,1) - prctile(tmp_dat(chk,:),25,1);
-                if c_ii == 1 && s_i == 1 && cl_i == 1
-                    psd_avg_char = [psd_avg_char,'mean'];
-                    % psd_avg_char = [psd_avg_char,'std'];
-                    % psd_avg_char = [psd_avg_char,'prct'];
-                end
-            end
-            % tmp = tmp(:,all(tmp ~= 0,1));
-            tmp = tmp(:,all(~isnan(tmp),1));
-            tmp_psd_in{c_ii,1} = tmp; %tmp_dat(inds,:);
-        end
+        %-- stats
+        tmp_stats = stats;
+        tmp_stats.condstats = 'on';
+        tmp_stats.groupstats = 'off';
+        tmp_stats.paired = {'on','off'};
         [pcond, pgroup, pinter, ~, ~, ~] = ...
-            std_stat(tmp_psd_in, stats);    
-        pcond=pcond{1} < 0.05;
+            std_stat(psd_dat_in, tmp_stats);    
+        pcond = pcond{1} < 0.05;
+        
         %## PLOT
         ax = axes();
         for c_i = 1:length(conds)
             %--
             % ind = find(cluster_inds_plot(cl_i) == cluster_inds_plot);
-            PLOT_STRUCT.title = {sprintf('%s',cluster_titles{cluster_inds_plot(cl_i)})};
+            PLOT_STRUCT.title = {sprintf('%s',atlas_name)};
             PLOT_STRUCT.ax_position = [x_shift,y_shift,AX_W*IM_RESIZE,AX_H*IM_RESIZE];
             PLOT_STRUCT.xlim = [3,40];
-            % PLOT_STRUCT.ylim = [-2.5,5]; %sort([prctile([tmp_psd_in{:}],99,'all'),prctile([tmp_psd_in{:}],1,'all')]);
-            mu = mean(cat(2,tmp_psd_in{:}),[2,1]);
-            sd = std(cat(2,tmp_psd_in{:}),[],[2,1]);
+            %-- ylim calc
+            mu = mean(cat(2,psd_dat_in{:}),[2,1]);
+            sd = std(cat(2,psd_dat_in{:}),[],[2,1]);
             y_lim_store(ycnt,:) = [mu-1.75*sd,mu+1.75*sd];
             PLOT_STRUCT.ylim = y_lim_store(ycnt,:);
             ycnt = ycnt+1;
@@ -400,10 +330,12 @@ for d_i = 1:length(dat_out_structs)
             LINE_STRUCT.do_err_shading = true;
             LINE_STRUCT.err_color = cmaps_speed(c_i,:)+0.15;
             LINE_STRUCT.err_alpha = 0.3;
-            LINE_STRUCT.err_upr_bnd_fcn = @(x) mean(x,2) + std(x,[],2);
-            LINE_STRUCT.err_lwr_bnd_fcn = @(x) mean(x,2) - std(x,[],2);
+            mu = mean(psd_dat_in{c_i,1},2);
+            sd = std(psd_dat_in{c_i,1},[],2);
+            sz = size(psd_dat_in{c_i,1},2);
+            LINE_STRUCT.err_bnd_vec = [mu+sd/sz,mu-sd/sz];
             %--
-            [ax,Pa,Li] = plot_psd(ax,tmp_psd_in{c_i,1},fooof_freqs, ...
+            [ax,~,Li] = plot_psd(ax,mu,fooof_freqs, ...
                 'LINE_STRUCT',LINE_STRUCT, ...
                 'PLOT_STRUCT',PLOT_STRUCT);
             if c_i == 1
@@ -438,14 +370,9 @@ for d_i = 1:length(dat_out_structs)
     %## LEGEND
     %- lg2                
     legend(gca,leg_store);
-    [lg2,icons,plots,txt]  = legend('boxoff');
-    tmp = get(lg2,'String');
-    cnt = 1;
-    for i = 1:length(leg_store)
-        tmp{i} = sprintf('%s',leg_chars{cnt});
-        cnt = cnt + 1;
-    end
-    set(lg2,'String',tmp,'FontName',AX_FONT_NAME,'FontSize',LEG_TXT_SIZE)
+    [lg2,~,~,~]  = legend('boxoff');
+    set(lg2,'FontName',AX_FONT_NAME, ...
+        'FontSize',LEG_TXT_SIZE)
     set(lg2,'Orientation','horizontal')
     set(lg2,'Units','normalized')
     set(lg2,'Position',[AX_INIT_X+LEG_X_SHIFT*IM_RESIZE*AX_W,...
@@ -459,6 +386,8 @@ for d_i = 1:length(dat_out_structs)
         'Resolution',SAVE_RES)
     % close(fig)
 end
+
+
 %% (PER GROUP CLUSTER FIGURE FOR BASELINE CONDS) ===================== %%
 meas_ext = 'clusterwise_baseline_comps';
 tmp_savedir = [save_dir filesep meas_ext];

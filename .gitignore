@@ -16,6 +16,9 @@
 *.metadata
 *.csv
 *.scss
+*.RData
+*.Rproj
+*Rhistory
 
 # .gitignore folders
 **/TEST
@@ -32,6 +35,6 @@
 **/venv
 **/.Rproj.user
 **/_save*
-.Rproj.user
+*.Rproj.user
 /MindInMotion_Submodules
 /MindInMotion_Submodules

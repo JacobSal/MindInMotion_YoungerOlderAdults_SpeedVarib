@@ -27,21 +27,28 @@ path(path,SRC_DIR)
 path(path,FUNCS_DIR);
 %% HARDCODE PATHS STRUCT =============================================== %%
 PATHS = [];
+RMV_MODS = {'dipfit'};
 if ADD_ALL_SUBMODS
     SUBMODULES_GENPATH = {'cleanline'};
     tmpd = dir(SUBMODS_DIR);
     tmpd = tmpd(3:end);
-    SUBMODULES = {tmpd.name};
-    SUBMODULES_ITERS = (1:length(SUBMODULES));
+    SUBMODULES = {tmpd.name};    
 else
     SUBMODULES = {'fieldtrip','eeglab','sift','postamicautility',...
             'iclabel','viewprops','powpowcat', ...
-            'bemobil_pipeline','gait_tracking_w_imu','eeglab_specparam', ...
-            'firfilt'};
-    %(03/18/2025) JS, removing dipfit and using the one in EEGLAB::'dipfit'
+            'bemobil_pipeline','gait_tracking_w_imu','eeglab_specparam'};
     SUBMODULES_GENPATH = {};
-    SUBMODULES_ITERS = (1:length(SUBMODULES));
 end
+%--
+for i = 1:length(RMV_MODS)
+    ind = strcmp(RMV_MODS{i},SUBMODULES);
+    if any(ind)
+        SUBMODULES{ind} = [];
+    end
+end
+SUBMODULES = SUBMODULES(~cellfun(@isempty,SUBMODULES));
+%(03/27/2025) JS, removing dipfit as it leads to odd behavior 'dipfit'
+
 
 %## add submodules
 if ispc
@@ -50,7 +57,7 @@ else
     DELIM = ':';
 end
 PATHS.PATHS = cell(length(SUBMODULES),1);
-for ss = SUBMODULES_ITERS
+for ss = 1:length(SUBMODULES)
     if any(strcmp(SUBMODULES{ss},SUBMODULES_GENPATH))
         fprintf('Adding submodule using genpath(): %s...\n',[SUBMODS_DIR filesep SUBMODULES{ss}]);
         a_ftmp = unix_genpath([SUBMODS_DIR filesep SUBMODULES{ss}]);
@@ -62,7 +69,7 @@ for ss = SUBMODULES_ITERS
         path(path,[SUBMODS_DIR filesep SUBMODULES{ss}]);
     end
     %-- spm12 exception
-    if strcmp(SUBMODULES{ss},'spm12')
+    if strcmp(SUBMODULES{ss},'spm12') && exist([SUBMODS_DIR filesep SUBMODULES{ss} filesep SUBMODULES{ss}],'dir')
         path(path,[SUBMODS_DIR filesep SUBMODULES{ss} filesep SUBMODULES{ss}]);
     end
     %(02/26/2025) JS, this could defintely use a robustness improvement
@@ -98,7 +105,12 @@ if contains('sift',SUBMODULES,'IgnoreCase',true) %&& ~contains('cleanline',SUBMO
     StartSIFT;
 end
 %- always start eeglab last.
-ALLEEG=[]; STUDY=[]; CURRENTSET=0; CURRENTSTUDY=0;
+ALLCOM=cell.empty;
+ALLEEG=struct.empty;
+STUDY=struct.empty;
+CURRENTSET=double.empty;
+CURRENTSTUDY=double.empty;
+eeglab;
 if contains('eeglab',SUBMODULES,'IgnoreCase',true)
     fprintf('Starting EEGLAB...\n');
     %- EEGLAB folder

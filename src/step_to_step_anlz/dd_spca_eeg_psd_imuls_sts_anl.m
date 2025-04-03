@@ -17,7 +17,7 @@ clearvars
 %## TIME
 tic
 % global ADD_CLEANING_SUBMODS STUDY_DIR SCRIPT_DIR %#ok<GVMIS>
-ADD_CLEANING_SUBMODS = false;
+ADD_ALL_SUBMODS = false;
 %## Determine Working Directories
 if ~ispc
     try
@@ -190,8 +190,8 @@ def_step_structs = struct('subj_char',{''}, ...
 cmaps_speed = linspecer(4*3);
 cmaps_speed = [cmaps_speed(1,:);cmaps_speed(2,:);cmaps_speed(3,:);cmaps_speed(4,:)];
 %##
-NUM_STRIDES_AVG = 1;
-STRIDE_AVGS = [3,6,9,12,24,30];
+NUM_STRIDES_AVG = 36;
+STRIDE_AVGS = [3,6,12,24,48];
 tmp_alleeg = cell(length(STUDY.datasetinfo));
 conds_keep = {'0p25','0p5','0p75','1p0'};
 xtick_label_g = {'0.25','0.50','0.75','1.0'}; %{'0.25','0.50','0.75','1.0'};
@@ -237,23 +237,23 @@ parfor subj_i = 1:length(STUDY.datasetinfo)
             continue
         end
         if ~any(subj_ij) || ~any(subfprintf('Running Subject %s\n',subj_chars{subj_i}); 
-        tt = tic;    
-        %## PARAMETERS
-        base_txf_mean = [];
-        tmp_study_rest = STUDY_REST;
-        tmp_study = STUDY;
-        tmp_spec_params = SPEC_PARAMS;
-        tmp_epoch_params = DEF_EPOCH_PARAMS;
-        
-        %## DOUBLE CHECK SAME SUBJECT FROM STUDY
-        subj_ii = find(strcmp(subj_chars{subj_i},{tmp_study.datasetinfo.subject}));
-        
-        %## CALCULATE GAIT PSD
-        %- load EEG
-        EEG = pop_loadset('filepath',tmp_study.datasetinfo(subj_ii).filepath,...
-            'filename',tmp_study.datasetinfo(subj_ii).filename);       
-        %-
-        icaspec_f = [EEG.filepath filesep sprintf('%s.icaspec',EEG.subject)];j_ii)
+            tt = tic;    
+            %## PARAMETERS
+            base_txf_mean = [];
+            tmp_study_rest = STUDY_REST;
+            tmp_study = STUDY;
+            tmp_spec_params = SPEC_PARAMS;
+            tmp_epoch_params = DEF_EPOCH_PARAMS;
+            
+            %## DOUBLE CHECK SAME SUBJECT FROM STUDY
+            subj_ii = find(strcmp(subj_chars{subj_i},{tmp_study.datasetinfo.subject}));
+            
+            %## CALCULATE GAIT PSD
+            %- load EEG
+            EEG = pop_loadset('filepath',tmp_study.datasetinfo(subj_ii).filepath,...
+                'filename',tmp_study.datasetinfo(subj_ii).filename);       
+            %-
+            icaspec_f = [EEG.filepath filesep sprintf('%s.icaspec',EEG.subject)];
             continue
         end 
         %-- sanity check
@@ -348,6 +348,7 @@ parfor subj_i = 1:length(STUDY.datasetinfo)
                 
             end
         end
+
         %## RUN FOOOF
         fprintf('==== running FOOOF ====\n');
         settings = struct('peak_width_limits',[1,8],...
@@ -392,17 +393,18 @@ parfor subj_i = 1:length(STUDY.datasetinfo)
             fprintf('Processing channel index %i...\n',ct)
     
             %## REMOVE FOOOF OF EACH STRIDE
-            % for i = 1:size(nolog_eeg_psd,2)
-            %     fr = fooof(freqs_orig(f_ind),squeeze(nolog_eeg_psd(f_ind,i,ct)),f_range,settings,return_model);
-            %     %-- assign data
-            %     tmpp_raw(:,i) = 10*(log10(squeeze(nolog_eeg_psd(f_ind,i,ct)))) - 10*(fr.ap_fit');   
-            %     tmpap_raw(1:2,i) = fr.aperiodic_params'; 
-            % end
-            % if ct == 1
-            %     fname_ext{ff} = 'perstridefb';
-            %     ff = ff + 1;
-            % end
-            % fooof_freqs = fr.freqs;
+            for i = 1:size(nolog_eeg_psd,2)
+                fr = fooof(freqs_orig(f_ind),squeeze(nolog_eeg_psd(f_ind,i,ct)),f_range,settings,return_model);
+                %-- assign data
+                tmpp_raw(:,i) = 10*(log10(squeeze(nolog_eeg_psd(f_ind,i,ct)))) - 10*(fr.ap_fit');   
+                tmpap_raw(1:2,i) = fr.aperiodic_params'; 
+            end
+            if ct == 1
+                fname_ext{ff} = 'perstridefb';
+                ff = ff + 1;
+            end
+            fooof_freqs = fr.freqs;
+
             % %-- cond tracking struct
             % cond_struct = repmat(def_cond_struct,[1,size(ext_tmp,2)]);        
             % for i = 1:length(trialinfo)
@@ -456,84 +458,84 @@ parfor subj_i = 1:length(STUDY.datasetinfo)
             % end
     
             %## SLIDIN AVERAGE (NO FOOOF)
-            % cnt = 1;
-            % cond_struct = repmat(def_cond_struct,[1,size(tmpp_raw,2)]);
-            % for c_i = 1:length(tmp_conds)
-            %     %-
-            %     inds_cond = find(cellfun(@(x) strcmp(x,tmp_conds{c_i}),{trialinfo.cond}));
-            %     fooof_tmp = tmpp_raw(:,inds_cond);
-            %     ap_tmp = tmpap_raw(:,inds_cond);
-            %     %-
-            %     slides = 1:NUM_STRIDES_AVG:size(fooof_tmp,2);
-            %     % slides = unique([slides,size(fooof_tmp,2)]);
-            %     %(01/31/2025) JS, removing the edge to prevent zeroed out
-            %     %standard deviation values due to singular extractions.
-            %     %- fooof
-            %     for i = 1:length(slides)-1  
-            %         spec_in = squeeze(fooof_tmp(:,slides(i):(slides(i+1)-1)));
-            %         %-- mean std calcs
-            %         tmpp_mu(:,cnt) = mean(spec_in,2);
-            %         tmpp_std(:,cnt) = std(spec_in,[],2)';
-            %         tmpap_mu(1,cnt) = mean(ap_tmp(1,slides(i):(slides(i+1)-1)),2);
-            %         tmpap_std(1,cnt) = std(ap_tmp(1,slides(i):(slides(i+1)-1)),[],2);
-            %         tmpap_mu(2,cnt) = mean(ap_tmp(2,slides(i):(slides(i+1)-1)),2);
-            %         tmpap_std(2,cnt) = std(ap_tmp(2,slides(i):(slides(i+1)-1)),[],2);
-            %         %--
-            %         if ct == 1 && cnt == 1
-            %             fname_ext{ff} = sprintf('nfslidingb%i',NUM_STRIDES_AVG);
-            %             ff = ff + 1;
-            %         end
-            %         cond_struct(cnt).cond = tmp_conds{c_i};
-            %         cond_struct(cnt).indices = inds_cond(slides(i):slides(i+1)-1);
-            %         cond_struct(cnt).ind = cnt;
-            %         cnt = cnt + 1;
-            %     end
-            % end
-    
-            %## SLIDING AVG FOOOF
-            %-- assign raw data if necessary
-            tmpp_raw = psd_nolog_f(f_ind,:,ct);
-            %--
             cnt = 1;
-            cond_struct = repmat(def_cond_struct,[1,size(psd_nolog_f,2)]);        
+            cond_struct = repmat(def_cond_struct,[1,size(tmpp_raw,2)]);
             for c_i = 1:length(tmp_conds)
-                % disp(c_i)
-                %-- extract condtions
+                %-
                 inds_cond = find(cellfun(@(x) strcmp(x,tmp_conds{c_i}),{trialinfo.cond}));
                 fooof_tmp = tmpp_raw(:,inds_cond);
-                %--
+                ap_tmp = tmpap_raw(:,inds_cond);
+                %-
                 slides = 1:NUM_STRIDES_AVG:size(fooof_tmp,2);
-                slides = unique([slides,size(fooof_tmp,2)]);
-                %-- fooof
-                for i = 1:length(slides)-1
-                    avg_tmpp = mean(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),2);
-                    %--
-                    fr = fooof(freqs_orig(f_ind),avg_tmpp,f_range,settings,return_model);
-                    spec_in = 10*log10(squeeze(fooof_tmp(:,slides(i):slides(i+1))));
-                    % spec_in = 10*log10(squeeze(avg_ext_tmp));
-                    spec_in = spec_in - repmat(10*fr.ap_fit',[1,size(spec_in,2)]);
+                % slides = unique([slides,size(fooof_tmp,2)]);
+                %(01/31/2025) JS, removing the edge to prevent zeroed out
+                %standard deviation values due to singular extractions.
+                %- fooof
+                for i = 1:length(slides)-1  
+                    spec_in = squeeze(fooof_tmp(:,slides(i):(slides(i+1)-1)));
                     %-- mean std calcs
                     tmpp_mu(:,cnt) = mean(spec_in,2);
                     tmpp_std(:,cnt) = std(spec_in,[],2)';
-                    tmpap_mu(1,cnt) = fr.aperiodic_params(1);
-                    tmpap_std(1,cnt) = 0; 
-                    tmpap_mu(2,cnt) = fr.aperiodic_params(2); 
-                    tmpap_std(2,cnt) = 0; 
-                    %-- cond tracking
-                    fooof_freqs = fr.freqs;
+                    tmpap_mu(1,cnt) = mean(ap_tmp(1,slides(i):(slides(i+1)-1)),2);
+                    tmpap_std(1,cnt) = std(ap_tmp(1,slides(i):(slides(i+1)-1)),[],2);
+                    tmpap_mu(2,cnt) = mean(ap_tmp(2,slides(i):(slides(i+1)-1)),2);
+                    tmpap_std(2,cnt) = std(ap_tmp(2,slides(i):(slides(i+1)-1)),[],2);
+                    %--
                     if ct == 1 && cnt == 1
-                        fname_ext{ff} = sprintf('slidingb%i',NUM_STRIDES_AVG);
+                        fname_ext{ff} = sprintf('nfslidingb%i',NUM_STRIDES_AVG);
                         ff = ff + 1;
                     end
                     cond_struct(cnt).cond = tmp_conds{c_i};
                     cond_struct(cnt).indices = inds_cond(slides(i):slides(i+1)-1);
                     cond_struct(cnt).ind = cnt;
-                    % cond_struct(cnt).mean_psd = mean(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),2);
-                    % cond_struct(cnt).std_psd = std(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),[],2);
                     cnt = cnt + 1;
-                    % disp(cnt)
                 end
             end
+    
+            %## SLIDING AVG FOOOF
+            % %-- assign raw data if necessary
+            % tmpp_raw = psd_nolog_f(f_ind,:,ct);
+            % %--
+            % cnt = 1;
+            % cond_struct = repmat(def_cond_struct,[1,size(psd_nolog_f,2)]);        
+            % for c_i = 1:length(tmp_conds)
+            %     % disp(c_i)
+            %     %-- extract condtions
+            %     inds_cond = find(cellfun(@(x) strcmp(x,tmp_conds{c_i}),{trialinfo.cond}));
+            %     fooof_tmp = tmpp_raw(:,inds_cond);
+            %     %--
+            %     slides = 1:NUM_STRIDES_AVG:size(fooof_tmp,2);
+            %     slides = unique([slides,size(fooof_tmp,2)]);
+            %     %-- fooof
+            %     for i = 1:length(slides)-1
+            %         avg_tmpp = mean(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),2);
+            %         %--
+            %         fr = fooof(freqs_orig(f_ind),avg_tmpp,f_range,settings,return_model);
+            %         spec_in = 10*log10(squeeze(fooof_tmp(:,slides(i):slides(i+1))));
+            %         % spec_in = 10*log10(squeeze(avg_ext_tmp));
+            %         spec_in = spec_in - repmat(10*fr.ap_fit',[1,size(spec_in,2)]);
+            %         %-- mean std calcs
+            %         tmpp_mu(:,cnt) = mean(spec_in,2);
+            %         tmpp_std(:,cnt) = std(spec_in,[],2)';
+            %         tmpap_mu(1,cnt) = fr.aperiodic_params(1);
+            %         tmpap_std(1,cnt) = 0; 
+            %         tmpap_mu(2,cnt) = fr.aperiodic_params(2); 
+            %         tmpap_std(2,cnt) = 0; 
+            %         %-- cond tracking
+            %         fooof_freqs = fr.freqs;
+            %         if ct == 1 && cnt == 1
+            %             fname_ext{ff} = sprintf('slidingb%i',NUM_STRIDES_AVG);
+            %             ff = ff + 1;
+            %         end
+            %         cond_struct(cnt).cond = tmp_conds{c_i};
+            %         cond_struct(cnt).indices = inds_cond(slides(i):slides(i+1)-1);
+            %         cond_struct(cnt).ind = cnt;
+            %         % cond_struct(cnt).mean_psd = mean(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),2);
+            %         % cond_struct(cnt).std_psd = std(squeeze(fooof_tmp(:,slides(i):slides(i+1)-1)),[],2);
+            %         cnt = cnt + 1;
+            %         % disp(cnt)
+            %     end
+            % end
             %(01/17/2025) JS, This baselining seems most similar to the group
             %average speed results
             %(01/29/2025) JS, average sliding fooof as recommended by

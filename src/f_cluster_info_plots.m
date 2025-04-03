@@ -16,7 +16,7 @@ clearvars
 % opengl('dsave', 'software') % might be needed to plot dipole plots?
 %## TIME
 tic
-ADD_ALL_SUBMODS = true;
+ADD_ALL_SUBMODS = false;
 %## Determine Working Directories
 if ~ispc
     try
@@ -50,7 +50,7 @@ fprintf(1,'Current folder: %s\n',SRC_DIR);
 %## Set PWD_DIR, EEGLAB path, _functions path, and others...
 set_workspace
 %% (DATASET INFORMATION) =============================================== %%
-[SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca');
+[SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca_speed');
 %% (PATHS) ============================================================= %%
 %## DATASET
 DATA_SET = 'MIM_dataset';
@@ -69,7 +69,7 @@ cluster_fpath = [studies_dir filesep sprintf('%s',STUDY_DNAME) filesep '__iclabe
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
 cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
 %- save dir
-save_dir = [cluster_k_dir filesep 'topo_dip_inf' filesep 'all'];
+save_dir = [cluster_k_dir filesep 'topo_dip_inf' filesep 'valid_clusts'];
 if ~exist(save_dir,'dir')
     mkdir(save_dir);
 end
@@ -91,7 +91,8 @@ end
 cl_struct = par_load([cluster_study_fpath filesep sprintf('%i',CLUSTER_K)],sprintf('cl_inf_%i.mat',CLUSTER_K));
 STUDY.cluster = cl_struct;
 [comps_out,main_cl_inds,outlier_cl_inds,valid_clusters] = eeglab_get_cluster_comps(STUDY);
-cluster_inds = main_cl_inds(1:end);
+% cluster_inds = main_cl_inds(1:end);
+cluster_inds = [3,4,5,6,7,8,9,11,12];
 % cluster_inds = valid_clusters;
 % cluster_inds = [3,4,5,7,10,12,13]; % 01192025_mim_yaoa_nopowpow_crit_speed, rb3
 
@@ -241,27 +242,19 @@ exportgraphics(fig,[save_dir filesep 'topo_plots.pdf'],'ContentType','vector')
 exportgraphics(fig,[save_dir filesep 'topo_plots.tif'],'ContentType','image','Resolution',600)
 savefig(fig,[save_dir filesep 'topo_plots.fig'])
 % close(fig);
+
 %% NEW DIPOLE IMPLEMENTATION
-% HIRES_TEMPLATE = 'M:\jsalminen\GitHub\par_EEGProcessing\src\_data\_resources\mni_icbm152_nlin_sym_09a\mni_icbm152_t1_tal_nlin_sym_09a.nii';
-% if ~ispc
-%     HIRES_TEMPLATE = convertPath2UNIX(HIRES_TEMPLATE);
-% else
-%     HIRES_TEMPLATE = convertPath2Drive(HIRES_TEMPLATE);
-% end
-HIRES_TEMPLATE = [PATHS.data_dir filesep '_resources' filesep 'mni_icbm152_nlin_sym_09a' filesep 'mni_icbm152_t1_tal_nlin_sym_09a.nii'];
+%--
+HIRES_FNAME = 'mni_icbm152_t1_tal_nlin_sym_09a.nii';
+HIRES_FPATH = [PATHS.data_dir filesep '_resources' filesep 'mni_icbm152_nlin_sym_09a'];
 %- assign hires_template default
-tmp = strsplit(HIRES_TEMPLATE,filesep);
-fpath = strjoin(tmp(1:end-1),filesep);
-fname = tmp{end};
-ext = strsplit(fname,'.');
-fname = ext{1};
-ext = ext{end};
-hires_mesh = [fpath filesep fname '_dipplotvol.mat'];
-hires_mri = [fpath filesep fname '_dipplotmri.mat'];
+fname = strsplit(HIRES_FNAME,'.');
+hires_mesh = [HIRES_FPATH filesep fname{1} '_dipplotvol.mat'];
+hires_mri = [HIRES_FPATH filesep fname{1} '_dipplotmri.mat'];
 mri = load(hires_mri);
 mri = mri.mri;
 vol = hires_mesh;
-%## default mri & vol
+%## EEGLAB DEFAULTS
 %{
 tmp = strsplit(path,';');
 % tmp = strsplit(path,';');
@@ -278,10 +271,14 @@ mri = mri.mri;
 vol = MNI_VOL;
 %}
 %-
-%     transform = [1,0,0,-99;...
-%                      0,1,0,-135;...
-%                      0,0,1,-73;...
-%                      0,0,0,1];
+% transform = [1,0,0,-99;...
+%                  0,1,0,-135;...
+%                  0,0,1,-73;...
+%                  0,0,0,1];
+% transform = [1,0,0,1;...
+%                  0,1,0,1;...
+%                  0,0,1,1;...
+%                  0,0,0,1];
 DIPPLOT_STRUCT = struct('rvrange',[0,30],... % this is a value from 0 to 100 (e.g., rv = 0.15 is 15)
         'summary','off',...
         'mri',mri,...
@@ -289,20 +286,21 @@ DIPPLOT_STRUCT = struct('rvrange',[0,30],... % this is a value from 0 to 100 (e.
         'transform',[],...
         'image','mri',...
         'plot','on',...
-        'color',{{[0,0,1]}},...
-        'view',[1,1,1],...
+        'color',{{[0,0,0]}},...
+        'view',[.5,.5,.5],...
         'mesh','off',...
         'meshdata',vol,...
         'axistight','off',... % display the closest MRI slice to distribution
-        'gui','off',...
+        'gui','on',...
         'num','off',...
         'cornermri','on',...
         'drawedges','off',...
         'projimg','off',...
         'projlines','off',...
         'projwidth',1,...
-        'projcol',{{[0,0,1]}},...
-        'dipolesize',30,...
+        'projcol',{{[0,0,0]}},...
+        'projalpha',0.1, ...
+        'dipolesize',1,...
         'dipolelength',0,...
         'pointout','off',...
         'sphere',1,...
@@ -312,84 +310,194 @@ DIPPLOT_STRUCT = struct('rvrange',[0,30],... % this is a value from 0 to 100 (e.
         'holdon','on',...
         'camera','auto',...
         'density','off');
-DIPPLOT_STRUCT.axistight = 'on';
-%## ALL DIPOLES FOR CLUSTERS
+
+%% ALL DIPOLES FOR CLUSTERS ============================================ %%
+DIPPLOT_STRUCT.dipolesize = 1.25;
+DIPPLOT_STRUCT.axistight = 'off';
 [fig] = eeglab_dipplot(STUDY,ALLEEG,cluster_inds,...
     'PLOT_TYPE','all_nogroup',...
     'DIPPLOT_STRUCT',DIPPLOT_STRUCT);
+% %-- include the brain mesh volume if desired
+% hold on;
+% vol = load(DIPPLOT_STRUCT.meshdata);
+% mesh = vol.vol.ft_vol;
+% tmp = mesh.bnd(1);
+% tcmap = linspecer(40);
+% ft_plot_mesh(tmp, ...
+%     'facecolor',tcmap(30), ...
+%     'edgecolor','none', ...
+%     'facealpha',0.3, ...
+%     'edgealpha',0.3);
+% drawnow;
+%--
 pause(2);
-% camzoom(1.2^2);
-% exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_top.tiff')],'Resolution',DIP_IM_DPI);
-exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_top.pdf')],'ContentType','vector','Resolution',DIP_IM_DPI);
+camzoom(1.1^2);
+%## TOP
+view([0,90])
+%-- save
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_top.tiff')], ...
+    'Resolution',DIP_IM_DPI);
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_top.pdf')], ...
+    'ContentType','vector', ...
+    'Resolution',DIP_IM_DPI);
 saveas(fig,[save_dir filesep sprintf('dipplot_alldipspc_top.fig')]);
-view([45,0,0])
-% exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_coronal.tiff')],'Resolution',DIP_IM_DPI);
-exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_coronal.pdf')],'ContentType','vector','Resolution',DIP_IM_DPI);
-view([0,-45,0])
-% exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_sagittal.tiff')],'Resolution',DIP_IM_DPI);
-exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_sagittal.pdf')],'ContentType','vector','Resolution',DIP_IM_DPI);
-drawnow;
+%## SAGGITAL
+view([90,0])
+%-- save
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_sagittal.tiff')], ...
+    'Resolution',DIP_IM_DPI);
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_sagittal.pdf')], ...
+    'ContentType','vector', ...
+    'Resolution',DIP_IM_DPI);
+%## CORONAL
+view([0,0])
+%-- save
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_coronal.tiff')], ...
+    'Resolution',DIP_IM_DPI);
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_alldipspc_coronal.pdf')], ...
+    'ContentType','vector', ...
+    'Resolution',DIP_IM_DPI);
+pause(2);
 close(fig);
-%## AVERAGE DIPOLE FOR CLUSTERS
+
+%% AVERAGE DIPOLE FOR CLUSTERS ========================================= %%
+DIPPLOT_STRUCT.dipolesize = 1.25;
+DIPPLOT_STRUCT.axistight = 'off';
 [fig] = eeglab_dipplot(STUDY,ALLEEG,cluster_inds,...
     'PLOT_TYPE','average_nogroup',...
     'DIPPLOT_STRUCT',DIPPLOT_STRUCT);
-%     zoom(1.05)
+% %-- include the brain mesh volume if desired
+% hold on;
+% vol = load(DIPPLOT_STRUCT.meshdata);
+% mesh = vol.vol.ft_vol;
+% tmp = mesh.bnd(1);
+% tcmap = linspecer(40);
+% ft_plot_mesh(tmp, ...
+%     'facecolor',tcmap(20,:), ...
+%     'edgecolor','none', ...
+%     'facealpha',0.3, ...
+%     'edgealpha',0.3);
+% drawnow;
+%--
 pause(2);
-% camzoom(1.2^2);
-exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_top.tiff')],'Resolution',DIP_IM_DPI);
-exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_top.pdf')],'ContentType','vector','Resolution',DIP_IM_DPI);
+camzoom(1.1^2);
+%## TOP
+view([0,90])
+%-- save
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_top.tiff')], ...
+    'Resolution',DIP_IM_DPI);
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_top.pdf')], ...
+    'ContentType','vector', ...
+    'Resolution',DIP_IM_DPI);
 saveas(fig,[save_dir filesep sprintf('dipplot_avgdipspc_top.fig')]);
-view([45,0,0])
-exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_coronal.tiff')],'Resolution',DIP_IM_DPI);
-exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_coronal.pdf')],'ContentType','vector','Resolution',DIP_IM_DPI);
-view([0,-45,0])
-exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_sagittal.tiff')],'Resolution',DIP_IM_DPI);
-exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_sagittal.pdf')],'ContentType','vector','Resolution',DIP_IM_DPI);
+%## SAGGITAL
+view([90,0])
+%-- save
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_sagittal.tiff')], ...
+    'Resolution',DIP_IM_DPI);
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_sagittal.pdf')], ...
+    'ContentType','vector', ...
+    'Resolution',DIP_IM_DPI);
+%## CORONAL
+view([0,0])
+%-- save
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_coronal.tiff')], ...
+    'Resolution',DIP_IM_DPI);
+exportgraphics(fig,[save_dir filesep sprintf('dipplot_avgdipspc_coronal.pdf')], ...
+    'ContentType','vector', ...
+    'Resolution',DIP_IM_DPI);
 pause(2);
 close(fig);
-%##
 
+%% INDIVIDUAL CLUSTERS ================================================= %%
+DIPPLOT_STRUCT.dipolesize = 1.25;
+DIPPLOT_STRUCT.axistight = 'on';
+DIP_IM_DPI = 300;
+%--
 for i = 1:length(cluster_inds)
     cluster_i = cluster_inds(i);
+    %## ALL ========================================================== %%
+    %{
     [fig] = eeglab_dipplot(STUDY,ALLEEG,cluster_i,...
         'PLOT_TYPE','all_nogroup',...
         'DIPPLOT_STRUCT',DIPPLOT_STRUCT);
-    pause(2);
-%         camzoom(1.2^2);
-    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_top.tiff',cluster_i)],'Resolution',DIP_IM_DPI);
-    exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_top.pdf',cluster_i)],'ContentType','vector','Resolution',DIP_IM_DPI);
+    camzoom(1.1^2);
+    %## TOP
+    view([0,90])
+    %-- save
+    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_top.tiff',cluster_i)], ...
+    %     'Resolution',DIP_IM_DPI);
+    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_top.pdf',cluster_i)], ...
+    %     'ContentType','vector', ...
+    %     'Resolution',DIP_IM_DPI);
     saveas(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_top.fig',cluster_i)]);
-    view([45,0,0])
-    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_coronal.tiff',cluster_i)],'Resolution',DIP_IM_DPI);
-    exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_coronal.pdf',cluster_i)],'ContentType','vector','Resolution',DIP_IM_DPI);
-    view([0,-45,0])
-    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_sagittal.tiff',cluster_i)],'Resolution',DIP_IM_DPI);
-    exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_sagittal.pdf',cluster_i)],'ContentType','vector','Resolution',DIP_IM_DPI);
-    pause(2);
+    %## SAGGITAL
+    % view([90,0])
+    %-- save
+    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_sagittal.tiff',cluster_i)], ...
+    %     'Resolution',DIP_IM_DPI);
+    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_sagittal.pdf',cluster_i)], ...
+    %     'ContentType','vector', ...
+    %     'Resolution',DIP_IM_DPI);
+    %## CORONAL
+    % view([0,0])
+    %-- save
+    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_coronal.tiff',cluster_i)], ...
+    %     'Resolution',DIP_IM_DPI);
+    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_nogroup_coronal.pdf',cluster_i)], ...
+    %     'ContentType','vector', ...
+    %     'Resolution',DIP_IM_DPI);
     close(fig);
-    cluster_i = cluster_inds(i);
+    %}
+
+    %## ANGLE ALL WITH GROUP SYMBOLS =================================== %%
+    DIPPLOT_STRUCT.projlines = 'on';
+    DIPPLOT_STRUCT.projcol = {[0,0,0]};
+    DIPPLOT_STRUCT.projalpha = 0.2;
     [fig] = eeglab_dipplot(STUDY,ALLEEG,cluster_i,...
         'PLOT_TYPE','all_group',...
         'DIPPLOT_STRUCT',DIPPLOT_STRUCT);
-    % GROUP_MARKERS = {'.','diamond','^','pentagram','hexagram'};
-    % for ii = 1:length(fig.Children(end).Children)
-    %     fig.Children(end).Children(ii+3).Marker = GROUP_MARKERS{gg};     
-    % end
-    pause(2);
-%         camzoom(1.1^2);
-    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_top.tiff',cluster_i)],'Resolution',DIP_IM_DPI);
-    exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_top.pdf',cluster_i)],'ContentType','vector','Resolution',DIP_IM_DPI);
+    % camzoom(1.21);
+    camzoom(1.01);
+    %## ANGULAR
+    view([45,30])    
+    exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_angle.png',cluster_i)], ...
+        'Resolution',DIP_IM_DPI);
+    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_angle.pdf',cluster_i)], ...
+    %     'ContentType','vector', ...
+    %     'Resolution',DIP_IM_DPI);
+    saveas(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_angle.fig',cluster_i)]);
+
+    %## NON ANGLE PLOT ===============================================
+    DIPPLOT_STRUCT.projlines = 'off';
+    [fig] = eeglab_dipplot(STUDY,ALLEEG,cluster_i,...
+        'PLOT_TYPE','all_group',...
+        'DIPPLOT_STRUCT',DIPPLOT_STRUCT);
+    camzoom(1.1^2);
+    %## TOP
+    view([0,90])    
+    exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_top.png',cluster_i)], ...
+        'Resolution',DIP_IM_DPI);
+    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_top.pdf',cluster_i)], ...
+    %     'ContentType','vector', ...
+    %     'Resolution',DIP_IM_DPI);
     saveas(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_top.fig',cluster_i)]);
-    view([45,0,0])
-    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_coronal.tiff',cluster_i)],'Resolution',DIP_IM_DPI);
-    exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_coronal.pdf',cluster_i)],'ContentType','vector','Resolution',DIP_IM_DPI);
-    view([0,-45,0])
-    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_sagittal.tiff',cluster_i)],'Resolution',DIP_IM_DPI);
-    exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_sagittal.pdf',cluster_i)],'ContentType','vector','Resolution',DIP_IM_DPI);
+    %## SAGGITAL
+    view([90,0])
+    %-- save
+    exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_sagittal.png',cluster_i)], ...
+        'Resolution',DIP_IM_DPI);
+    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_sagittal.pdf',cluster_i)], ...
+    %     'ContentType','vector', ...
+    %     'Resolution',DIP_IM_DPI);
+    %## CORONAL
+    view([0,0])
+    %-- save
+    exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_coronal.png',cluster_i)], ...
+        'Resolution',DIP_IM_DPI);
+    % exportgraphics(fig,[save_dir filesep sprintf('%i_dipplot_alldipspc_coronal.pdf',cluster_i)], ...
+    %     'ContentType','vector', ...
+    %     'Resolution',DIP_IM_DPI);
     pause(2);
     close(fig);
-
-    %##
-    
 end
