@@ -61,6 +61,3 @@
 [submodule "submods/gait_tracking_w_imu"]
 	path = submods/gait_tracking_w_imu
 	url = https://github.com/xioTechnologies/Gait-Tracking-With-x-IMU.git
-[submodule "submods/limo_meeg"]
-	path = submods/limo_meeg
-	url = https://github.com/LIMO-EEG-Toolbox/limo_meeg.git
