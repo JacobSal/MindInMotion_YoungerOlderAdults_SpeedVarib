@@ -22,5 +22,5 @@ git submodule add https://github.com/sccn/viewprops.git submods/viewprops
 # this submodule seems to be depricated, but the updated one is python only
 git submodule add https://github.com/xioTechnologies/Gait-Tracking-With-x-IMU.git submods/gait_tracking_w_imu
 git submodule add https://github.com/sccn/amica.git submods/eeglab_amica
-git submodule add https://github.com/JacobSal/MindInMotion_Functions.git submods/mim_functions 
+git submodule add https://github.com/JacobSal/MindInMotion_Functions.git submods/mim_functions
 git submodule update --init --recursive

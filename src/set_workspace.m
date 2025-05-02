@@ -62,11 +62,11 @@ for ss = 1:length(SUBMODULES)
         fprintf('Adding submodule using genpath(): %s...\n',[SUBMODS_DIR filesep SUBMODULES{ss}]);
         a_ftmp = unix_genpath([SUBMODS_DIR filesep SUBMODULES{ss}]);
         a_ftmp = split(a_ftmp,DELIM); a_ftmp = a_ftmp(~cellfun(@isempty,a_ftmp));
-        cellfun(@(x) path(path,x),a_ftmp);
+        cellfun(@(x) path(x,path),a_ftmp);
         cellfun(@(x) fprintf('Adding functions in: %s...\n',x),a_ftmp);
     else
         fprintf('Adding submodule: %s...\n',[SUBMODS_DIR filesep SUBMODULES{ss}]);
-        path(path,[SUBMODS_DIR filesep SUBMODULES{ss}]);
+        path([SUBMODS_DIR filesep SUBMODULES{ss}],path);
     end
     %-- spm12 exception
     if strcmp(SUBMODULES{ss},'spm12') && exist([SUBMODS_DIR filesep SUBMODULES{ss} filesep SUBMODULES{ss}],'dir')
@@ -89,9 +89,11 @@ PATHS.functions_dir = FUNCS_DIR;
 a_ftmp = unix_genpath(PATHS.functions_dir);
 a_ftmp = split(a_ftmp,DELIM);
 a_ftmp = a_ftmp(~cellfun(@isempty,a_ftmp));
-cellfun(@(x) path(path,x),a_ftmp);
+cellfun(@(x) path(x,path),a_ftmp);
 cellfun(@(x) fprintf('Adding functions in: %s...\n',x),a_ftmp);
 a_ftmp = char.empty;
+%(04/27/2025) JS, making sure that paths are added to the top of the path
+%by using the form path(path_to_add,path);
 % ----------------------------------------------------------------------- %
 %% ADDPATH for FIELDTRIP Toolboxbemobil
 if contains('fieldtrip',SUBMODULES,'IgnoreCase',true)

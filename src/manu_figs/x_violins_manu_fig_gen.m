@@ -108,10 +108,11 @@ CLUSTER_PICS = main_cl_inds;
 %## FNAMES
 %-- r stats
 % fextr = 'new_slidingb36';
-fextr = 'allcond_perstridefb_mi_nfslidingb36';
+% fextr = 'allcond_perstridefb_apfix_std_mi_nfslidingb36';
 % fextr = 'allcond_perstridefb_nfslidingb3';
+fextr = 'allcond_perstridefb_mi_nfslidingb36_rerun';
 %## IMPORT DATA
-% KIN_TABLE = par_load(save_dir,sprintf('sbs_eeg_psd_%s.mat',fextr));
+% KIN_TABLE = par_load(save_dir,sprintf('sbs_eeg_psd_kin_allcond_perstridefb_apfix_std_mi_nfslidingb36.mat',fextr));
 % %-- r-stats
 % RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('03122025_lme_eeg_kin_%s_stats.xlsx',fextr)], ...
 %     "FileType","spreadsheet","UseExcel",true);
@@ -145,9 +146,21 @@ stats.paired{2} = 'off'; % Group stats
 
 %## CLUSTER INFO
 %-- 01192025_mim_yaoa_nopowpow_crit_speed (rb3)
-cluster_titles = {'Right Cuneus', ...
+% cluster_titles = {'Right Cuneus', ...
+%     'Right Sensorimotor', ...
+%     'Left Precuneus', ... %'Anterior Cingulate', ...
+%     'Left Sensorimotor', ...
+%     'Right Premotor',...
+%     'Left Posterior Parietal', ...
+%     'Left Supplementary Motor', ...
+%     'Right Occipital', ...
+%     'Mid Cingulate',...
+%     'Left Temporal',...
+%     'Left Occipital'};
+%-- 01192025_mim_yaoa_nopowpow_crit_speed (rb3)
+cluster_titles = {'Right Posterior Parietal', ...
     'Right Sensorimotor', ...
-    'Anterior Cingulate', ...
+    'Left Precuneus', ... %'Anterior Cingulate', ...
     'Left Sensorimotor', ...
     'Right Premotor',...
     'Left Posterior Parietal', ...
@@ -160,13 +173,13 @@ out = cellfun(@(x) regexp(x,'(.).*\s(...)','tokens'),cluster_titles);
 output_titles = cellfun(@(x) strjoin(x,''),out,'UniformOutput',false);
 fig_n = 1:length(cluster_titles);
 xtick_label_c = {'0.25 m/s','0.50 m/s','0.75 m/s','1.0 m/s'};
-cluster_inds_plot = [3,4,5,6,7,8,9,11,12];
-
 %##
 speed_xvals = (0:5)*0.25;
+g_chars = {'H1000','H2000','H3000'};
 c_chars = {'0.25 m/s','0.50 m/s','0.75 m/s','1.0 m/s'};
-g_chars_topo = {'Young Adults',{'Older High','Functioning Adults'},{'Older Low','Functioning Adults'}};
+g_chars_topo = {'Young Adults','Older High Func. Adults','Older Low Func. Adults'};
 g_chars_subp = {'YA','OHFA','OLFA'};
+% dip_dir = [cluster_k_dir filesep 'topo_dip_inf' filesep 'all'];
 dip_dir = [cluster_k_dir filesep 'topo_dip_inf' filesep 'valid_clusts'];
 cmaps_speed = linspecer(4*3);
 cmaps_speed = [cmaps_speed(1,:);cmaps_speed(2,:);cmaps_speed(3,:);cmaps_speed(4,:)];
@@ -176,42 +189,17 @@ color_light = cmaps_speed+0.15; %color.speed_shade;
 xtick_label_g = {'0.25','0.50','0.75','1.0'};
 x_label = 'speed (m/s)';
 cond_offsets = [-0.35,-0.1,0.15,0.40];
-%--
-des_i = 2;
-cl_n = 3;
-s_chars = {STUDY.datasetinfo(STUDY.cluster(cl_n).sets).subject};
-desdes = cat(1,STUDY.design.variable);
-g_chars = {'H1000','H2000','H3000'};
-G_ORDER = categorical(g_chars);
 %% ===================================================================== %%
 %## PARAMETERS
 %-
-% group_chars = unique(KIN_TABLE.group_char)
 designs = unique(KIN_TABLE.model_n);
 group_chars = unique(KIN_TABLE.group_char);
 cond_chars = unique(KIN_TABLE.cond_char);
 clusters = unique(RSTATS_IMPORT.cluster_num);
+clusters = clusters(clusters~=0);
 %--
 SAVE_RES = 300;
-TITLE_TXT_SIZE = 14;
-AX_INIT_X = 0.09;
-X_DIM = 2;
-%--
-TITLE_FONT_SIZE = 14;
-TITLE_XSHIFT = 0.4;
-TITLE_YSHIFT = 0.975;
-TITLE_BOX_SZ = [0.4,0.4];
-FIGURE_POSITION =[1,1,6.5,9];
-FONT_NAME = 'Arial';
-%--
-LAB_A_YOFFSET = -0.16;
-LAB_A_XOFFSET = -0.125;
-LAB_B_YOFFSET = 0.065;
-LAB_B_XOFFSET = -0.125;
-LAB_C_YOFFSET = 0.06; %0.075
-LAB_C_XOFFSET = -0.125;
-LAB_D_YOFFSET = 0.09;
-LAB_D_XOFFSET = -0.125;
+
 %## 
 AXES_DEFAULT_PROPS = {'box','off', ...
     'xtick',[], ...
@@ -264,7 +252,7 @@ VIO_STRUCT = struct('Width',0.15,...
     'DataStyle','scatter',...
     'MarkerSize',8,...
     'EdgeColor',[0.5,0.5,0.5],...
-    'ViolinAlpha',{{0.2 0.3}},...
+    'ViolinAlpha',{{0.3,0.4}},...
     'do_plot_outlier_marks',true,...
     'use_raw_bandwidth',false);
 BRACKET_STRUCT = struct('sig_sign','+',...
@@ -283,6 +271,9 @@ SIGLINE_STRUCT = struct('sig_sign','*',...
     'conn_offset_y',[],...
     'sig_offset_x',0,...
     'sig_offset_y',0); 
+%## VIO YAXES
+% VIO_YTICK = {[], ...
+%     []};
 
 %## MODELS
 COEFF_CHARS_INT = {'(Intercept)','speed_cond_num','group_char1','group_char2', ...
@@ -296,7 +287,9 @@ meas_ext = 'covistd';
 tmp_savedir = [save_dir filesep fextr 'violin_comps'];
 mkdir(tmp_savedir);
 %##
-for cl_i = 1:length(cluster_inds_plot)
+FG_TXT_SZ = 1;
+fy_shift = 0;
+for cl_i = 4 %:length(cluster_inds_plot)
     %## INITIATE FIGURE
     %-- initiate params
     cl_ii = find(cluster_inds_plot(cl_i) == double(string(clusters)));
@@ -367,7 +360,9 @@ for cl_i = 1:length(cluster_inds_plot)
     y_shift = AX_INIT_Y;
     y_lims = zeros(length(EEG_MEASURES),2);
     ax_s = cell(length(EEG_MEASURES),1);
-    x_cnt = 1;    
+    x_cnt = 1;
+    prc_ylim = [0.2,0.5];
+    yticks = [0.2,0.3,0.4,0.5];
     for e_i = 1:length(EEG_MEASURES)
         %##
         cond_plot_store = [];
@@ -379,23 +374,48 @@ for cl_i = 1:length(cluster_inds_plot)
             KIN_TABLE.cluster_n == cl_n & ...
             ~isnan(KIN_TABLE.(eeg_measure)); %num2str(cl_n);
         tmp_tbl = KIN_TABLE(inds,:); 
-        prc_ylim = [round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(1))-YLIM_FAC*std(tmp_tbl.(eeg_measure)),1),...
-                    round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(2))+YLIM_FAC*std(tmp_tbl.(eeg_measure)),1)];
 
         %## EXTRACT STATS INFO
-        params = [];        
-        params.group_chars = {'H1000','H2000','H3000'};
-        params.group_order = categorical({'H1000','H2000','H3000'});
-        params.model_char_int = 'speed_group_intact_all';
-        params.model_char_group = 'speed_group_all';
-        params.group_char = 'all';
+        EXTRACT_STRUCT = struct( ...
+            'group_chars', {{'H1000','H2000','H3000'}}, ...
+            'group_order', categorical({'H1000','H2000','H3000'}), ...
+            'model_char_int', 'speed_group_intact_all', ...
+            'model_char_group', 'speed_group_all', ...
+            'group_char', 'all', ...
+            'anv_chars_int', {ANV_CHARS_INT}, ...
+            'anv_chars_group', {ANV_CHARS_GROUP}, ...
+            'coeff_chars_int', {COEFF_CHARS_INT}, ...
+            'coeff_chars_group', {COEFF_CHARS_GROUP}, ...
+            'eeg_measure', {EEG_MEASURES{e_i}}, ...
+            'kin_measure', {'none'}, ...
+            'coeff_study', {'speed'}, ...
+            'str_offset', [-0.1, -0.05], ...
+            'str_font_size', 7*FG_TXT_SZ, ...
+            'ci_bar_width', 0.15, ...
+            'ci_bar_xpos', 0, ...
+            'ci_bar_linespecs', {{'LineStyle','-','LineWidth',2,'Color','k'}}, ...
+            'coeff_desm', [ ...                
+                0, 1; ...                
+               -1,-1; ...
+                1, 0 ...
+            ] ...
+        );
         %--
-        params.anv_chars_int = ANV_CHARS_INT;
-        params.anv_chars_group = ANV_CHARS_GROUP;
-        params.coeff_chars_int = COEFF_CHARS_INT;
-        params.coeff_chars_group = COEFF_CHARS_GROUP;
-        %--
-        [STATS_STRUCT,CONFINT_STRUCT] = extract_violin_stats(RSTATS_IMPORT,cl_n,eeg_measure,params);
+        % [STATS_STRUCT,CONFINT_STRUCT,ranef] = extract_violin_stats(RSTATS_IMPORT,cl_n,params);
+        [tmp_stats_struct,tmp_confint_struct,ranef] = get_r_stats_func(RSTATS_IMPORT,cl_n, ...
+            'EXTRACT_STRUCT',EXTRACT_STRUCT);
+
+         %## NORMALIZE DATA USING SUBJECT INTERCEPTS
+        if ~isempty(ranef.char)
+            for s_i = 1:length(ranef.char)
+                int = ranef.int(s_i);
+                ind = strcmp(ranef.char{s_i},tmp_tbl.subj_char);
+                tmp_tbl(ind,eeg_measure) = tmp_tbl(ind,eeg_measure)-int;
+            end
+        end
+
+        % prc_ylim = [round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(1))-YLIM_FAC*std(tmp_tbl.(eeg_measure)),1),...
+        %             round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(2))+YLIM_FAC*std(tmp_tbl.(eeg_measure)),1)];
 
         %## PLOT
         ax = axes();
@@ -415,6 +435,7 @@ for cl_i = 1:length(cluster_inds_plot)
             VIO_PLOT_STRUCT.y_label ='';
         end
         VIO_PLOT_STRUCT.ylim = prc_ylim;
+        VIO_PLOT_STRUCT.ytick = yticks;
         VIO_PLOT_STRUCT.ax_position = [x_shift,y_shift, ...
             AX_W*IM_RESIZE,AX_H*IM_RESIZE];
         VIO_PLOT_STRUCT.x_label = '';
@@ -423,10 +444,10 @@ for cl_i = 1:length(cluster_inds_plot)
             ax,...
             'VIOLIN_STRUCT',VIO_STRUCT,...
             'PLOT_STRUCT',VIO_PLOT_STRUCT,...
-            'STATS_STRUCT',STATS_STRUCT,...
+            'STATS_STRUCT',tmp_stats_struct,...
             'BRACKET_STRUCT',BRACKET_STRUCT,...
             'SIGLINE_STRUCT',SIGLINE_STRUCT, ...
-            'CONFINT_STRUCT',CONFINT_STRUCT);
+            'CONFINT_STRUCT',tmp_confint_struct);
         %-- ax sets
         % if e_i ~= 1
         %     ylabel('');
@@ -449,23 +470,187 @@ for cl_i = 1:length(cluster_inds_plot)
     % YLIM_NTICKS = 5;
     % YLIM_SIG_FIGS = 2;
     %-- ylim
-    u = round(max(y_lims(:,2),[],1),1,'significant');
-    l = round(min(y_lims(:,1),[],1),1,'significant'); 
-    bb = (u-l)/(YLIM_NTICKS-1);
-    bbr = round(bb,1,'significant');
-    dbb = abs(bbr-bb)*(YLIM_NTICKS-1);
-    l = dbb+l;
-    %-- yticks    
-    tmp = unique(round(linspace(l,u,YLIM_NTICKS), ...
-        YLIM_SIG_FIGS,'significant'));
-    yticks = tmp;        
-    ytick_labs = cellstr(string(tmp));
+    % u = round(max(y_lims(:,2),[],1),1,'significant');
+    % l = round(min(y_lims(:,1),[],1),1,'significant'); 
+    % bb = (u-l)/(YLIM_NTICKS-1);
+    % bbr = round(bb,1,'significant');
+    % dbb = abs(bbr-bb)*(YLIM_NTICKS-1);
+    % l = dbb+l;
+    % %-- yticks    
+    % tmp = unique(round(linspace(l,u,YLIM_NTICKS), ...
+    %     YLIM_SIG_FIGS,'significant'));
+    % yticks = tmp;        
+    % ytick_labs = cellstr(string(tmp));
+    % for e_i = 1:length(EEG_MEASURES)
+    %     set(ax_s{e_i},'YLim',[l,u], ...
+    %         'YTick',yticks, ...
+    %         'YTickLabel',ytick_labs);        
+    % end
+    % hold on;
+    %% VIOLIN PLOTS) ================================================== %%
+    %--
+    YLIM_NTICKS = 5;
+    YLIM_SIG_FIGS = 2;
+    PRC_YLIM = [3,97];
+    YLIM_FAC = 2;
+    IM_RESIZE = 0.65;
+    AX_W = 0.3;
+    AX_H = 0.225;
+    AX_FONT_NAME = 'Arial';
+    AX_X_SHIFT = 1.4;
+    AX_Y_SHIFT = -1.45;
+    % F = AX_W*IM_RESIZE;
+    % xF = (AX_W*IM_RESIZE*AX_X_SHIFT-F)/2;
+    F = AX_W*IM_RESIZE;
+    xF = (AX_W*IM_RESIZE*AX_X_SHIFT-F);
+    AX_INIT_X = 0.5-(3/2)*F-xF;
+    AX_INIT_Y = 0.775;
+    X_DIM = 3;
+    %-- std measures
+    EEG_MEASURES = {'mu_avg_theta_fn1', ...
+        'mu_avg_alpha_fn1', ...
+        'mu_avg_beta_fn1'};
+    EEG_MEASURE_LABS = {'<<10*log_{10}(PSD_{N})>>', ...
+        '<<10*log_{10}(PSD_{N})>>', ...
+        '<<10*log_{10}(PSD_{N})>>'};
+    EEG_MEASURE_TITLES = {'<<\theta_{N}>>', ...
+        '<<\alpha_{N}>>', ...
+        '<<(\beta_{N}>>'};
+    %--
+    % AX_INIT_X = AX_INIT_X + AX_W*IM_RESIZE*AX_X_SHIFT;
+    AX_INIT_Y = AX_INIT_Y + AX_H*IM_RESIZE*AX_Y_SHIFT;
+    x_shift = AX_INIT_X;   
+    y_shift = AX_INIT_Y;
+    y_lims = zeros(length(EEG_MEASURES),2);
+    ax_s = cell(length(EEG_MEASURES),1);
+    x_cnt = 1;
+    prc_ylim = [-1,5];
+    yticks = [-1,0,1,2,3,4,5];
     for e_i = 1:length(EEG_MEASURES)
-        set(ax_s{e_i},'YLim',[l,u], ...
-            'YTick',yticks, ...
-            'YTickLabel',ytick_labs);        
+        %##
+        cond_plot_store = [];
+        group_plot_store = [];        
+        eeg_measure = EEG_MEASURES{e_i};
+
+        %## SUB-SELECT DATA
+        inds = strcmp(KIN_TABLE.model_n,num2str(des_i)) & ...
+            KIN_TABLE.cluster_n == cl_n & ...
+            ~isnan(KIN_TABLE.(eeg_measure)); %num2str(cl_n);
+        tmp_tbl = KIN_TABLE(inds,:);
+
+        %## EXTRACT STATS INFO
+        EXTRACT_STRUCT = struct( ...
+            'group_chars', {{'H1000','H2000','H3000'}}, ...
+            'group_order', categorical({'H1000','H2000','H3000'}), ...
+            'model_char_int', 'speed_group_intact_all', ...
+            'model_char_group', 'speed_group_all', ...
+            'group_char', 'all', ...
+            'anv_chars_int', {ANV_CHARS_INT}, ...
+            'anv_chars_group', {ANV_CHARS_GROUP}, ...
+            'coeff_chars_int', {COEFF_CHARS_INT}, ...
+            'coeff_chars_group', {COEFF_CHARS_GROUP}, ...
+            'eeg_measure', {EEG_MEASURES{e_i}}, ...
+            'kin_measure', {'none'}, ...
+            'coeff_study', {'speed'}, ...
+            'str_offset', [-0.1, -0.05], ...
+            'str_font_size', 7*FG_TXT_SZ, ...
+            'ci_bar_width', 0.15, ...
+            'ci_bar_xpos', 0, ...
+            'ci_bar_linespecs', {{'LineStyle','-','LineWidth',2,'Color','k'}}, ...
+            'coeff_desm', [ ...                
+                0, 1; ...                
+               -1,-1; ...
+                1, 0 ...
+            ] ...
+        );
+        %--
+        % [STATS_STRUCT,CONFINT_STRUCT,ranef] = extract_violin_stats(RSTATS_IMPORT,cl_n,params);
+        [tmp_stats_struct,tmp_confint_struct,ranef] = get_r_stats_func(RSTATS_IMPORT,cl_n, ...
+            'EXTRACT_STRUCT',EXTRACT_STRUCT);
+
+         %## NORMALIZE DATA USING SUBJECT INTERCEPTS
+        if ~isempty(ranef.char)
+            for s_i = 1:length(ranef.char)
+                int = ranef.int(s_i);
+                ind = strcmp(ranef.char{s_i},tmp_tbl.subj_char);
+                tmp_tbl(ind,eeg_measure) = tmp_tbl(ind,eeg_measure)-int;
+            end
+        end
+
+        % prc_ylim = [round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(1))-YLIM_FAC*std(tmp_tbl.(eeg_measure)),1),...
+        %             round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(2))+YLIM_FAC*std(tmp_tbl.(eeg_measure)),1)];
+
+        %## PLOT
+        ax = axes();
+        %-- set parameters
+        % if e_i == length(EEG_MEASURES)
+        %     VIO_PLOT_STRUCT.group_labels = g_chars_subp;
+        % else
+        %     VIO_PLOT_STRUCT.group_labels = {'','',''}; %g_chars_subp;
+        % end
+        VIO_PLOT_STRUCT.group_labels = {'','',''}; %g_chars_subp;
+        VIO_PLOT_STRUCT.color_map = color_dark;
+        VIO_PLOT_STRUCT.cond_labels = xtick_label_g;
+        VIO_PLOT_STRUCT.title = EEG_MEASURE_TITLES(e_i);
+        if e_i == 1
+            VIO_PLOT_STRUCT.y_label = EEG_MEASURE_LABS{e_i}; %'10*log_{10}(PSD) - AP. Fit';
+        else
+            VIO_PLOT_STRUCT.y_label ='';
+        end
+        VIO_PLOT_STRUCT.ylim = prc_ylim;
+
+        VIO_PLOT_STRUCT.ytick = yticks;
+        VIO_PLOT_STRUCT.ax_position = [x_shift,y_shift, ...
+            AX_W*IM_RESIZE,AX_H*IM_RESIZE];
+        VIO_PLOT_STRUCT.x_label = '';
+        %-- group violin plot
+        ax = group_violin(tmp_tbl,eeg_measure,'speed_n','group_char',...
+            ax,...
+            'VIOLIN_STRUCT',VIO_STRUCT,...
+            'PLOT_STRUCT',VIO_PLOT_STRUCT,...
+            'STATS_STRUCT',tmp_stats_struct,...
+            'BRACKET_STRUCT',BRACKET_STRUCT,...
+            'SIGLINE_STRUCT',SIGLINE_STRUCT, ...
+            'CONFINT_STRUCT',tmp_confint_struct);
+        %-- ax sets
+        % if e_i ~= 1
+        %     ylabel('');
+        % end
+        ylabel('');
+        y_lims(e_i,:) = get(ax,'YLim');
+        ax_s{e_i} = ax;
+
+        %## AX SHIFT
+        if x_cnt < X_DIM
+            x_shift = x_shift + AX_X_SHIFT*IM_RESIZE*AX_W;
+        else
+            y_shift = y_shift + AX_Y_SHIFT*IM_RESIZE*AX_H;
+            x_shift = AX_INIT_X;
+            x_cnt = 0;
+        end
+        x_cnt = x_cnt + 1; 
     end
-    hold on;
+    %## Y-LIMIT SETTING
+    % YLIM_NTICKS = 5;
+    % YLIM_SIG_FIGS = 2;
+    %-- ylim
+    % u = round(max(y_lims(:,2),[],1),1,'significant');
+    % l = round(min(y_lims(:,1),[],1),1,'significant'); 
+    % bb = (u-l)/(YLIM_NTICKS-1);
+    % bbr = round(bb,1,'significant');
+    % dbb = abs(bbr-bb)*(YLIM_NTICKS-1);
+    % l = dbb+l;
+    % %-- yticks    
+    % tmp = unique(round(linspace(l,u,YLIM_NTICKS), ...
+    %     YLIM_SIG_FIGS,'significant'));
+    % yticks = tmp;        
+    % ytick_labs = cellstr(string(tmp));
+    % for e_i = 1:length(EEG_MEASURES)
+    %     set(ax_s{e_i},'YLim',[l,u], ...
+    %         'YTick',yticks, ...
+    %         'YTickLabel',ytick_labs);        
+    % end
+    % hold on;
     %% VIOLIN PLOTS) ================================================== %%
     %-- cov measures
     EEG_MEASURES = {'cov_i_avg_theta_fn1', ...
@@ -485,12 +670,14 @@ for cl_i = 1:length(cluster_inds_plot)
         '<COV(\beta_{N})>'};
     %--
     % AX_INIT_X = AX_INIT_X + AX_W*IM_RESIZE*AX_X_SHIFT;
-    AX_INIT_Y = AX_INIT_Y - AX_H*IM_RESIZE*AX_X_SHIFT;
+    AX_INIT_Y = AX_INIT_Y + AX_H*IM_RESIZE*AX_Y_SHIFT;
     x_shift = AX_INIT_X;   
     y_shift = AX_INIT_Y;
     y_lims = zeros(length(EEG_MEASURES),2);
     ax_s = cell(length(EEG_MEASURES),1);
     x_cnt = 1;
+    prc_ylim = [1,3];
+    yticks = [1,1.5,2,2.5,3];
     for e_i = 1:length(EEG_MEASURES)
         %##
         cond_plot_store = [];
@@ -502,23 +689,49 @@ for cl_i = 1:length(cluster_inds_plot)
             KIN_TABLE.cluster_n == cl_n & ...
             ~isnan(KIN_TABLE.(eeg_measure)); %num2str(cl_n);
         tmp_tbl = KIN_TABLE(inds,:); 
-        prc_ylim = [round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(1))-YLIM_FAC*std(tmp_tbl.(eeg_measure)),1),...
-                    round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(2))+YLIM_FAC*std(tmp_tbl.(eeg_measure)),1)];
+        
 
         %## EXTRACT STATS INFO
-        params = [];        
-        params.group_chars = {'H1000','H2000','H3000'};
-        params.group_order = categorical({'H1000','H2000','H3000'});
-        params.model_char_int = 'speed_group_intact_all';
-        params.model_char_group = 'speed_group_all';
-        params.group_char = 'all';
+        EXTRACT_STRUCT = struct( ...
+            'group_chars', {{'H1000','H2000','H3000'}}, ...
+            'group_order', categorical({'H1000','H2000','H3000'}), ...
+            'model_char_int', 'speed_group_intact_all', ...
+            'model_char_group', 'speed_group_all', ...
+            'group_char', 'all', ...
+            'anv_chars_int', {ANV_CHARS_INT}, ...
+            'anv_chars_group', {ANV_CHARS_GROUP}, ...
+            'coeff_chars_int', {COEFF_CHARS_INT}, ...
+            'coeff_chars_group', {COEFF_CHARS_GROUP}, ...
+            'eeg_measure', {EEG_MEASURES{e_i}}, ...
+            'kin_measure', {'none'}, ...
+            'coeff_study', {'speed'}, ...
+            'str_offset', [-0.1, -0.05], ...
+            'str_font_size', 7*FG_TXT_SZ, ...
+            'ci_bar_width', 0.15, ...
+            'ci_bar_xpos', 0, ...
+            'ci_bar_linespecs', {{'LineStyle','-','LineWidth',2,'Color','k'}}, ...
+            'coeff_desm', [ ...                
+                0, 1; ...                
+               -1,-1; ...
+                1, 0 ...
+            ] ...
+        );
         %--
-        params.anv_chars_int = ANV_CHARS_INT;
-        params.anv_chars_group = ANV_CHARS_GROUP;
-        params.coeff_chars_int = COEFF_CHARS_INT;
-        params.coeff_chars_group = COEFF_CHARS_GROUP;
-        %--
-        [STATS_STRUCT,CONFINT_STRUCT] = extract_violin_stats(RSTATS_IMPORT,cl_n,eeg_measure,params);
+        % [STATS_STRUCT,CONFINT_STRUCT,ranef] = extract_violin_stats(RSTATS_IMPORT,cl_n,params);
+        [tmp_stats_struct,tmp_confint_struct,ranef] = get_r_stats_func(RSTATS_IMPORT,cl_n, ...
+            'EXTRACT_STRUCT',EXTRACT_STRUCT);
+
+        %## NORMALIZE DATA USING SUBJECT INTERCEPTS
+        if ~isempty(ranef.char)
+            for s_i = 1:length(ranef.char)
+                int = ranef.int(s_i);
+                ind = strcmp(ranef.char{s_i},tmp_tbl.subj_char);
+                tmp_tbl(ind,eeg_measure) = tmp_tbl(ind,eeg_measure)-int;
+            end
+        end
+
+        % prc_ylim = [round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(1))-YLIM_FAC*std(tmp_tbl.(eeg_measure)),1),...
+        %             round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(2))+YLIM_FAC*std(tmp_tbl.(eeg_measure)),1)];
 
         %## PLOT
         ax = axes();
@@ -538,6 +751,8 @@ for cl_i = 1:length(cluster_inds_plot)
             VIO_PLOT_STRUCT.y_label ='';
         end
         VIO_PLOT_STRUCT.ylim = prc_ylim;
+
+        VIO_PLOT_STRUCT.ytick = yticks;
         VIO_PLOT_STRUCT.ax_position = [x_shift,y_shift, ...
             AX_W*IM_RESIZE,AX_H*IM_RESIZE];
         VIO_PLOT_STRUCT.x_label = 'Speed (m/s)';
@@ -547,10 +762,10 @@ for cl_i = 1:length(cluster_inds_plot)
             ax,...
             'VIOLIN_STRUCT',VIO_STRUCT,...
             'PLOT_STRUCT',VIO_PLOT_STRUCT,...
-            'STATS_STRUCT',STATS_STRUCT,...
+            'STATS_STRUCT',tmp_stats_struct,...
             'BRACKET_STRUCT',BRACKET_STRUCT,...
             'SIGLINE_STRUCT',SIGLINE_STRUCT, ...
-            'CONFINT_STRUCT',CONFINT_STRUCT);
+            'CONFINT_STRUCT',tmp_confint_struct);
         %-- ax sets
         y_lims(e_i,:) = get(ax,'YLim');
         ax_s{e_i} = ax;
@@ -568,27 +783,27 @@ for cl_i = 1:length(cluster_inds_plot)
         x_cnt = x_cnt + 1; 
     end
     %## Y-LIMIT SETTING
-    YLIM_NTICKS = 5;
-    YLIM_SIG_FIGS = 2;
-    %-- ylim
-    u = round(max(y_lims(:,2),[],1),1,'significant');
-    l = round(min(y_lims(:,1),[],1),1,'significant'); 
-    bb = (u-l)/(YLIM_NTICKS-1);
-    bbr = round(bb,1,'significant');
-    dbb = abs(bbr-bb)*(YLIM_NTICKS-1);
-    l = dbb+l;
-    %-- yticks
-    tmp = unique(round(linspace(l,u,YLIM_NTICKS), ...
-        YLIM_SIG_FIGS,'significant'));
-    tmp(tmp < 1e-8 & tmp > -1e-8) = 0;
-    yticks = tmp;
-    ytick_labs = cellstr(string(tmp));
-    for e_i = 1:length(EEG_MEASURES)
-        set(ax_s{e_i},'YLim',[l,u], ...
-            'YTick',yticks, ...
-            'YTickLabel',ytick_labs);        
-    end
-    hold off;
+    % YLIM_NTICKS = 5;
+    % YLIM_SIG_FIGS = 2;
+    % %-- ylim
+    % u = round(max(y_lims(:,2),[],1),1,'significant');
+    % l = round(min(y_lims(:,1),[],1),1,'significant'); 
+    % bb = (u-l)/(YLIM_NTICKS-1);
+    % bbr = round(bb,1,'significant');
+    % dbb = abs(bbr-bb)*(YLIM_NTICKS-1);
+    % l = dbb+l;
+    % %-- yticks
+    % tmp = unique(round(linspace(l,u,YLIM_NTICKS), ...
+    %     YLIM_SIG_FIGS,'significant'));
+    % tmp(tmp < 1e-8 & tmp > -1e-8) = 0;
+    % yticks = tmp;
+    % ytick_labs = cellstr(string(tmp));
+    % for e_i = 1:length(EEG_MEASURES)
+    %     set(ax_s{e_i},'YLim',[l,u], ...
+    %         'YTick',yticks, ...
+    %         'YTickLabel',ytick_labs);        
+    % end
+    % hold off;
     %%
     fname = sprintf('cl%s_%s_manscript_plot',string(cl_n),meas_ext);
     exportgraphics(fig,[tmp_savedir filesep fname '.pdf'],...

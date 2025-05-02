@@ -126,27 +126,42 @@ g_chars = desdes(strcmp({desdes.label},'group'));
 g_chars = {g_chars.value};
 g_chars = g_chars{1};
 %--
-cluster_colors = {[1 1 1],...        % White
-            [1 1 0]...             % Yellow
-            [221,52,151]/255,...    % Pink
-            [1 0 0],...             % Red
-            [250 140 0]/255,...     % oragne
-            [210 173 255]/255,...   % purple
-            [0.5 0.5 0],...         % Olive
-            [0.5 0 0.5],...         % Purple
-            [0.5 0 0],...           % Maroon
-            [0 1 1],...             % Aqua
-            [0 1 0],...             % Lime
-            [0 0.5 0.5],...         % Teal
-            [0 0.5 0],...           % Green
-            [0 0 1],...             % Blue
-            [0 0 0.5],...           % Navy
-            [0.8 0.8 0.8]};          % Gray
-cluster_colors = cluster_colors([4 11 14 2 13 10 5 6 15 16 1 7 9 3]);
+% cluster_colors = {[1 1 1],...        % White
+%             [1 1 0]...             % Yellow
+%             [221,52,151]/255,...    % Pink
+%             [1 0 0],...             % Red
+%             [250 140 0]/255,...     % oragne
+%             [210 173 255]/255,...   % purple
+%             [0.5 0.5 0],...         % Olive
+%             [0.5 0 0.5],...         % Purple
+%             [0.5 0 0],...           % Maroon
+%             [0 1 1],...             % Aqua
+%             [0 1 0],...             % Lime
+%             [0 0.5 0.5],...         % Teal
+%             [0 0.5 0],...           % Green
+%             [0 0 1],...             % Blue
+%             [0 0 0.5],...           % Navy
+%             [0.8 0.8 0.8]};          % Gray
+% cluster_colors = cluster_colors([4 11 14 2 13 10 5 6 15 16 1 7 9 3]);
+%-- alternative
+cluster_colors = num2cell(linspecer(16),2)';
+
 %-- rb3
-cluster_titles = {'Right Cuneus', ...
+% cluster_titles = {'Right Cuneus', ...
+%     'Right Sensorimotor', ...
+%     'Anterior Cingulate', ...
+%     'Left Sensorimotor', ...
+%     'Right Premotor',...
+%     'Left Posterior Parietal', ...
+%     'Left Supplementary Motor', ...
+%     'Right Occipital', ...
+%     'Mid Cingulate',...
+%     'Left Temporal',...
+%     'Left Occipital'};
+%-- 01192025_mim_yaoa_nopowpow_crit_speed (rb3)
+cluster_titles = {'Right Posterior Parietal', ...
     'Right Sensorimotor', ...
-    'Anterior Cingulate', ...
+    'Left Precuneus', ... %'Anterior Cingulate', ...
     'Left Sensorimotor', ...
     'Right Premotor',...
     'Left Posterior Parietal', ...
@@ -157,32 +172,13 @@ cluster_titles = {'Right Cuneus', ...
     'Left Occipital'};
 %##
 %--
-% dip_dir = [cluster_k_dir filesep 'topo_dip_inf'];
 dip_dir = [cluster_k_dir filesep 'topo_dip_inf' filesep 'valid_clusts'];
 %--
 cluster_inds_plot = [3,4,5,6,7,8,9,11,12];
 clusters = main_cl_inds;
-%% (SUBJECT DIPOLES PLOTS) ============================================= %%
-%-
-AX_INIT_HORIZ_DIP = 0.075;
-AX_INIT_VERT_DIP = 0.6;
-AX_INIT_VERT_DIP2 = 0.775;
-%## FIGURE IMPLEMENTATION
-%-
-% AX1_RESIZE = 0.25;
-% AX2_RESIZE = 0.39;
-% AX3_RESIZE = 0.302;
-IM_RESIZE = 1.5;
-AX2_ADJ = 1.52;
-AX3_ADJ = 1.255;
-%-
-AX2_X_O = 0.19;
-AX2_Y_O = -0.17;
-AX3_X_O = 0.24;
-AX3_Y_O = -0.1;
-%-
+%--
 FONT_NAME = 'Arial';
-%-
+%--
 AXES_DEFAULT_PROPS = {'box','off', ...
     'xtick',[], ...
     'ytick',[], ...
@@ -202,161 +198,53 @@ set(gca,AXES_DEFAULT_PROPS{:})
 hold on;
 
 %## NEXT ROW =========================================================== %%
-tmp = openfig([dip_dir filesep 'dipplot_alldipspc_top.fig']);
-cnt = length(tmp.Children(end).Children);
-while cnt > 3
-    tmp.Children(end).Children(cnt).LineWidth = 0.02; %'none';
-    tmp.Children(end).Children(cnt).CData = [0,0,0]; %tmp.Children(end).Children(cnt-1).MarkerFaceColor;
-    tmp.Children(end).Children(cnt).MarkerFaceAlpha = 0.85;
-    tmp.Children(end).Children(cnt).SizeData = 6; %fig.Children(end).Children(cnt+3+1).MarkerSize*2.6;
-    cnt = cnt - 1;
-end
-ax = get(tmp,'CurrentAxes');
-view(ax,[90,0])
-daspect = get(ax,'DataAspectRatio');
-ac = get(ax,'Children');
-XLIM = [ac(1).XData(1,1),ac(1).XData(1,2)];
-YLIM = [ac(1).YData(1,1),ac(1).YData(2,1)];
-ZLIM = [ac(2).ZData(1,1),ac(2).ZData(2,1)];
-dx = abs(ac(1).XData(1,2) - ac(1).XData(1,1));
-dy = abs(ac(1).YData(1,1) - ac(1).YData(2,1));
-dz = abs(ac(2).ZData(1,1) - ac(2).ZData(2,1));
+%## DIPOLE PLOT 1
+AX_INIT_Y = 0.775; %0.6+fy_shift; %0.79; %0.8 --- %7.2; % inches for some reason, maybe a bug with normal units
+AX_INIT_X = 0.075; %2.5; % inches for some reason, maybe a bug with normal units
+dip_fig_path = [dip_dir filesep sprintf('dipplot_avgdipspc_top.fig')];
+%--
+params.im_resize = 1.5;
+params.paper_size = [0.5,0.5,6,9.5];
+params.ax_position = [AX_INIT_X,AX_INIT_Y,0,0];
+%--
+params.ax1_adj = [1.12^2,1,0,0];
+params.ax2_adj = [1.15^2,1.4525,0.9375,0.05];
+params.ax3_adj = [1.12^2,1.2581,1.4525,0.1345];
+params.do_x_shift = 1;
+params.do_y_shift = 0;
+%--
+params.dip_size = 100; 
+params.dip_linewidth = 0.05;
+params.dip_border_cdata = [0,0,0];
+params.dip_markerfacealpha = 0.75;
+%--
+local_plot_dipole_slices(fig,dip_fig_path,params);
 
-%## AXES 1
-ax1 = axes('Parent',fig,'DataAspectRatio',daspect,'Units','normalized');
-copyobj(ac,ax1);
-set(ax1,AXES_DEFAULT_PROPS{:});
-ax1.XRuler.FirstCrossoverValue = 0;
-ax1.YRuler.FirstCrossoverValue = 0;
-ax1.ZRuler.FirstCrossoverValue = 0;
-view([0,90])
-camzoom(ax1,1.1^2)
-set(ax1,'YLim',YLIM)
-set(ax1,'XLim',XLIM)
-drawnow;
-pp = get(ax1,'Position');
-ax1_x = pp(3)*IM_RESIZE/p_sz(3);
-ax1_y = pp(4)*IM_RESIZE/p_sz(4);
-set(ax1,'OuterPosition',[0,0,1,1],'Position',[AX_INIT_HORIZ_DIP,AX_INIT_VERT_DIP,ax1_x,ax1_y]);
-
-%## AXES 2
-ax2 = axes('Parent',fig,'DataAspectRatio',daspect,'Units','normalized');
-copyobj(ac,ax2);
-%-
-set(ax2,AXES_DEFAULT_PROPS{:});
-ax2.XRuler.FirstCrossoverValue = 0;
-ax2.YRuler.FirstCrossoverValue = 0;
-ax2.ZRuler.FirstCrossoverValue = 0;
-set(ax2,'View',[90,0]);
-camzoom(ax2,1.1^2)
-set(ax2,'YLim',YLIM)
-set(ax2,'ZLim',ZLIM)
-drawnow;
-pp2 = get(ax2,'Position');
-ax2_x = pp2(3)*IM_RESIZE*AX2_ADJ/p_sz(3);
-ax2_y = pp2(4)*IM_RESIZE*AX2_ADJ/p_sz(4);
-set(ax2,'OuterPosition',[0,0,1,1],'Position',[AX_INIT_HORIZ_DIP+ax1_x+(ax2_x*AX2_X_O),AX_INIT_VERT_DIP+(ax2_y*AX2_Y_O),ax2_x,ax2_y]);
-
-%## AXES 3
-ax3 = axes('Parent',fig,'DataAspectRatio',daspect,'Units','normalized');
-copyobj(ac,ax3);
-%-
-set(ax3,AXES_DEFAULT_PROPS{:});
-ax3.XRuler.FirstCrossoverValue = 0;
-ax3.YRuler.FirstCrossoverValue = 0;
-ax3.ZRuler.FirstCrossoverValue = 0;
-set(ax3,'view',[0,0])
-set(ax3,'ZLim',ZLIM)
-set(ax3,'XLim',XLIM)
-camzoom(ax3,1.1^2)
-pp3 = get(ax3,'Position');
-
-ax3_x = pp3(3)*IM_RESIZE*AX3_ADJ/p_sz(3);
-ax3_y = pp3(4)*IM_RESIZE*AX3_ADJ/p_sz(4);
-% AX3_W_O = 0.24;
-% AX3_H_O = -0.1;
-% ax3.SortMethod='ChildOrder';
-set(ax3,'OuterPosition',[0,0,1,1],'Position',[AX_INIT_HORIZ_DIP+ax1_x+ax2_x+(ax2_x*AX2_X_O)+(ax3_x*AX3_X_O),AX_INIT_VERT_DIP+(ax3_y*AX3_Y_O),ax3_x,ax3_y]);
-close(tmp)
-
-%## FIRST ROW ========================================================== %%
-tmp = openfig([dip_dir filesep 'dipplot_avgdipspc_top.fig']);
-cnt = length(tmp.Children(end).Children);
-surf = tmp.Children(end).Children(1);
-while cnt > 3
-    hold on;
-    tmp.Children(end).Children(cnt).Marker = 'o'; 
-    tmp.Children(end).Children(cnt).LineWidth = 0.05; %'none';
-    tmp.Children(end).Children(cnt).MarkerFaceAlpha = 0.85;
-    tmp.Children(end).Children(cnt).SizeData = 100; %fig.Children(end).Children(cnt+3+1).MarkerSize*2.6;
-    cnt = cnt - 1;
-end
-ax = get(tmp,'CurrentAxes');
-daspect = get(ax,'DataAspectRatio');
-ac = get(ax,'Children');
-XLIM = [ac(1).XData(1,1),ac(1).XData(1,2)];
-YLIM = [ac(1).YData(1,1),ac(1).YData(2,1)];
-ZLIM = [ac(2).ZData(1,1),ac(2).ZData(2,1)];
-dx = abs(ac(1).XData(1,2) - ac(1).XData(1,1));
-dy = abs(ac(1).YData(1,1) - ac(1).YData(2,1));
-dz = abs(ac(2).ZData(1,1) - ac(2).ZData(2,1));
-%-
-ax1 = axes('Parent',fig,'DataAspectRatio',daspect,'Units','normalized');
-copyobj(ac,ax1);
-%-
-set(ax1,AXES_DEFAULT_PROPS{:});
-ax1.XRuler.FirstCrossoverValue = 0;
-ax1.YRuler.FirstCrossoverValue = 0;
-ax1.ZRuler.FirstCrossoverValue = 0;
-view([0,90])
-camzoom(ax1,1.1^2)
-set(ax1,'YLim',YLIM)
-set(ax1,'XLim',XLIM)
-drawnow;
-pp = get(ax1,'Position');
-ax1_x = pp(3)*IM_RESIZE/p_sz(3);
-ax1_y = pp(4)*IM_RESIZE/p_sz(4);
-set(ax1,'OuterPosition',[0,0,1,1],'Position',[AX_INIT_HORIZ_DIP,AX_INIT_VERT_DIP2,ax1_x,ax1_y]);
-
-%## AXES 2
-ax2 = axes('Parent',fig,'DataAspectRatio',daspect,'Units','normalized');
-copyobj(ac,ax2);
-%-
-set(ax2,);
-ax2.XRuler.FirstCrossoverValue = 0;
-ax2.YRuler.FirstCrossoverValue = 0;
-ax2.ZRuler.FirstCrossoverValue = 0;
-set(ax2,'View',[90,0]);
-camzoom(ax2,1.1^2)
-set(ax2,'YLim',YLIM)
-set(ax2,'ZLim',ZLIM)
-drawnow;
-pp2 = get(ax2,'Position');
-ax2_x = pp2(3)*IM_RESIZE*AX2_ADJ/p_sz(3); 
-ax2_y = pp2(4)*IM_RESIZE*AX2_ADJ/p_sz(4);
-set(ax2,'OuterPosition',[0,0,1,1],'Position',[AX_INIT_HORIZ_DIP+ax1_x+(ax2_x*AX2_X_O),AX_INIT_VERT_DIP2+(ax2_y*AX2_Y_O),ax2_x,ax2_y]);
-
-%## AXES 3
-ax3 = axes('Parent',fig,'DataAspectRatio',daspect,'Units','normalized');
-copyobj(ac,ax3);
-%-
-set(ax3,AXES_DEFAULT_PROPS{:});
-ax3.XRuler.FirstCrossoverValue = 0;
-ax3.YRuler.FirstCrossoverValue = 0;
-ax3.ZRuler.FirstCrossoverValue = 0;
-set(ax3,'view',[0,0])
-set(ax3,'ZLim',ZLIM)
-set(ax3,'XLim',XLIM)
-camzoom(ax3,1.1^2)
-pp3 = get(ax3,'Position');
-ax3_x = pp3(3)*IM_RESIZE*AX3_ADJ/p_sz(3);
-ax3_y = pp3(4)*IM_RESIZE*AX3_ADJ/p_sz(4);
-set(ax3,'OuterPosition',[0,0,1,1],'Position',[AX_INIT_HORIZ_DIP+ax1_x+ax2_x+(ax2_x*AX2_X_O)+(ax3_x*AX3_X_O),AX_INIT_VERT_DIP2+(ax3_y*AX3_Y_O),ax3_x,ax3_y]);
-close(tmp)
+%## DIPOLE PLOT 2 ====================================================== %%
+AX_INIT_Y = 0.59; %0.6+fy_shift; %0.79; %0.8 --- %7.2; % inches for some reason, maybe a bug with normal units
+AX_INIT_X = 0.075; %2.5; % inches for some reason, maybe a bug with normal units
+dip_fig_path = [dip_dir filesep sprintf('dipplot_alldipspc_top.fig')];
+%--
+params.im_resize = 1.5;
+params.paper_size = [0.5,0.5,6,9.5];
+params.ax_position = [AX_INIT_X,AX_INIT_Y,0,0];
+%--
+params.ax1_adj = [1.12^2,1,0,0];
+params.ax2_adj = [1.15^2,1.4525,0.9375,0.05];
+params.ax3_adj = [1.12^2,1.2581,1.4525,0.1345];
+params.do_x_shift = 1;
+params.do_y_shift = 0;
+%--
+params.dip_size = 6; 
+params.dip_linewidth = 0.02;
+params.dip_border_cdata = [0,0,0];
+params.dip_markerfacealpha = 0.85;
+%--
+local_plot_dipole_slices(fig,dip_fig_path,params);
 
 %## ANNOTATIONS ======================================================== %%
 %-
-ANN_H = 0.875;
+ANN_H = 0.9;
 annotation('textbox',[0.15,ANN_H,.1,.1],...
     'String','Transverse','HorizontalAlignment','center',...
     'VerticalAlignment','top','LineStyle','none','FontName',FONT_NAME,...
@@ -383,7 +271,8 @@ txt_dim_x = 2.25/p_sz(4);
 txt_shift_x = 0.35/p_sz(4);
 txt_shift_y = -0.43/p_sz(3);
 HZ_DIM = 3;
-AX_INIT_HORIZ = AX_INIT_HORIZ_DIP;
+AX_INIT_HORIZ = 0.075;
+AX_INIT_VERT_DIP = 0.63;
 HORIZ_SHIFT_VAL = 13.5/p_sz(4);
 VERT_SHIFT_VAL = -2/p_sz(3);
 hz = 0;
@@ -422,12 +311,42 @@ for cl_i = 1:length(cluster_inds_plot)
     end    
 end
 %-- edits (03/03/2025)
-aa_bc(end).Position(1) = aa_bc(end).Position(1) + HORIZ_SHIFT_VAL*txt_dim_x;
-aa_txt(end).Position(1) = aa_txt(end).Position(1) + HORIZ_SHIFT_VAL*txt_dim_x;
+% ii = length(cluster_inds_plot);
+% aa_bc(ii-1).Position(1) = aa_bc(end).Position(1) + (1/2)*HORIZ_SHIFT_VAL*txt_dim_x;
+% aa_txt(ii-1).Position(1) = aa_txt(end).Position(1) + (1/2)*HORIZ_SHIFT_VAL*txt_dim_x;
+% %-- 
+% aa_bc(ii).Position(1) = aa_bc(end).Position(1) + (1/2)*HORIZ_SHIFT_VAL*txt_dim_x;
+% aa_txt(ii).Position(1) = aa_txt(end).Position(1) + (1/2)*HORIZ_SHIFT_VAL*txt_dim_x;
 hold off;
 %## SAVE
 exportgraphics(fig,[save_dir filesep 'figure_group_dipoleplots.pdf'],'ContentType','vector')
 exportgraphics(fig,[save_dir filesep 'figure_group_dipoleplots.tiff'],'ContentType','image','Resolution',600)
+
+%% PLOT .TIF OF MRI SLICES ============================================ %%
+
+%## DIPOLE PLOT 1
+AX_INIT_Y = 0.775; %0.6+fy_shift; %0.79; %0.8 --- %7.2; % inches for some reason, maybe a bug with normal units
+AX_INIT_X = 0.075; %2.5; % inches for some reason, maybe a bug with normal units
+dip_fig_path = [dip_dir filesep sprintf('dipplot_avgdipspc_top.fig')];
+%--
+params = [];
+params.im_resize = 1.5;
+params.paper_size = [0.5,0.5,6,9.5];
+params.ax_position = [AX_INIT_X,AX_INIT_Y,0,0];
+%--
+params.ax1_adj = [1.12^2,1,0,0];
+params.ax2_adj = [1.15^2,1.4525,0.9375,0.05];
+params.ax3_adj = [1.12^2,1.2581,1.4525,0.1345];
+params.do_x_shift = 1;
+params.do_y_shift = 0;
+%--
+params.dip_size = 100; 
+params.dip_linewidth = 0.05;
+params.dip_border_cdata = [0,0,0];
+params.dip_markerfacealpha = 0.75;
+
+local_plot_dipole_imgs(dip_fig_path,save_dir, ...
+    params);
 
 %% (BLANK MRI SLICES) ================================================== %%
 HIRES_FNAME = 'mni_icbm152_t1_tal_nlin_sym_09a.nii';
@@ -482,7 +401,7 @@ ax = axes();
 %     'EdgeColor','interp', ...
 %     'FaceLighting','flat', ...
 %     'EdgeLighting','flat');
-ss = surf(ax,tmpc, ...
+ss = surff(ax,tmpc, ...
     'FaceColor','flat', ...
     'EdgeColor','texturemap', ...
     'FaceLighting','none', ...
@@ -510,7 +429,7 @@ ax = axes();
 %     'FaceColor','interp', ...
 %     'EdgeColor','interp', ...
 %     'FaceLighting','gouraud');
-ss = surf(ax,tmpc, ...
+ss = surff(ax,tmpc, ...
     'FaceColor','flat', ...
     'EdgeColor','texturemap', ...
     'FaceLighting','flat', ...
@@ -536,7 +455,7 @@ ax = axes();
 %     'FaceColor','interp', ...
 %     'EdgeColor','interp', ...
 %     'FaceLighting','gouraud');
-ss = surf(ax,tmpc, ...
+ss = surff(ax,tmpc, ...
     'FaceColor','flat', ...
     'EdgeColor','texturemap', ...
     'FaceLighting','flat', ...

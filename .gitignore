@@ -39,3 +39,5 @@
 *.Rproj.user
 /MindInMotion_Submodules
 /MindInMotion_Submodules
+.Rproj.user
+**/*_figs

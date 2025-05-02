@@ -105,10 +105,10 @@ end
 %-
 gait_conds = unique({STUDY.datasetinfo(1).trialinfo.cond});
 subj_chars = {STUDY.datasetinfo.subject};
-eeg_fpaths = {STUDY.datasetinfo.filepath};
-eeg_fnames = {STUDY.datasetinfo.filename};
-spca_eeg_fpaths = {SPCA_STUDY.datasetinfo.filepath};
-spca_eeg_fnames = {SPCA_STUDY.datasetinfo.filename};
+% eeg_fpaths = {STUDY.datasetinfo.filepath};
+% eeg_fnames = {STUDY.datasetinfo.filename};
+% spca_eeg_fpaths = {SPCA_STUDY.datasetinfo.filepath};
+% spca_eeg_fnames = {SPCA_STUDY.datasetinfo.filename};
 %-
 % subj_i = 35;
 % cond_i = 1;

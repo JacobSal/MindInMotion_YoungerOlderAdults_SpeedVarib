@@ -69,7 +69,7 @@ cluster_fpath = [studies_dir filesep sprintf('%s',STUDY_DNAME) filesep '__iclabe
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
 cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
 %- save dir
-save_dir = [cluster_k_dir filesep 'topo_dip_inf' filesep 'valid_clusts'];
+save_dir = [cluster_k_dir filesep 'topo_dip_inf' filesep 'extra_clusts'];
 if ~exist(save_dir,'dir')
     mkdir(save_dir);
 end
@@ -92,7 +92,8 @@ cl_struct = par_load([cluster_study_fpath filesep sprintf('%i',CLUSTER_K)],sprin
 STUDY.cluster = cl_struct;
 [comps_out,main_cl_inds,outlier_cl_inds,valid_clusters] = eeglab_get_cluster_comps(STUDY);
 % cluster_inds = main_cl_inds(1:end);
-cluster_inds = [3,4,5,6,7,8,9,11,12];
+% cluster_inds = [3,4,5,6,7,8,9,11,12];
+cluster_inds = [10,13];
 % cluster_inds = valid_clusters;
 % cluster_inds = [3,4,5,7,10,12,13]; % 01192025_mim_yaoa_nopowpow_crit_speed, rb3
 

@@ -155,7 +155,7 @@ CLUSTER_PICS = main_cl_inds;
 fooof_table = par_load([save_dir filesep 'psd_feature_table.mat']);
 %-- r-stats
 r_stats_dir = [PATHS.src_dir filesep 'r_scripts' filesep 'eeg_speed_lmes'];
-RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('02202025_lme_eeg_kin_speed_manu_tests_stats.xlsx')], ...
+RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('02202025_lme_eeg_kin_speed_manu_tests_stats_speed_tests_allcond.xlsx')], ...
     "FileType","spreadsheet","UseExcel",true);
 %--
 pcond = par_load([save_dir filesep 'fooof_pcond.mat']);
@@ -297,6 +297,14 @@ SIGLINE_STRUCT = struct('sig_sign','*',...
     'conn_offset_y',[],...
     'sig_offset_x',0,...
     'sig_offset_y',0); 
+
+%## MODELS
+COEFF_CHARS_INT = {'(Intercept)','speed_cond_num','group_char1','group_char2', ...
+    'speed_cond_num:group_char1','speed_cond_num:group_char2'};
+ANV_CHARS_INT = {'(Intercept)','speed_cond_num','group_char','speed_cond_num:group_char'};
+ANV_CHARS_GROUP = {'(Intercept)','speed_cond_num','group_char'};
+COEFF_CHARS_GROUP = {'(Intercept)','speed_cond_num','group_char1','group_char2'};
+%--
 %-
 des_i = 2;
 cl_n = 3;
@@ -630,269 +638,31 @@ for cl_i = 1:length(cluster_inds_plot)
         end
     end
     for meas_i = 1:length(EEG_MEASURES)
-        %## EXTRACT STATS INFO
-        COEFF_CHARS_INT = {'(Intercept)','speed_cond_num','group_charH2000','group_charH3000', ...
-            'speed_cond_num:group_charH2000','speed_cond_num:group_charH3000'};
-        ANV_CHARS_INT = {'(Intercept)','speed_cond_num','group_char','speed_cond_num:group_char'};
-        ANV_CHARS_GROUP = {'(Intercept)','speed_cond_num','group_char'};
-        COEFF_CHARS_GROUP = {'(Intercept)','speed_cond_num','group_charH2000','group_charH3000'};
-        %--
-        tmp_stats = RSTATS_IMPORT.cluster_num==double(string(cl_n)) &...
-            strcmp(RSTATS_IMPORT.model_char,'speed_group_intact_all') &...
-            strcmp(RSTATS_IMPORT.freq_band_char,EEG_MEASURES{meas_i}) &...
-            strcmp(RSTATS_IMPORT.group_char,'all');
-        tmp_stats = RSTATS_IMPORT(tmp_stats,:);
-        %--
-        tmp_ac = strsplit(tmp_stats.anv_chars{1},',');
-        tmp_anv = cellfun(@(x) double(string(x)),strsplit(tmp_stats.anv_pvals{1},','));
-        %-- anova p-values
-        anvs = zeros(length(ANV_CHARS_INT),1);
-        for cc = 1:length(ANV_CHARS_INT)
-            ind = strcmp(ANV_CHARS_INT{cc},tmp_ac);
-            if ~isempty(ind)
-                anvs(cc) = tmp_anv(ind);              
-            else
-                fprintf("Coefficient %s not found.\n",ANV_CHARS_INT{cc})
-            end            
-        end
-        
-        %## CHECK FOR SIGNIFICANT INTERACTION
-        if anvs(4) > 0.05
-            %## USE NON-INTERACTION MODEL
-            tmp_stats = RSTATS_IMPORT.cluster_num==double(string(cl_n)) &...
-                strcmp(RSTATS_IMPORT.model_char,'speed_group_all') &...
-                strcmp(RSTATS_IMPORT.freq_band_char,EEG_MEASURES{meas_i}) &...
-                strcmp(RSTATS_IMPORT.group_char,'all');
-            tmp_stats = RSTATS_IMPORT(tmp_stats,:);
-            %--
-            tmp_ac = strsplit(tmp_stats.anv_chars{1},',');
-            tmp_anv = cellfun(@(x) double(string(x)),strsplit(tmp_stats.anv_pvals{1},','));
-            %-- anova p-values
-            anvs = zeros(length(ANV_CHARS_GROUP),1);
-            for cc = 1:length(ANV_CHARS_GROUP)
-                ind = strcmp(ANV_CHARS_GROUP{cc},tmp_ac);
-                if ~isempty(ind)
-                    anvs(cc) = tmp_anv(ind);              
-                else
-                    fprintf("Coefficient %s not found.\n",ANV_CHARS_GROUP{cc})
-                end            
-            end
-            tmp_cc = strsplit(tmp_stats.coeff_chars{1},',');
-            tmp_fsq_chars = strsplit(tmp_stats.fsq_chars{1},',');
-            tmp_ci_chars = strsplit(tmp_stats.confint_chars{1},',');
-            tmp_coeffs = cellfun(@(x) double(string(x)),strsplit(tmp_stats.coeffs{1},','));
-            tmp_fsq = cellfun(@(x) double(string(x)),strsplit(tmp_stats.fsq_vals{1},','));
-            % tmp_em = cellfun(@(x) double(string(x)),strsplit(tmp_stats.emmeans{1},','));
-            tmp_ci_lwr = cellfun(@(x) double(string(x)),strsplit(tmp_stats.confint_lwr{1},','));
-            tmp_ci_upr = cellfun(@(x) double(string(x)),strsplit(tmp_stats.confint_upr{1},','));
-            %-- model coefficients       
-            coeffs = zeros(length(COEFF_CHARS_GROUP),1);        
-            for cc = 1:length(COEFF_CHARS_GROUP)
-                ind = strcmp(COEFF_CHARS_GROUP{cc},tmp_cc);
-                if ~isempty(ind)
-                    coeffs(cc) = tmp_coeffs(ind);              
-                else
-                    fprintf("Coefficient %s not found.\n",COEFF_CHARS_GROUP{cc})
-                end            
-            end        
-            %-- cohens f^2 values
-            fsq_chars = strcmp(ANV_CHARS_GROUP,'(Intercept)');
-            fsq_chars = ANV_CHARS_GROUP(~fsq_chars);
-            fsqs = zeros(length(fsq_chars),1);
-            for cc = 1:length(fsq_chars)
-                ind = strcmp(fsq_chars{cc},tmp_fsq_chars);
-                if ~isempty(ind)
-                    fsqs(cc) = tmp_fsq(ind);
-                else
-                    fprintf("Coefficient %s not found.\n",ANV_CHARS_GROUP{cc})
-                end
-            end
-            %-- confidence intervals
-            ci_chars = strcmp(g_chars,'(Intercept)');
-            ci_chars = g_chars(~ci_chars);
-            cis = zeros(length(ci_chars),1,2);
-            for cc = 1:length(ci_chars)
-                ind = strcmp(ci_chars{cc},tmp_ci_chars);
-                if ~isempty(ind)
-                    cis(cc,1,:) = [tmp_ci_lwr(ind),tmp_ci_upr(ind)];
-                else
-                    fprintf("Coefficient %s not found.\n",g_chars{cc})
-                end
-            end
-            %--
-            % ran_effs_char = strsplit(tmp_stats.ran_effs_char{1},',');
-            % ran_effs_n = cellfun(@(x) double(string(x)),strsplit(tmp_stats.ran_effs_n{1},','));
-            %--
-            if anvs(3) < 0.05 && anvs(3) > 0.01
-                strg = '^{+}';
-            elseif anvs(3) <= 0.01 && anvs(3) > 0.001
-                strg = '^{++}';
-            elseif anvs(3) <= 0.001
-                strg = '^{+++}';
-            else
-                strg = '^{ns}';
-            end
-            %--
-            if anvs(2) < 0.05 && anvs(2) > 0.01
-                strs = '^{*}';
-            elseif anvs(2) <= 0.01 && anvs(2) > 0.001
-                strs = '^{**}';
-            elseif anvs(2) <= 0.001
-                strs = '^{***}';
-            else
-                strs = '^{ns}';
-            end
 
-            %## ASSIGN STATS
-            str = {[sprintf('%sf_{s}^{2}=%1.2f    %sf_{g}^{2}=%1.2f\nR^2=%1.2f', ...
-                strs,fsqs(1), ...
-                strg,fsqs(2), ...
-                tmp_stats.r2_c_int)],'',''};
-            %--
-            if anvs(3) > 0.05 && anvs(2) > 0.05
-                chkd = false;
-            else
-                chkd = true;
+        %## EXTRACT STATS INFO
+        params = [];        
+        params.group_chars = {'H1000','H2000','H3000'};
+        params.group_order = categorical({'1','2','3'});
+        params.model_char_int = 'speed_group_intact_all';
+        params.model_char_group = 'speed_group_all';
+        params.group_char = 'all';
+        %--
+        params.anv_chars_int = ANV_CHARS_INT;
+        params.anv_chars_group = ANV_CHARS_GROUP;
+        params.coeff_chars_int = COEFF_CHARS_INT;
+        params.coeff_chars_group = COEFF_CHARS_GROUP;
+        params.eeg_measure = EEG_MEASURES{meas_i};
+        params.kin_measure = 'none';
+        %--
+        [STATS_STRUCT,CONFINT_STRUCT,ranef] = extract_violin_stats(RSTATS_IMPORT,cl_n,params);
+
+        %## NORMALIZE DATA USING SUBJECT INTERCEPTS
+        if ~isempty(ranef.char)
+            for s_i = 1:length(ranef.char)
+                int = ranef.int(s_i);
+                ind = strcmp(ranef.char{s_i},tmp_fooof_t.subj_char);
+                tmp_fooof_t(ind,eeg_measure) = tmp_fooof_t(ind,EEG_MEASURES{meas_i})+int;
             end
-            CONFINT_STRUCT = struct('do_display',chkd, ...
-                    'y_bnds',cis, ...
-                    'x_vals',repmat(0,[3,1]), ...
-                    'errbar_struct',struct('line_specs',{{'LineStyle','-','LineWidth',2,'Color','k'}}, ...
-                        'err_bar_width',0.25));
-            tssc = struct('var_type','continuous', ...
-                'anova',anvs(2), ...
-                'multc_pvals',[],...
-                'multc_pvals_pairs',[],...
-                'regress_line',[[coeffs(1),coeffs(2)]; ...
-                    [coeffs(1)+coeffs(3),coeffs(2)]; ...
-                    [coeffs(1)+coeffs(4),coeffs(2)]], ... 
-                'line_type',{'best_fit'},... % ('best_fit' | 'means') % continuous predictors
-                'regress_xvals',(0:5)*0.25,... % continuous predictors
-                'order',{{}});
-            tssg = struct('var_type','categorical', ...
-                'anova',anvs(3), ...
-                'multc_pvals',[],...
-                'multc_pvals_pairs',[],...
-                'regress_line',[],... 
-                'line_type',{'best_fit'},... % ('best_fit' | 'means') % continuous predictors
-                'regress_xvals',0,... % continuous predictors
-                'order',{{}});
-            STATS_STRUCT = struct('sig_levels',[0.05,0.01,0.001],...
-                'cond_stats',tssc, ...
-                'group_stats',tssg, ...
-                'stats_char',struct('str',{str}, ...
-                    'offsets',[-0.1,-0.05], ...
-                    'font_size',9, ...
-                    'do_display',true));
-        else
-            %## USE INTERACTION MODEL
-            tmp_cc = strsplit(tmp_stats.coeff_chars{1},',');
-            tmp_fsq_chars = strsplit(tmp_stats.fsq_chars{1},',');
-            tmp_ci_chars = strsplit(tmp_stats.confint_chars{1},',');
-            tmp_coeffs = cellfun(@(x) double(string(x)),strsplit(tmp_stats.coeffs{1},','));
-            tmp_fsq = cellfun(@(x) double(string(x)),strsplit(tmp_stats.fsq_vals{1},','));
-            % tmp_em = cellfun(@(x) double(string(x)),strsplit(tmp_stats.emmeans{1},','));
-            tmp_ci_lwr = cellfun(@(x) double(string(x)),strsplit(tmp_stats.confint_lwr{1},','));
-            tmp_ci_upr = cellfun(@(x) double(string(x)),strsplit(tmp_stats.confint_upr{1},','));
-            %-- model coefficients       
-            coeffs = zeros(length(COEFF_CHARS_INT),1);        
-            for cc = 1:length(COEFF_CHARS_INT)
-                ind = strcmp(COEFF_CHARS_INT{cc},tmp_cc);
-                if ~isempty(ind)
-                    coeffs(cc) = tmp_coeffs(ind);              
-                else
-                    fprintf("Coefficient %s not found.\n",COEFF_CHARS_INT{cc})
-                end            
-            end        
-            %-- cohens f^2 values
-            fsq_chars = strcmp(ANV_CHARS_INT,'(Intercept)');
-            fsq_chars = ANV_CHARS_INT(~fsq_chars);
-            fsqs = zeros(length(fsq_chars),1);
-            for cc = 1:length(fsq_chars)
-                ind = strcmp(fsq_chars{cc},tmp_fsq_chars);
-                if ~isempty(ind)
-                    fsqs(cc) = tmp_fsq(ind);
-                else
-                    fprintf("Coefficient %s not found.\n",ANV_CHARS_INT{cc})
-                end
-            end
-            %-- confidence intervals
-            ci_chars = strcmp(g_chars,'(Intercept)');
-            ci_chars = g_chars(~ci_chars);
-            cis = zeros(length(ci_chars),1,2);
-            for cc = 1:length(ci_chars)
-                ind = strcmp(ci_chars{cc},tmp_ci_chars);
-                if ~isempty(ind)
-                    cis(cc,1,:) = [tmp_ci_lwr(ind),tmp_ci_upr(ind)];
-                else
-                    fprintf("Coefficient %s not found.\n",g_chars{cc})
-                end
-            end
-            %--
-            if anvs(4) < 0.05 && anvs(4) > 0.01
-                stri = '*';
-            elseif anvs(4) <= 0.01 && anvs(4) > 0.001
-                stri = '**';
-            elseif anvs(4) <= 0.001
-                stri = '***';
-            else
-                stri = '^{ns}';
-            end
-            %## ASSIGN STATS
-            str = {sprintf('%sf_{s:g}^{2}=%1.2f\nR^2=%1.2f', ...
-                stri,fsqs(3),tmp_stats.r2_c_int),'',''};
-            txt_sz = 9;
-            offs = [-0.1,-0.05];
-            %--
-            % str = {sprintf('%sm_{ya}=%1.2f  m_{ohf}=%1.2f  m_{olf}=%1.2f\nR^2=%1.2f', ...
-            %     stri,coeffs(2), ...
-            %     coeffs(2)+coeffs(5), ...
-            %     coeffs(2)+coeffs(6), ...
-            %     tmp_stats.r2_c_int),'',''};
-            % txt_sz = 9;
-            % offs = [-0.11,-0.05];
-            %--
-            % str = {sprintf('%sy=(%1.1f)x+(%1.1f)\nR^2=%1.2f',stri,coeffs(2),coeffs(1),tmp_stats.r2_c_int), ...
-            %     sprintf('y=(%1.1f)x+(%1.1f)',coeffs(2)+coeffs(5),coeffs(1)+coeffs(3)), ...
-            %     sprintf('y=(%1.1f)x+(%1.1f)',coeffs(2)+coeffs(6),coeffs(1)+coeffs(4))};
-            % txt_sz = 7;
-            % offs = [-0.11,-0.05];
-            %--
-            if anvs(4) > 0.05 && anvs(3) > 0.05
-                chkd = false;
-            else
-                chkd = true;
-            end
-            CONFINT_STRUCT = struct('do_display',chkd, ...
-                    'y_bnds',cis, ...
-                    'x_vals',repmat(0,[3,1]), ...
-                    'errbar_struct',struct('line_specs',{{'LineStyle','-','LineWidth',2,'Color','k'}}, ...
-                        'err_bar_width',0.25));
-            tssc = struct('var_type','continuous', ...
-                'anova',anvs(4), ...
-                'multc_pvals',[],...
-                'multc_pvals_pairs',[],...
-                'regress_line',[[coeffs(1),coeffs(2)]; ...
-                    [coeffs(1)+coeffs(3),coeffs(2)+coeffs(5)]; ...
-                    [coeffs(1)+coeffs(4),coeffs(2)+coeffs(6)]], ...
-                'line_type',{'best_fit'},... % ('best_fit' | 'means') % continuous predictors
-                'regress_xvals',(0:5)*0.25,... % continuous predictors
-                'order',{{}});
-            tssg = struct('var_type','categorical', ...
-                'anova',anvs(4), ...
-                'multc_pvals',[],...
-                'multc_pvals_pairs',[],...
-                'regress_line',[],... 
-                'line_type',{'best_fit'},... % ('best_fit' | 'means') % continuous predictors
-                'regress_xvals',0,... % continuous predictors
-                'order',{{}});
-            STATS_STRUCT = struct('sig_levels',[0.05,0.01,0.001],...
-                'cond_stats',tssc, ...
-                'group_stats',tssg, ...
-                'stats_char',struct('str',{str}, ...
-                    'offsets',[-0.1,-0.05], ...
-                    'font_size',txt_sz, ...
-                    'do_display',true));
         end
 
         %## PLOT

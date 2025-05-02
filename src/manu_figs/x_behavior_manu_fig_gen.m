@@ -107,15 +107,35 @@ CLUSTER_PICS = main_cl_inds;
 %% (LOAD STATISTICS & DATA EXCEL SHEET FROM R) ========================= %%
 %## FNAMES
 %-- r stats
+% fextr = 'allcond_perstridefb_mi_nfslidingb36_rerun';
+% 
+% %## IMPORT MEANSD DATA
+% fname = '03312025_lme_behav_kin_meansd_meansd_allcond_perstridefb_mi_nfslidingb36_rerun_tbl.xlsx';
+% KIN_TABLE = readtable([r_stats_dir filesep fname], ...
+%     "FileType","spreadsheet","UseExcel",true);
+% %-- r-stats
+% fname = '03312025_lme_behav_kin_meansd_allcond_perstridefb_mi_nfslidingb36_rerun_stats.xlsx';
+% RSTATS_IMPORT = readtable([r_stats_dir filesep fname], ...
+%     "FileType","spreadsheet","UseExcel",true);
+
+%## FNAMES
+%-- r stats
+% fextr = 'new_slidingb36';
 fextr = 'allcond_perstridefb_mi_nfslidingb36_rerun';
+% fextr = 'allcond_perstridefb_nfslidingb3';
+%## IMPORT DATA
+% KIN_TABLE = par_load(save_dir,sprintf('sbs_eeg_psd_%s.mat',fextr));
+% %-- r-stats
+% RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('03122025_lme_eeg_kin_%s_stats.xlsx',fextr)], ...
+%     "FileType","spreadsheet","UseExcel",true);
 
 %## IMPORT MEANSD DATA
-fname = '03312025_lme_behav_kin_meansd_meansd_allcond_perstridefb_mi_nfslidingb36_rerun_tbl.xlsx';
-KIN_TABLE = readtable([r_stats_dir filesep fname], ...
+% KIN_TABLE = readtable([r_stats_dir filesep sprintf('03122025_lme_eeg_kin_meansd_%s_tbl.xlsx',fextr)], ...
+%     "FileType","spreadsheet","UseExcel",true);
+KIN_TABLE = readtable([r_stats_dir filesep sprintf('03312025_lme_eeg_kin_meansd_%s_tbl.xlsx',fextr)], ...
     "FileType","spreadsheet","UseExcel",true);
 %-- r-stats
-fname = '03312025_lme_behav_kin_meansd_allcond_perstridefb_mi_nfslidingb36_rerun_stats.xlsx';
-RSTATS_IMPORT = readtable([r_stats_dir filesep fname], ...
+RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('03312025_lme_eeg_kin_meansd_%s_stats.xlsx',fextr)], ...
     "FileType","spreadsheet","UseExcel",true);
 %% MEASURES TO ANALYZE ================================================= %%
 xtick_label_c = {'0.25 m/s','0.50 m/s','0.75 m/s','1.0 m/s'};
@@ -309,16 +329,20 @@ EEG_MEASURE_LABS = {'Percent (%)', ...
 EEG_MEASURE_TITLES = {'COV Mediolateral Excursion', ...
     'COV Step Duration', ...
     'COV Stance Duration'};
-YLIMS =[0,0.5;0,0.3;0,0.3];
-YTICKS = {[-1e-8,0.1,0.2,0.3,0.4,0.5] ...
-    [-1e-8,0.1,0.2,0.3], ...
-    [-1e-8,0.1,0.2,0.3]};
-YTICK_LABS = {{'0','0.1','0.2','0.3','0.4','0.5'}, ...
-    {'0','0.1','0.2','0.3'}, ...
-    {'0','0.1','0.2','0.3'}};
+% YLIMS =[0,0.5;0,0.3;0,0.3];
+YLIMS =[0,50;0,22.5;0,22.5];
+% YTICKS = {[-1e-8,0.1,0.2,0.3,0.4,0.5] ...
+%     [-1e-8,0.1,0.2,0.3], ...
+%     [-1e-8,0.1,0.2,0.3]};
+YTICKS = {[-1e-8,0.1,0.2,0.3,0.4,0.5]*100, ...
+    [-1e-8,0.1,0.2]*100, ...
+    [-1e-8,0.1,0.2]*100};
+% YTICK_LABS = {{'0','0.1','0.2','0.3','0.4','0.5'}, ...
+%     {'0','0.1','0.2','0.3'}, ...
+%     {'0','0.1','0.2','0.3'}};
 YTICK_LABS = {{'0','10','20','30','40','50'}, ...
-    {'0','10','20','30'}, ...
-    {'0','10','20','30'}};
+    {'0','10','20'}, ...
+    {'0','10','20'}};
 %--
 x_shift = AX_INIT_X;   
 y_shift = AX_INIT_Y;
@@ -332,7 +356,20 @@ for e_i = 1:length(EEG_MEASURES)
     eeg_measure = EEG_MEASURES{e_i};
 
     %## SUB-SELECT DATA
-    tmp_tbl = KIN_TABLE;
+    subjs = unique(KIN_TABLE.subj_char);
+    conds = unique(KIN_TABLE.cond_char);
+    tmp_tbl = cell(length(subjs)*length(conds),1);
+    cnt = 1;
+    for s_i = 1:length(subjs)
+        for c_i = 1:length(conds)
+            ind = find(strcmp(KIN_TABLE.subj_char,subjs{s_i}) & ...
+                strcmp(KIN_TABLE.cond_char,conds{c_i}));
+            tmp_tbl{cnt} = KIN_TABLE(ind(1),:);
+            cnt = cnt + 1;
+        end
+    end
+    tmp_tbl = cat(1,tmp_tbl{:});
+    % tmp_tbl = KIN_TABLE;
     % tmp_tbl.(eeg_measure) = tmp_tbl.(eeg_measure)*100 % for cov fix
     % prc_ylim = [round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(1))-YLIM_FAC*std(tmp_tbl.(eeg_measure)),1),...
     %             round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(2))+YLIM_FAC*std(tmp_tbl.(eeg_measure)),1)];
@@ -352,7 +389,16 @@ for e_i = 1:length(EEG_MEASURES)
     params.coeff_chars_int = COEFF_CHARS_INT;
     params.coeff_chars_group = COEFF_CHARS_GROUP;
     %--
-    [STATS_STRUCT,CONFINT_STRUCT] = extract_violin_stats(RSTATS_IMPORT,0,params);
+    [STATS_STRUCT,CONFINT_STRUCT,ranef] = extract_violin_stats(RSTATS_IMPORT,0,params);
+    
+    %## NORMALIZE DATA USING SUBJECT INTERCEPTS
+    if ~isempty(ranef.char)
+        for s_i = 1:length(ranef.char)
+            int = ranef.int(s_i);
+            ind = strcmp(ranef.char{s_i},tmp_tbl.subj_char);
+            tmp_tbl(ind,eeg_measure) = tmp_tbl(ind,eeg_measure)-int;
+        end
+    end
 
     %## PLOT
     ax = axes();

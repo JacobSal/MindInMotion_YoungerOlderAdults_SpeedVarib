@@ -1,4 +1,4 @@
-function [STATS_STRUCT,CONFINT_STRUCT] = extract_violin_stats(rstats_table,cl_n,params)
+function [STATS_STRUCT,CONFINT_STRUCT,ranef] = extract_violin_stats(rstats_table,cl_n,params)
 %EXTRACT_VIOLIN_STATS Summary of this function goes here
 %   Detailed explanation goes here
 STR_OFFSET = [-0.1,-0.05];
@@ -75,6 +75,11 @@ if anvs(4) > 0.05
     % tmp_em = cellfun(@(x) double(string(x)),strsplit(tmp_stats.emmeans{1},','));
     tmp_ci_lwr = cellfun(@(x) double(string(x)),strsplit(tmp_stats.confint_lwr{1},','));
     tmp_ci_upr = cellfun(@(x) double(string(x)),strsplit(tmp_stats.confint_upr{1},','));
+    %-- rndm inter
+    tmp_ranef_char = cellfun(@(x) string(x),strsplit(tmp_stats.ran_effs_char{1},','));
+    tmp_ranef_n = cellfun(@(x) double(string(x)),strsplit(tmp_stats.ran_effs_n{1},','));
+    ranef = struct('char',tmp_ranef_char, ...
+        'int',tmp_ranef_n);
     %-- model coefficients       
     coeffs = zeros(length(params.coeff_chars_group),1);        
     for cc = 1:length(params.coeff_chars_group)
@@ -152,9 +157,33 @@ if anvs(4) > 0.05
     % regl =[[coeffs(1),coeffs(2)]; ...
     %         [coeffs(1)+coeffs(3),coeffs(2)]; ...
     %         [coeffs(1)+coeffs(4),coeffs(2)]];
-    regl = [[coeffs(1)+coeffs(3),coeffs(2)]; ...
-            [coeffs(1)+coeffs(4),coeffs(2)]; ...
-            [coeffs(1),coeffs(2)]];
+    % regl = [[coeffs(1)+coeffs(3),coeffs(2)]; ...
+    %         [coeffs(1)+coeffs(4),coeffs(2)]; ...
+    %         [coeffs(1),coeffs(2)]];
+    % params.g_coeff_inds(:,2) = 0;
+    % regl = zeros(size(params.g_coeff_inds,1),2);    
+    % for i = 1:size(params.g_coeff_inds,1)
+    %     %-- intercept
+    %     if params.g_coeff_inds(i,1) ~= 0
+    %         regl(i,1) = coeffs(1)+coeffs(params.g_coeff_inds(i,1));
+    %     else
+    %         regl(i,1) = coeffs(1);
+    %     end
+    %     %-- slope
+    %     if params.g_coeff_inds(i,2) ~= 0
+    %         regl(i,2) = coeffs(2)+coeffs(params.g_coeff_inds(i,2));
+    %     else
+    %         regl(i,2) = coeffs(2);
+    %     end
+    % end
+    %--
+    % regl = [[coeffs(1)+coeffs(3),coeffs(2)]; ... %lvl 1
+    %     [coeffs(1)+coeffs(4),coeffs(2)]; ...
+    %     [coeffs(1)-coeffs(3)-coeffs(4),coeffs(2)]]; %lvl 1=3
+    %--
+    regl = [[coeffs(1)+coeffs(3),coeffs(2)]; ... %lvl 1
+        [coeffs(1)+coeffs(4),coeffs(2)]; ...
+        [coeffs(1)-coeffs(3)-coeffs(4),coeffs(2)]]; %lvl 1=3
     tssc = struct('var_type','continuous', ...
         'anova',anvs(2), ...
         'multc_pvals',[],...
@@ -188,16 +217,49 @@ else
     % tmp_em = cellfun(@(x) double(string(x)),strsplit(tmp_stats.emmeans{1},','));
     tmp_ci_lwr = cellfun(@(x) double(string(x)),strsplit(tmp_stats.confint_lwr{1},','));
     tmp_ci_upr = cellfun(@(x) double(string(x)),strsplit(tmp_stats.confint_upr{1},','));
-    %-- model coefficients       
+    %-- rndm inter
+    tmp_ranef_char = cellfun(@(x) string(x),strsplit(tmp_stats.ran_effs_char{1},','));
+    tmp_ranef_n = cellfun(@(x) double(string(x)),strsplit(tmp_stats.ran_effs_n{1},','));
+    ranef = struct('char',tmp_ranef_char, ...
+        'int',tmp_ranef_n);
+    %-- model coefficients
+    % coeff_chars = strcmp(params.group_chars,'(Intercept)');
+    % coeff_chars = params.group_chars(~coeff_chars);    
+    % % params.coeff_chars_unmix = {'','group_char1','group_char2';'OHFA','OLFA','YA'};
+    % params.coeff_chars_unmix = {'(Intercept)','speed_cond_num','group_char1','group_char2','speed_cond_num:group_char1','speed_cond_num:group_char2'; ...
+    %     'OHFA','OHFA','OLFA','YA','OLFA','YA'};
+    % % coeffs = zeros(length(params.coeff_chars_int),1);
+    % coeffs = zeros(length(params.group_chars),length(params.coeff_chars_int));
+    % for cc = 1:length(params.coeff_chars_int)
+    %     ind = strcmp(params.coeff_chars_int{cc},tmp_cc);
+    %     %-- unmix
+    %     % unind = cellfun(@(x) contains(tmp_cc{ind},x) && ~isempty(x),params.coeff_chars_unmix(1,:));        
+    %     % bind = cellfun(@isempty,params.coeff_chars_unmix(1,:));
+    %     %--
+    %     unind = cellfun(@(x) strcmp(tmp_cc{ind},x),params.coeff_chars_unmix(1,:));
+    %     if any(unind) && ~isempty(ind)
+    %         unindun = strcmp(params.coeff_chars_unmix{2,unind},coeff_chars);
+    %         % tmp = tmp_coeffs(ind);
+    %         coeffs(unindun,cc) = tmp_coeffs(ind);
+    %     % elseif ~isempty(ind)
+    %     %     unindun = strcmp(params.coeff_chars_unmix{2,bind},coeff_chars);
+    %     %     coeffs(1,cc) = tmp_coeffs(ind); 
+    %     else
+    %         error("Coefficient %s not found.\n",params.coeff_chars_int{cc});            
+    %     end        
+    % end
+
+    %## EXTRACT MODEL PARAMS
+    %-- model coefficients
     coeffs = zeros(length(params.coeff_chars_int),1);        
     for cc = 1:length(params.coeff_chars_int)
         ind = strcmp(params.coeff_chars_int{cc},tmp_cc);
         if ~isempty(ind)
             coeffs(cc) = tmp_coeffs(ind);              
         else
-            fprintf("Coefficient %s not found.\n",params.coeff_chars_int{cc})
+            fprintf("Coefficient %s not found.\n",params.coeff_chars_group{cc})
         end            
-    end        
+    end  
     %-- cohens f^2 values
     fsq_chars = strcmp(params.anv_chars_int,'(Intercept)');
     fsq_chars = params.anv_chars_int(~fsq_chars);
@@ -265,9 +327,34 @@ else
     % regl = [[coeffs(1)+coeffs(3),coeffs(2)]; ...
     %         [coeffs(1)+coeffs(4),coeffs(2)]; ...
     %         [coeffs(1),coeffs(2)]];
-    regl = [[coeffs(1)+coeffs(3),coeffs(2)+coeffs(5)]; ...
-            [coeffs(1)+coeffs(4),coeffs(2)+coeffs(6)]; ...
-            [coeffs(1),coeffs(2)]];
+    % regl = [[coeffs(1)+coeffs(3),coeffs(2)+coeffs(5)]; ...
+    %         [coeffs(1)+coeffs(4),coeffs(2)+coeffs(6)]; ...
+    %         [coeffs(1),coeffs(2)]];
+    % regl = [[coeffs(1)+coeffs(3),coeffs(2)]; ...
+    %         [coeffs(1)+coeffs(4),coeffs(2)]; ...
+    %         [coeffs(1),coeffs(2)]];
+    % params.g_coeff_inds(:,2) = 0;
+    % regl = zeros(size(params.g_coeff_inds,1),2);    
+    % for i = 1:size(params.g_coeff_inds,1)
+    %     %-- intercept
+    %     if params.g_coeff_inds(i,1) ~= 0
+    %         regl(i,1) = coeffs(1)+coeffs(params.g_coeff_inds(i,1));
+    %     else
+    %         regl(i,1) = coeffs(1);
+    %     end
+    %     %-- slope
+    %     if params.g_coeff_inds(i,2) ~= 0
+    %         regl(i,2) = coeffs(2)+coeffs(params.g_coeff_inds(i,2));
+    %     else
+    %         regl(i,2) = coeffs(2);
+    %     end
+    % end
+    % regl = [[coeffs(1)+coeffs(3)-coeffs(4),coeffs(2)+coeffs(5)-coeffs(6)]; ... %lvl 1
+    %     [coeffs(1)+coeffs(3)+coeffs(4),coeffs(2)+coeffs(5)+coeffs(6)]; ...
+    %     [coeffs(1)-coeffs(3)-coeffs(4),coeffs(2)-coeffs(5)-coeffs(6)]]; %lvl 1=3
+    regl = [[coeffs(1)+coeffs(3),coeffs(2)+coeffs(5)]; ... %lvl 1
+        [coeffs(1)+coeffs(4),coeffs(2)+coeffs(6)]; ...
+        [coeffs(1)-coeffs(3)-coeffs(4),coeffs(2)-coeffs(5)-coeffs(6)]]; %lvl 1=3
     tssc = struct('var_type','continuous', ...
         'anova',anvs(4), ...
         'multc_pvals',[],...

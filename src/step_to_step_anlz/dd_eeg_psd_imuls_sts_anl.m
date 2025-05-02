@@ -215,7 +215,18 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
     try
         EEG = pop_loadset('filepath',tmp_sbs_study.datasetinfo(subj_i).filepath,'filename',tmp_sbs_study.datasetinfo(subj_i).filename);
         subj_ind = strcmp(EEG.subject,{tmp_cl_study.datasetinfo.subject});
-        fprintf('Running subject %s...\n',EEG.subject);             
+        fprintf('Running subject %s...\n',EEG.subject);     
+        %-- load icaact
+        % tmpf = strsplit(tmp_sbs_study.datasetinfo(subj_i).filename,'.');
+        % tmpf{2} = 'fdt';
+        % tmp_dat = strjoin(tmpf,'.');
+        % fprintf('Running Subject %s\n',EEG.subject);
+        % EEG = eeg_checkset(EEG,'loaddata');
+        % if isempty(EEG.icaact)
+        %     fprintf('%s) Recalculating ICA activations\n',EEG.subject);
+        %     EEG.icaact = (EEG.icaweights*EEG.icasphere)*EEG.data(EEG.icachansind,:);
+        %     EEG.icaact = reshape(EEG.icaact, size(EEG.icaact,1), EEG.pnts, EEG.trials);
+        % end        
     catch e
         fprintf('%s',getReport(e));
         continue
@@ -277,8 +288,9 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
             %-- stores
             tmp_psd = zeros(length(f_ind),size(eeg_psd,2),size(eeg_psd,3));    
             tmp_psd_std = zeros(length(f_ind),size(eeg_psd,2),size(eeg_psd,3));
-            tmp_ap = zeros(2,size(eeg_psd,2),size(eeg_psd,3));
+            tmp_ap_mu = zeros(2,size(eeg_psd,2),size(eeg_psd,3));
             tmp_ap_std = zeros(2,size(eeg_psd,2),size(eeg_psd,3));
+            tmp_ap_cov = zeros(2,size(eeg_psd,2),size(eeg_psd,3));
             tmp_covt = zeros(1,size(eeg_psd,2),size(eeg_psd,3));
             tmp_cova = zeros(1,size(eeg_psd,2),size(eeg_psd,3));
             tmp_covb = zeros(1,size(eeg_psd,2),size(eeg_psd,3));
@@ -297,7 +309,7 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                 'indices',[]);
             cond_struct = def_cond_struct;
             ttim = tic();
-            for ct = 1:size(nolog_eeg_psd,3)
+            for ct = 1:2 %size(nolog_eeg_psd,3)
                 %## GET DATA
                 tmpp_raw = zeros(length(f_ind),size(eeg_psd,2),1); 
                 tmpap_raw = zeros(2,size(eeg_psd,2),1); 
@@ -305,6 +317,7 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                 tmpp_std = zeros(length(f_ind),size(eeg_psd,2),1); 
                 tmpap_mu = zeros(2,size(eeg_psd,2),1); 
                 tmpap_std = zeros(2,size(eeg_psd,2),1);
+                tmpap_cov = zeros(2,size(eeg_psd,2),1);
                 tmpp_cov_theta = zeros(1,size(eeg_psd,2),1);
                 tmpp_cov_alpha = zeros(1,size(eeg_psd,2),1);
                 tmpp_cov_beta = zeros(1,size(eeg_psd,2),1);
@@ -365,17 +378,25 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                         tmpap_mu(2,cnt) = mean(ap_tmp(2,slides(i):(slides(i+1)-1)),2);
                         tmpap_std(2,cnt) = std(ap_tmp(2,slides(i):(slides(i+1)-1)),[],2);
                         % tmpap_std(2,cnt) = std(ap_tmp(2,slides(i):(slides(i+1)-1)),[],2)/sqrt(NUM_STRIDES_AVG);
-                        %-- cov
+                        
+                        %## COV
+                        %-- theta
                         tmp = squeeze(mean(spec_in(tband,:),1));
                         % tmp = squeeze(median(spec_in(tband,:),1));
                         tmpp_cov_theta(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % theta
+                        %-- beta
                         tmp = squeeze(mean(spec_in(bband,:),1));
                         % tmp = squeeze(median(spec_in(bband,:),1));
                         tmpp_cov_beta(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % beta
+                        %-- alpha
                         tmp = squeeze(mean(spec_in(aband,:),1));
                         % tmp = squeeze(median(spec_in(aband,:),1));
                         tmpp_cov_alpha(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % alpha
-                        %-- qcv
+                        %-- ap meas.
+                        tmpap_cov(2,cnt) = tmpap_std(2,cnt)/tmpap_mu(2,cnt);
+                        tmpap_cov(1,cnt) = tmpap_std(1,cnt)/tmpap_mu(1,cnt); 
+
+                        %## QCV
                         tmp = squeeze(median(spec_in(tband,:),1));
                         tmp50 = squeeze(prctile(tmp,50));                        
                         tmp25 = squeeze(prctile(tmp,25));
@@ -396,7 +417,7 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                         tmpp_qcv_alpha(1,cnt) = ((tmp75-tmp25)/(tmp75+tmp25))*100; % alpha
                         %--
                         if ct == 1 && cnt == 1
-                            fname_ext{ff} = sprintf('std_mi_nfslidingb%i',NUM_STRIDES_AVG);
+                            fname_ext{ff} = sprintf('apfix_std_mi_nfslidingb%i',NUM_STRIDES_AVG);
                             ff = ff + 1;
                         end
                         cond_struct(cnt).cond = tmp_conds{c_i};
@@ -423,11 +444,15 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                 %--
                 chk = all(tmpap_mu==0);
                 tmpap_mu = tmpap_mu(:,~chk); 
-                tmp_ap(:,1:size(tmpap_mu,2),ct) = tmpap_mu;
+                tmp_ap_mu(:,1:size(tmpap_mu,2),ct) = tmpap_mu;
                 %--
                 chk = all(tmpap_std==0);
                 tmpap_std = tmpap_std(:,~chk); 
                 tmp_ap_std(:,1:size(tmpap_std,2),ct) = tmpap_std;
+                %--
+                chk = all(tmpap_cov==0);
+                tmpap_cov = tmpap_cov(:,~chk); 
+                tmp_ap_cov(:,1:size(tmpap_cov,2),ct) = tmpap_cov;
                 %--
                 chk = (tmpp_cov_alpha==0);
                 tmpp_cov_alpha = tmpp_cov_alpha(:,~chk); 
@@ -465,8 +490,9 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
             %-- delete 0'd events
             tmp_psd = tmp_psd(:,inds_store{1},:);
             tmp_psd_std = tmp_psd_std(:,inds_store{1},:);
-            tmp_ap = tmp_ap(:,inds_store{1},:);
+            tmp_ap_mu = tmp_ap_mu(:,inds_store{1},:);
             tmp_ap_std = tmp_ap_std(:,inds_store{1},:);
+            tmp_ap_cov = tmp_ap_cov(:,inds_store{1},:);
             tmp_cova = tmp_cova(:,inds_store{1},:);
             tmp_covb = tmp_covb(:,inds_store{1},:);
             tmp_covt = tmp_covt(:,inds_store{1},:);
@@ -501,8 +527,9 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
             %## PSD DATA SAVE
             psd_struct = struct('psd_mean',tmp_psd, ...
                 'psd_std',tmp_psd_std, ...
-                'ap_mean',tmp_ap, ...
+                'ap_mean',tmp_ap_mu, ...
                 'ap_std',tmp_ap_std, ...
+                'ap_cov',tmp_ap_cov, ...
                 'cond_struct',cond_struct, ...
                 'freqs',fooof_freqs, ...
                 'indx_to_comp',comp_arr, ...
@@ -552,96 +579,176 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
             
             %## EXAMPLE PIPELINE FIGURE
             %{
-            PLOT_STRUCT = struct('y_label',{'10*log_{10}(PSD)'},...
-                'y_label_fontsize',10,...
-                'y_label_fontweight','bold',...
+            PLOT_STRUCT = struct( ...
                 'ylim',[],...
+                'y_label',{'10*log_{10}(PSD)'},...
+                'do_set_ax_props',true, ...
+                'y_label_props',{{ ...
+                    'Units','Normalized', ...
+                    'FontSize',8, ...
+                    'FontWeight','bold', ...
+                    }}, ...
+                'xlim',[fooof_freqs(1),fooof_freqs(end)],...
                 'x_label',{'Frequency (Hz)'},...
-                'x_label_fontsize',10,...
-                'x_label_fontweight','bold',...
-                'x_label_yoffset',0,...
+                'x_label_props',{{ ...
+                    'Units','Normalized', ...
+                    'FontSize',8, ...
+                    'FontWeight','bold', ...
+                    }}, ...
+                'x_label_yoffset',-0.1,...
                 'xtick_labs',{{}}, ...
                 'xticks',[], ...
-                'xlim',[f_range],...
+                'xtick_angle',45, ...
                 'title',{{''}},...
-                'title_fontsize',12,...
-                'title_fontweight','normal',...
-                'font_size',10,...
-                'font_name','Arial',...
-                'ax_position',[0.125,0.125,0.7,0.7],...
-                'ax_line_width',1,...
-                'xtick_angle',45);
+                'title_props',{{ ...
+                    'Units','Normalized', ...
+                    'FontSize',8, ...
+                    'FontWeight','bold', ...
+                    }}, ...
+                'ax_props',{{...
+                    'box','off', ...
+                    'LineWidth',2, ...
+                    'FontName','Arial', ...
+                    'FontSize',8, ...
+                    'OuterPosition',[0 0 1 1], ...
+                    'Position',[0.125,0.125,0.7,0.7]}});
             LINE_STRUCT = struct('do_line_avg',false, ...
-                'line_width',2, ...
-                'line_style','-', ...
-                'line_alpha',0.7, ...
-                'line_color',[1,1,1], ...
-                'line_label',{'label'}, ...
-                'line_avg_fcn',@(x) mean(x,2), ...
+                'line_props',{{ ...
+                    'LineWidth',2, ...
+                    'LineStyle','-', ...
+                    'DisplayName','line', ...
+                    'Color',[0.5,0.5,0.5,0.5], ...
+                    }}, ...
+                'line_avg_fcn',@(x) mean(x,1), ...
                 'do_err_shading',true, ...
-                'err_alpha',0.2, ...
-                'err_color',[0.5,0.5,0.5], ...
-                'err_edge_color',[], ...
-                'err_bnd_vec',[], ...
-                'err_line_style',':', ...
-                'err_line_width',3);
+                'err_props',{{ ...
+                    'LineStyle',':', ...
+                    'LineWidth',2, ...
+                    'FaceAlpha',0.6, ...
+                    'EdgeColor','none', ...
+                    'FaceColor',[0.5,0.5,0.5]}}, ...
+                'err_bnd_vec',[]);
             %--
             i = 1;
             c_i = 1;
             cl_i = clusts(i);
             comp_n = size(nolog_eeg_psd,3); %comp_arr(1,comp_arr(3,:) == cl_i);
-            %--
-            fig = figure;
-            ax = axes();
+            % %--
+            % fig = figure;
+            % ax = axes();
             for c_i = 1 %:length(tmp_conds)
+                %%
+                fig = figure;
+                ax = axes();
                 tmp_plot_struct = PLOT_STRUCT;
                 tmp_line_struct = LINE_STRUCT;
                 inds_cond = cellfun(@(x) any(strcmp(x,tmp_conds{c_i})),{cond_struct.cond});
                 tmp_c = cond_struct(inds_cond);
                 inds_cond = find(inds_cond);
                 %--
-                psd_in_c = tmp_psd(:,inds_cond(1),comp_n);
+                psd_in_c = tmp_psd(:,inds_cond(1),comp_n);                
                 % psd_in_c = tmp_psd_std(:,inds_cond(1),comp_n);
                 %--
                 % psd_in_c = squeeze(tmpp_raw(:,[tmp_c.indices]));
                 %--
-                % ap_cos = squeeze(tmpap_raw(:,[tmp_c.indices]));
-                % psd_in_c = 10.*log10(squeeze(nolog_eeg_psd(f_ind,[tmp_c.indices],comp_n)));
-                % psd_ap = zeros(size(psd_in_c));
+                ap_cos = squeeze(tmpap_raw(:,[tmp_c.indices]));
+                chansi = randi(size(ap_cos,2),[1,1]);
+                ap_cos = ap_cos(:,chansi);
+                %--
+                psd_in_c = 10.*log10(squeeze(nolog_eeg_psd(f_ind,[tmp_c.indices],comp_n)));
+                psd_in_c = psd_in_c(:,chansi,:);
+                %--
+                psd_ap = zeros(size(psd_in_c,1),3);
+                % expm = 1;
+                % km = 1;
+                % offm = 1;
                 % for cc = 1:size(ap_cos,2)
-                %     psd_ap(:,cc) = 10*(ap_cos(1,cc)-log10(params.freqs.^(ap_cos(2,cc))));
+                %     % psd_ap(:,cc) = 10*(ap_cos(1,cc)-log10(params.freqs.^(ap_cos(2,cc))));
+                %     psd_ap(:,cc) = 10*(ap_cos(1,cc)*offm-log10(km+params.freqs.^(ap_cos(2,cc)*expm)));
                 % end
+                cc=1;
+                expm = 1;
+                km = 0;
+                offm = 1;
+                psd_ap(:,cc) = 10*(ap_cos(1,1)*offm-log10(km+params.freqs.^(ap_cos(2,1)*expm)));
+                cc=2;
+                expm = 1.3;
+                km = 0;
+                offm = 1;
+                psd_ap(:,cc) = 10*(ap_cos(1,1)*offm-log10(km+params.freqs.^(ap_cos(2,1)*expm)));
+                cc=3;
+                expm = 1;
+                km = 0;
+                offm = 1.3;
+                psd_ap(:,cc) = 10*(ap_cos(1,1)*offm-log10(km+params.freqs.^(ap_cos(2,1)*expm)));
                 %--
                 % psd_in_c = psd_in_c(:,1:36);
                 % psd_ap = psd_ap(:,1:36)
                 %--
                 % mui = psd_in_c; 
-                mui = mean(psd_in_c,2);
-                stdi = std(psd_in_c,[],2);
-                tmp_line_struct.err_bnd_vec = [mui+stdi/sqrt(size(stdi,2)), ...
-                    mui-stdi/sqrt(size(stdi,2))];
-                %--
+                % % mui = mean(psd_in_c,2);
+                % stdi = std(psd_in_c,[],2);
                 % tmp_line_struct.do_err_shading = false;
-                tmp_line_struct.line_color = params.cmaps(c_i,:);
-                tmp_line_struct.line_label = params.xtick_label{c_i};
-                tmp_line_struct.err_color = params.cmaps(c_i,:);
-                tmp_line_struct.line_width = 3;
-                %## PLOT PSD
-                [~,~,Li] = plot_psd(ax,mui,params.freqs, ...
-                    'LINE_STRUCT',tmp_line_struct, ...
-                    'PLOT_STRUCT',tmp_plot_struct);
-                %--
-                % % mui = psd_ap;
-                % mui = mean(psd_ap,2);
-                % stdi = std(psd_ap,[],2);
                 % tmp_line_struct.err_bnd_vec = [mui+stdi/sqrt(size(stdi,2)), ...
                 %     mui-stdi/sqrt(size(stdi,2))];
-                % tmp_line_struct.line_style = '--';
-                % tmp_line_struct.line_width = 2;
+                % %--
+                % % tmp_line_struct.do_err_shading = false;
+                % tmp_line_struct.line_props = { ...
+                %     'LineWidth',2, ...
+                %     'LineStyle','-', ...
+                %     'DisplayName',params.xtick_label{c_i}, ...
+                %     'Color',[params.cmaps(c_i,:),0.6], ...
+                %     };
+                % % tmp_line_struct.line_color = [cmaps(c_i,:),0.65];
+                % tmp_line_struct.err_props = { ...
+                %     'LineStyle',':', ...
+                %     'LineWidth',3, ...
+                %     'FaceAlpha',0.6, ...
+                %     'EdgeColor','none', ...
+                %     'FaceColor',params.cmaps(c_i,:)};
+                % %## PLOT PSD
+                % [~,~,Li] = plot_psd(ax,mui,params.freqs, ...
+                %     'LINE_STRUCT',tmp_line_struct, ...
+                %     'PLOT_STRUCT',tmp_plot_struct);
+                %--
+                % mui = psd_ap;
+                % % mui = mean(psd_ap,2);
+                % stdi = std(psd_ap,[],2);
+                % tmp_line_struct.do_err_shading = false;
+                % tmp_line_struct.err_bnd_vec = [mui+stdi/sqrt(size(stdi,2)), ...
+                %     mui-stdi/sqrt(size(stdi,2))];
+                % tmp_line_struct.line_props = { ...
+                %     'LineWidth',2, ...
+                %     'LineStyle','--', ...
+                %     'DisplayName',params.xtick_label{c_i}, ...
+                %     'Color',[params.cmaps(c_i,:),0.6], ...
+                %     };
                 % [~,~,Li] = plot_psd(ax,mui,params.freqs, ...
                 %     'LINE_STRUCT',tmp_line_struct, ...
                 %     'PLOT_STRUCT',tmp_plot_struct);
                 % hold on;
+                % ylim([-30,-5]);
+                
+                %##
+                cmaps = linspecer(3);
+                for cc= 1:3
+                    % psd_ap(:,cc) = 10*(ap_cos(1,1)*offm-log10(km+params.freqs.^(ap_cos(2,1)*expm)));
+                    mui = psd_ap(:,cc);
+                    tmp_line_struct.do_err_shading = false;
+                    tmp_line_struct.line_props = { ...
+                        'LineWidth',2, ...
+                        'LineStyle','--', ...
+                        'DisplayName',sprintf('%i',cc), ...
+                        'Color',[cmaps(cc,:),0.6], ...
+                        };
+                    [~,~,Li] = plot_psd(ax,mui,params.freqs, ...
+                        'LINE_STRUCT',tmp_line_struct, ...
+                        'PLOT_STRUCT',tmp_plot_struct);
+                end
+                legend();
+                hold on;
+                ylim([-30,-5]);
+                % title(sprintf('offm=%0.1f, km=%0.1f, expm=%0.1f',offm,km,expm));
             end
             %--
             exportgraphics(fig,[EEG.filepath filesep strjoin(tmp_fext,'_') filesep sprintf('%i_ap_fit_1stride_ex4-5.pdf',cl_i)], ...
@@ -649,6 +756,7 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
             exportgraphics(fig,[EEG.filepath filesep strjoin(tmp_fext,'_') filesep sprintf('%i_ap_fit_1stride_ex4-5.tiff',cl_i)], ...
                 'Resolution',900);
             %}
+            
             %%
             %## EXTRACT IMU DATA
             fprintf('Performing gait kinematic calculations...\n');
@@ -964,11 +1072,14 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                             % fprintf('%s) theta QCV: mu = %0.2f, std = %0.2f\n',conds{cond_i},mean([steps_struct.qcv_i_avg_theta]),std([steps_struct.qcv_i_avg_theta]))
                             % fprintf('%s) alpha QCV: mu = %0.2f, std = %0.2f\n',conds{cond_i},mean([steps_struct.qcv_i_avg_alpha]),std([steps_struct.qcv_i_avg_alpha]))
                             % fprintf('%s) beta QCV: mu = %0.2f, std = %0.2f\n',conds{cond_i},mean([steps_struct.qcv_i_avg_beta]),std([steps_struct.qcv_i_avg_beta]))
+                            
                             %## AP PARAMS
-                            steps_struct(cnt).mu_ap_exponent = mean(tmp_ap(2,tmp_cs(iii).ind,comp_n),2);
-                            steps_struct(cnt).std_ap_exponent = std(tmp_ap_std(2,tmp_cs(iii).ind,comp_n),[],2);
-                            steps_struct(cnt).mu_ap_offset = mean(tmp_ap(1,tmp_cs(iii).ind,comp_n),2);
-                            steps_struct(cnt).std_ap_offset = std(tmp_ap_std(1,tmp_cs(iii).ind,comp_n),[],2);
+                            steps_struct(cnt).mu_ap_exponent = squeeze(mean(tmp_ap_mu(2,tmp_cs(iii).ind,comp_n),2));
+                            steps_struct(cnt).std_ap_exponent = squeeze(mean(tmp_ap_std(2,tmp_cs(iii).ind,comp_n),2));
+                            steps_struct(cnt).mu_ap_offset = squeeze(mean(tmp_ap_mu(1,tmp_cs(iii).ind,comp_n),2));
+                            steps_struct(cnt).std_ap_offset = squeeze(mean(tmp_ap_std(1,tmp_cs(iii).ind,comp_n),2));
+                            steps_struct(cnt).cov_ap_exponent = squeeze(mean(tmp_ap_cov(2,tmp_cs(iii).ind,comp_n),2));
+                            steps_struct(cnt).cov_ap_offset = squeeze(mean(tmp_ap_cov(1,tmp_cs(iii).ind,comp_n),2));
                             %--
                             cnt = cnt + 1;
                         end

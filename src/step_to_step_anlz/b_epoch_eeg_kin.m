@@ -305,7 +305,13 @@ parfor subj_i = 1:length(subj_chars)
             urreject.ic_rej = tmp_bad;
             urreject.dipfit = [];
             %}
-            tmp = pop_select(tmp,'channel',sort([ics_keep, biom_chans]));
+            tt = tmp;
+            % tmp = pop_select(tmp,'channel',sort([ics_keep, biom_chans]));
+            tmp = pop_subcomp(tmp,ics_keep,0,1);
+            %(04/28/2025) JS, this may have led to issues later on where I
+            %have the IMU data, but the .icaact didn't get corrected and
+            %still contains all the components. May need some adjustments
+            %in later scripts, but unsure.
             tmp.etc.urreject = urreject;
             
             %## REASSIGN

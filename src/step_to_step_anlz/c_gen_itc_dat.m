@@ -167,97 +167,13 @@ disp(['Grand average (across all subj) warp to: ',num2str(averaged_warpto_events
 %--
 CL_STUDY.cluster = cl_struct;
 %% ERSP
-SRATE = 500;
-WINDOW_LEN = 500; %ms (for cycle=[3,0.8], the largest window len is usually around 500
-WINDOW_SLIDE = 25; %ms
-spin = SRATE*(sp/1000);
-nt = length(4500)/spin;
-lf = floor(pi()*(SRATE/(WINDOW_LEN)));   
-MAX_CL_NUM = 14;
-MOD_CHARS = {{'flat','low','med','high'},{'0p25','0p5','0p75','1p0'}};
-TF_DAT_STRUCT = struct(...
-        'subj_char',{''}, ...
-        'group_char',{''}, ...
-        'cond_char',{''}, ...
-        'mod_n',[], ...
-        'comp_n',[], ...
-        'cluster_n',[], ...
-        'itc_dat',[], ...
-        'itc_times',[], ...
-        'itc_freqs',[] ...
-        );
-%-- newtimef func params
-NTF_STRUCT = struct(...
-    'timewindow',[], ...
-    'timewarp',[], ...
-    'timewarpms',[], ...
-    'ntimesout',floor(SRATE/2), ...
-    'pointrange',[], ...
-    'baseline',nan(), ...
-    'timelimits',[], ...
-    'freqs',[4,SRATE/2], ...
-    'itctype','phasecoher', ...  % this is the measure AS used
-    'freqscale','log', ...
-    'do_plot_ersp',false, ...
-    'do_plot_itc',false, ...
-    'do_plot_phase',false, ...
-    'do_single_dat',true, ...
-    'do_timewarp',true, ...
-    'cycles',[3,0.8], ...
-    'padratio',2^2, ...
-    'nfreqs',floor(SRATE/pi()), ...
-    'alpha',nan(), ...
-    'srate',SRATE ...
-);
-DAT_FEXT = 'allersp';
-
-%## GET ITERS
-%-- iters
-iters = zeros(length(CL_STUDY.datasetinfo)*30,3);
-%-- data store
-sdinfo = {CL_STUDY.datasetinfo.subject};
-scinfo = CL_STUDY.cluster;
-%-- iter assign
-cnt = 1;
-for s_i = 1:length(CL_STUDY.datasetinfo)
-    sc = CL_STUDY.datasetinfo(s_i).subject;
-    tmp = scinfo(1);
-    tc = tmp.comps;
-    ts = tmp.sets;
-    tcn = tc(ts == s_i);
-    for k_i = 1:length(tcn)
-        cc = false;
-        cl_i = 2;
-        while ~any(cc) && cl_i < length(scinfo)
-            cl_i = cl_i + 1;
-            ind = find(strcmp(sc,sdinfo));
-            ind = scinfo(cl_i).sets == ind;
-            cc = scinfo(cl_i).comps(ind) == k_i;                
-        end
-        iters(cnt,1) = cl_i;
-        iters(cnt,2) = k_i;
-        iters(cnt,3) = s_i;
-        cnt = cnt + 1;
-    end
-end
-inds = all(iters == 0,2) | iters(:,1) > MAX_CL_NUM;
-iters = iters(~inds,:);
 % parfor s_i = 1:length(SBS_STUDY.datasetinfo)
-parfor i = 1:size(iters,1)
+for s_i = 1:length(CL_STUDY.datasetinfo)
     %## PARAM COPIES
-    tmpi = iters;
-    cl_i = tmpi(i,1);
-    k_i = tmpi(i,2);
-    s_i = tmpi(i,3);
+    % tmp_study_sbs = SBS_STUDY;
     tmp_cl_study = CL_STUDY;
-    tmp_ersp_params = ERSP_PARAMS;
-    tmp_ntf_struct = NTF_STRUCT;
-    tmp_tfd_struct = TF_DAT_STRUCT;
-    %--
-    tt = tic();
-    fprintf('%s) Running ITC calculation:\n',tmp_cl_study.datasetinfo(s_i).subject);
-
-    %-- storage
+    % tmp_ersp_params = ERSP_PARAMS;
+    % tmp_ntf_struct = NEWTIMEF_STRUCT;
     try
         EEG = pop_loadset('filepath',tmp_cl_study.datasetinfo(s_i).filepath, ...
             'filename',tmp_cl_study.datasetinfo(s_i).filename);
@@ -268,8 +184,16 @@ parfor i = 1:size(iters,1)
             EEG.icaact = (EEG.icaweights*EEG.icasphere)*EEG.data(EEG.icachansind,:);
             EEG.icaact = reshape(EEG.icaact, size(EEG.icaact,1), EEG.pnts, EEG.trials);
         end
-        EEG.icaact = EEG.icaact(k_i,:,:);
         ics_calc = EEG.etc.urreject.ic_keep;
+        EEG.data = double.empty;
+        % dat_in = EEG.icaact(ics_calc,:,:);
+        % EEG.icaact = dat_in;
+        % dat_in = double.empty;
+        %(04/28/2025) JS, overriding EEG.icaact due to a bug higher up (or
+        %purposeful overlook?) where I use pop_select instead of
+        %pop_subcomp... If I try to load icaact it just gives me 0's
+        % Just using cluster study for now. May need to fix
+        % later.
 
         %## PARAMETERS IN
         tlimits = [EEG(1).xmin EEG(1).xmax]*1000;
@@ -277,63 +201,182 @@ parfor i = 1:size(iters,1)
         pointrange2 = round(min(((tlimits(2)+1000/EEG(1).srate)/1000-EEG(1).xmin)*EEG(1).srate, EEG(1).pnts));
         pointrange = (pointrange1:pointrange2);
         
+        %-- storage
+        MOD_CHARS = {{'flat','low','med','high'},{'0p25','0p5','0p75','1p0'}};
+        ITC_DAT_STRUCT = struct(...
+            'subj_char',{''}, ...
+            'group_char',{''}, ...
+            'cond_char',{''}, ...
+            'mod_n',[], ...
+            'comp_n',[], ...
+            'cluster_n',[], ...
+            'itc_dat',[], ...
+            'itc_times',[], ...
+            'itc_freqs',[] ...
+            );
+        
         %-- newtimef func params
-        tmp_ntf_struct.timewarp =  EEG.timewarp.latencies;
-        tmp_ntf_struct.timewarpms = averaged_warpto_events;
-        tmp_ntf_struct.timelimits = [EEG(1).xmin,EEG(1).xmax]*1000;
-        tmp_ntf_struct.pointrange = pointrange;
+        NTF_STRUCT = struct(...
+            'timewindow',[], ...
+            'timewarp',EEG.timewarp.latencies, ...
+            'timewarpms',averaged_warpto_events, ...
+            'ntimesout',ceil((1/3)*EEG.srate), ...
+            'pointrange',pointrange, ...
+            'baseline',nan(), ...
+            'timelimits',[EEG(1).xmin,EEG(1).xmax]*1000, ...
+            'freqs',[3,EEG.srate/2], ... 
+            'itctype','phasecoher', ...  % this is the measure AS used
+            'freqscale','log', ...
+            'do_plot_ersp',false, ...
+            'do_plot_itc',false, ...
+            'do_plot_phase',false, ...
+            'do_single_dat',false, ...
+            'do_timewarp',false, ...
+            'cycles',[3,0.8], ...
+            'padratio',2^2, ...
+            'nfreqs',EEG.srate/pi(), ...
+            'alpha',nan(), ...
+            'srate',EEG.srate ...
+        );
 
         %-- get conditiion info
+        cond_chars = unique({EEG.event.cond});
         ind = find(strcmp(EEG.subject,{tmp_cl_study.datasetinfo.subject}));
-        trialinfo = std_combtrialinfo(tmp_cl_study.datasetinfo,ind);      
+        trialinfo = std_combtrialinfo(tmp_cl_study.datasetinfo,ind);
+        %-- iters
+        itersk = zeros(size(EEG.icaact,1)*length(cond_chars),1);
+        itersc = zeros(size(EEG.icaact,1)*length(cond_chars),1);
+        iterscl = zeros(size(EEG.icaact,1)*length(cond_chars),1);
+        %-- data store
+        itc_dato = cell(size(EEG.icaact,1)*length(cond_chars),1);
+        sdinfo = {tmp_cl_study.datasetinfo.subject};
+        scinfo = tmp_cl_study.cluster;
+        %-- iter assign
+        cnt = 1; 
+        for k_i = 1:size(EEG.icaact,1)
+            for c_i = 1:length(cond_chars)
+                cc = false;
+                cl_i = 2;
+                while ~any(cc) && cl_i < length(scinfo)
+                    cl_i = cl_i + 1;
+                    ind = find(strcmp(EEG.subject,sdinfo));
+                    ind = scinfo(cl_i).sets == ind;
+                    cc = scinfo(cl_i).comps(ind) == k_i;                
+                end
+                iterscl(cnt) = cl_i;
+                itersk(cnt) = k_i;
+                itersc(cnt) = c_i;
+                cnt = cnt + 1;
+            end
+        end        
         %--
         fprintf('%s) Running ITC calculation:\n',EEG.subject);
+        %-- extract pertenate EEG data
+        EEG = struct('icaact',EEG.icaact, ...
+            'times',EEG.times, ...
+            'filepath',EEG.filepath, ...
+            'filename',EEG.filename, ...
+            'timewarp',EEG.timewarp, ...
+            'srate',500, ...
+            'xmin',EEG.xmin, ...
+            'xmax',EEG.xmax, ...
+            'subject',EEG.subject, ...
+            'group',EEG.group);
         tt = tic();
-        %--           
-        EEG.icaact = EEG.icaact(k_i,:,:);
-        %-- run newtimef
-        [~,~,~,ttimes,lfreqs,~,~,all_e_dat] = ...
-            eeglab_newtimef_iter(EEG,1, ...
-            'NEWTIMEF_STRUCT',tmp_ntf_struct);
-        %--
-        %(04/29/2025) JS, newtimefitc seems to take advantage of the
-        %precomputed time-freq measures from std_precompute, yet still
-        %generates the same values as the newtimef "itc" output;
-        %however, by default both use "phasecoher" as itctype.
-        
-        %## MI INDEX (Tort et al. 2010)
-        tmpd = EEG.icaact(:,tmp_ntf_struct.pointrange,:);
-        sigd  = reshape(tmpd,[1,length(tmp_ntf_struct.pointrange)*size(tmpd,3)]);
-        [comod,p_vec,f_vec] = mod_index_calc(sigd);            
-       
-        %## STORE IN STRUCT  
-        twmed = mean(EEG.timewarp.latencies(inds_cond,:),1);
-        %--
-        tmp_tfd_struct.subj_char = EEG.subject;
-        tmp_tfd_struct.group_char = EEG.group;
-        tmp_tfd_struct.subj_char = EEG.subject;
-        tmp_tfd_struct.comp_n = k_i;
-        tmp_tfd_struct.cluster_n = cl_i;
-        tmp_tfd_struct.all_e_dat = single(all_e_dat);
-        tmp_tfd_struct.twc_times = twmed;
-        tmp_tfd_struct.twg_times = averaged_warpto_events; 
-        %-- store
-        % itc_dato{i} = tmp_itc_dato;
-
-        % fprintf('%s) ERSP generation took %0.2f min\n',EEG.subject,toc(tt)/60);
+        fext = 'phasec_notw_mw_based';
+        parfor i = 1:length(itersk)
+            %-- init temps
+            k_i = itersk(i);
+            c_i = itersc(i);
+            cl_i = iterscl(i);
+            fprintf('%i ',k_i);
+            %--
+            tmp_cc = cond_chars;
+            tmp_ti = trialinfo;
+            tmp_eeg = EEG;
+            tmp_ntf_struct = NTF_STRUCT;
+            tmp_itc_dato = ITC_DAT_STRUCT;
+            % tmp_ptr = pointrange;
+            %-- subset conditions
+            inds_cond = cellfun(@(x) strcmp(x,tmp_cc{c_i}),{tmp_ti.cond});
+            tmp_eeg.icaact = tmp_eeg.icaact(k_i,:,inds_cond);   
+            
+            %## SUBSET DATA & RUN
+            %--
+            tmp_ntf_struct.timewarp = tmp_eeg.timewarp.latencies(inds_cond);
+            %-- run newtimef
+            [~,~,~,ttimes,lfreqs,~,~,all_e_dat] = ...
+                eeglab_newtimef_iter(tmp_eeg,1, ...
+                'NEWTIMEF_STRUCT',tmp_ntf_struct);
+            %-- run newtimefitc after baselining TF data
+            twmed = mean(tmp_eeg.timewarp.latencies(inds_cond,:),1);
+            % twmed = [-500,1500];
+            inds = ttimes > twmed(1) & ttimes < twmed(end);
+            be = mean(all_e_dat(:,inds,:),2);
+            tmpedat = bsxfun(@minus,all_e_dat,be);
+            itc_dat = newtimefitc(tmpedat(:,:,:),tmp_ntf_struct.itctype);
+            %-- clear
+            all_e_dat = double.empty;
+            %--
+            %(04/29/2025) JS, newtimefitc seems to take advantage of the
+            %precomputed time-freq measures from std_precompute, yet still
+            %generates the same values as the newtimef "itc" output;
+            %however, by default both use "phasecoher" as itctype.
+            
+            %## MI INDEX (Tort et al. 2010)
+            tmpd = tmp_eeg.icaact(:,tmp_ntf_struct.pointrange,:);
+            sigd  = reshape(tmpd,[1,length(tmp_ntf_struct.pointrange)*size(tmpd,3)]);
+            [comod,p_vec,f_vec] = mod_index_calc(sigd);
+            %--
+            % figure;
+            % contourf(p_vec,f_vec,comod',30,'lines','none');
+            % set(gca,'fontsize',14);
+            % ylabel('Amplitude Frequency (Hz)');
+            % xlabel('Phase Frequency (Hz)');
+            % colorbar;
+           
+            %## STORE IN STRUCT
+            mod_n = cellfun(@(x) any(strcmp(tmp_cc{c_i},x)),MOD_CHARS);   
+            twmed = mean(tmp_eeg.timewarp.latencies(inds_cond,:),1);
+            %--
+            tmp_itc_dato.subj_char = tmp_eeg.subject;
+            tmp_itc_dato.group_char = tmp_eeg.group;
+            tmp_itc_dato.cond_char = tmp_cc{c_i};
+            tmp_itc_dato.mod_n = find(mod_n);
+            tmp_itc_dato.comp_n = k_i;
+            tmp_itc_dato.cluster_n = cl_i;
+            tmp_itc_dato.itc_dat = single(itc_dat);
+            % tmp_itc_dato.e_dat = single(e_dat);
+            tmp_itc_dato.itc_times = ttimes';
+            tmp_itc_dato.itc_freqs = lfreqs';
+            tmp_itc_dato.mi_freqs = f_vec;
+            tmp_itc_dato.mi_phase = p_vec;
+            tmp_itc_dato.mi_dat =  comod;
+            tmp_itc_dato.twc_times = twmed;
+            tmp_itc_dato.twg_times = averaged_warpto_events; 
+            %-- store
+            itc_dato{i} = tmp_itc_dato;
+            %-- clear
+        end
+        fprintf('\n%s) ITC generation took %0.2f min\n',tmp_cl_study.datasetinfo(s_i).subject,toc(tt)/60);
         %## RESHAPE DATA
+        % tmp = cat(3,datout{:});
+        itc_dato = util_resolve_struct(itc_dato);
 
         %## ASSIGN DATA & ?SAVE?
         timef_data_struct = struct(...
-            'itc_dat_struct',tmp_tfd_struct, ...
+            'itc_dat_struct',itc_dato, ...
             'datatype','TIMEF', ...
-            'datafiles',[EEG.filepath filesep EEG.filename], ...
+            'datafiles',[tmp_cl_study.datasetinfo(s_i).filepath filesep tmp_cl_study.datasetinfo(s_i).filename], ...
             'datatrials',ics_calc, ...
-            'parameters',tmp_ntf_struct, ...
+            'parameters',NTF_STRUCT, ...
             'trialinfo',trialinfo);
-        par_save(timef_data_struct,[EEG.filepath filesep sprintf('%s_cl%i_custom_%s.mat',tmp_cl_study.datasetinfo(s_i).subject,cl_i,DAT_FEXT)]);
+        %-- assign data to individual fields for more memory efficient extraction
+        % for k_i = 1:length(g.indices)  % for each (specified) component/channel
+        %     timef_data_struct.(sprintf('comp%i',k_i)) = datout{k_i}; 
+        % end
+        par_save(timef_data_struct,[tmp_cl_study.datasetinfo(s_i).filepath filesep sprintf('%s_custom_itc_%s.mat',tmp_cl_study.datasetinfo(s_i).subject,fext)]);
     catch e
         fprintf('%s) Something happened during ERSP generation...\n%s\n',tmp_cl_study.datasetinfo(s_i).subject,getReport(e));
     end
 end
-
