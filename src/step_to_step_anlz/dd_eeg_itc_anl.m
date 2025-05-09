@@ -129,6 +129,7 @@ for des_i = 1:length(STUDY_DESI_PARAMS)
     [CL_STUDY] = std_makedesign(CL_STUDY,[],des_i,STUDY_DESI_PARAMS{des_i}{:});
 end
 %% (SAVE TABLE) ======================================================== %%
+%{
 % fext = 'phasec_notw_mw';
 % fext = 'phasec_notw_mw_based';
 
@@ -159,6 +160,122 @@ itc_so = util_resolve_table(itc_so);
 par_save(itc_so,save_dir,sprintf('itc_table_%s_new.mat',fext));
 %(04/30/2025) JS, NH3128 gets an OOM error on the fext='phasec_notw_mw'
 %run. Need to include them for the final analysis
+%}
+%% (SAVE R TABLE) =================================================== %%
+
+% fext = 'phasec_notw_mw';
+% fext = 'phasec_notw_mw_based';
+fext = 'phasec_notw_mw_based';
+itc_so = cell(length(CL_STUDY.datasetinfo),1);
+CL_NUM_CUTOFF = 13;
+GROUP_CHARS = {'H1000','H2000','H3000'};
+for subj_i = 1:length(CL_STUDY.datasetinfo)
+    try
+        tmp_sbs_study = SBS_STUDY;
+        tmp_cl_study = CL_STUDY;
+        subj_char = tmp_sbs_study.datasetinfo(subj_i).subject;
+        subj_ind = strcmp(tmp_cl_study.datasetinfo(subj_i).subject,{tmp_sbs_study.datasetinfo.subject});
+        %--
+        if ~isempty(subj_ind) && any(subj_ind)
+            itc_dato = par_load([tmp_cl_study.datasetinfo(subj_i).filepath filesep sprintf('%s_custom_itc_%s.mat',tmp_cl_study.datasetinfo(subj_i).subject,fext)]);
+            %--
+            fprintf('%s) Adding ITC structure\n',tmp_cl_study.datasetinfo(subj_i).subject);
+            tmp = itc_dato.itc_dat_struct;
+            twp = itc_dato.parameters;
+            %--
+            FREQ_BOUND = [3,60];
+            TIME_BOUND = [twp.timewarpms(1),twp.timewarpms(end)];
+            % FREQ_BOUND = [3,60];
+            % TIME_BOUND = [-500,3000];
+            alltimes = tmp(1).itc_times';
+            allfreqs = tmp(1).itc_freqs';
+            tinds = alltimes > TIME_BOUND(1) & alltimes < TIME_BOUND(2);
+            finds = allfreqs > FREQ_BOUND(1) & allfreqs < FREQ_BOUND(2);
+            %--
+            tclu = unique([tmp.cluster_n]);
+            tcu = unique({tmp.cond_char});
+            dats_store = cell(length(tclu)*length(tcu),1);
+            cnt = 1;
+            tti = tic();
+            for cl_i = 1:length(tclu)
+                if tclu(cl_i) <= CL_NUM_CUTOFF
+                    for c_i = 1:length(tcu)
+                        inds = [tmp.cluster_n] == tclu(cl_i) & ...
+                            strcmp({tmp.cond_char},tcu{c_i});
+                        tt = tmp(inds);
+                        sz = size(tt.itc_dat(finds,tinds));
+                        rtf = repmat(tt.itc_freqs(finds),[1,sz(2)]);
+                        rtt = repmat(tt.itc_times(tinds)',[sz(1),1]);
+                        %-- convert & take abs of data
+                        % rtd = cellfun(@(x) x(finds,tinds),{tt.itc_dat});
+                        % rtt = cellfun(@(x) x(finds,tinds),{tt.itc_dat});
+
+                        rtd = num2cell(abs(reshape(tt.itc_dat(finds,tinds),[1,sz(1)*sz(2)])));
+                        rtt = num2cell(reshape(rtt,[1,sz(1)*sz(2)]));
+                        rtf = num2cell(reshape(rtf,[1,sz(1)*sz(2)]));
+                        % tmp_dats = struct(...
+                        %     'subj_char',tt.subj_char, ...
+                        %     'group_char',tt.group_char, ...
+                        %     'cond_char',tt.cond_char, ...
+                        %     'mod_n',tt.mod_n, ...
+                        %     'cluster_n',tt.cluster_n, ...
+                        %     'itc_dat',0, ...
+                        %     'itc_freq',0, ...
+                        %     'itc_time',0 ...
+                        %     );
+                        gg = strcmp(tt.group_char,GROUP_CHARS);
+                        cc = strcmp(tt.cond_char,tcu);
+                        tmp_dats = struct(...
+                            'subj_n',subj_i, ...
+                            'group_n',find(gg), ...
+                            'cond_n',find(cc), ...
+                            'mod_n',tt.mod_n, ...
+                            'cluster_n',tt.cluster_n, ...
+                            'itc_dat',0, ...
+                            'itc_freq',0, ...
+                            'itc_time',0 ...
+                            );
+                        tmp_dats = repmat(tmp_dats,[1,length(rtd)]);
+                        [tmp_dats(:).itc_dat] = deal(rtd{:});
+                        [tmp_dats(:).itc_freq] = deal(rtf{:});
+                        [tmp_dats(:).itc_time] = deal(rtt{:});
+                        dats_store{cnt} = tmp_dats;
+                        cnt = cnt + 1;
+                        %--
+                        % figure;
+                        % contourf(tt.itc_times,tt.itc_freqs,real(tt.itc_dat),30,'lines','none');
+                        % set(gca,'fontsize',14);
+                        % ylabel('Frequency (Hz)');
+                        % xlabel('Time');
+                        % colorbar;
+                    end
+                end
+            end
+            tmp = util_resolve_struct(dats_store);
+            tmp = struct2table(tmp);
+            itc_so{subj_i} = tmp;
+            fprintf('%s) loading and conversion done. %0.2f min',tmp_cl_study.datasetinfo(subj_i).subject,toc(tti)/60)
+        end
+    catch e 
+        fprintf('%s) %s\n',tmp_cl_study.datasetinfo(subj_i).subject ,getReport(e));
+    end
+end
+%--
+itc_so = util_resolve_table(itc_so);
+par_save(itc_so,save_dir,sprintf('itc_rdata_table_%s.mat',fext));
+%(04/30/2025) JS, NH3128 gets an OOM error on the fext='phasec_notw_mw'
+%run. Need to include them for the final analysis
+
+%## EXPORT DATA TO CSV
+itc_so = par_load(save_dir,sprintf('itc_rdata_table_%s.mat',fext));
+clu = unique(itc_so.cluster_n);
+for cl_i = 1:length(clu)
+    inds = itc_so.cluster_n == clu(cl_i);
+    tmp = itc_so(inds,:);
+    writetable(tmp,[save_dir filesep sprintf('%i_itc_rdata_table_%s.csv',clu(cl_i),fext)]);
+end
+writetable(itc_so,[save_dir filesep sprintf('itc_rdata_table_%s.csv',fext)]);
+
 %% ================================================================== %%
 %## VALIDATION PLOT
 %{
@@ -197,7 +314,7 @@ ax = axes();
 %-- load dat table
 % fext = 'phasec_notw_mw';
 fext = 'phasec_notw_mw_based';
-itc_so = par_load([save_dir filesep sprintf('itc_table_%s.mat',fext)]);
+itc_so = par_load([save_dir filesep sprintf('itc_table_%s_new.mat',fext)]);
 %-- tmp load
 itc_dato = par_load([CL_STUDY.datasetinfo(1).filepath filesep sprintf('%s_custom_itc_%s.mat',CL_STUDY.datasetinfo(1).subject,fext)]);
 twp = itc_dato.parameters;
@@ -319,50 +436,33 @@ for cl_i = 1:length(cluster_inds_plot)
     %--
     % itco_c = cellfun(@(x) std(x,[],3)/size(x,3),itco_c,'UniformOutput',false);
 
-    %## BOOT STRAP MASKING
-    bs_ersp = cell(size(itco_c,1),size(itco_c,2));
-    bs_masked = cell(size(itco_c,1),size(itco_c,2));
-    bs_pval = cell(size(itco_c,1),size(itco_c,2));
-    %--
-    for g_i = 1:size(itco_c,2)
-        for c_i = 1:size(itco_c,1)
-            [tfmu,tfmask,tfpv] = eeglab_time_boot(itco_c{c_i,g_i}, ...
-                'BOOT_STRUCT',BOOT_STRUCT);
-            %-- store
-            bs_ersp{c_i,g_i} = tfmu;
-            bs_masked{c_i,g_i} = tfmask;
-            bs_pval{c_i,g_i} = tfpv;
-        end            
-    end
-    %--
-    % for c_i = 1:size(itco_c,1)
-    %     dat_in = cat(3,itco_c{c_i,:});
-    %     [tfmu,tfmask,tfpv] = eeglab_time_boot(dat_in, ...
-    %         'BOOT_STRUCT',BOOT_STRUCT);
-    %     %-- store
-    %     for g_i = 1:size(itco_c,2)
-    %         bs_ersp{c_i,g_i} = mean(itco_c{c_i,g_i},3);
-    %         bs_masked{c_i,g_i} = tfmask;
-    %         bs_pval{c_i,g_i} = tfpv;
-    %     end
-    % end
-    %--
+    %## TTEST MASKING
+    % bs_ersp = cell(size(itco_c,1),size(itco_c,2));
+    % bs_masked = cell(size(itco_c,1),size(itco_c,2));
+    % bs_pval = cell(size(itco_c,1),size(itco_c,2));
+    % %--
+    % TTEST_STRUCT = struct(...
+    %     'tail','both', ...
+    %     'alpha',0.05, ...
+    %     'cluster_thresh',300);
     % for g_i = 1:size(itco_c,2)
-    %     dat_in = cat(3,itco_c{:,g_i});
-    %     [tfmu,tfmask,tfpv] = eeglab_time_boot(dat_in, ...
-    %         'BOOT_STRUCT',BOOT_STRUCT);
-    %     %-- store
     %     for c_i = 1:size(itco_c,1)
-    %         bs_ersp{c_i,g_i} = mean(itco_c{c_i,g_i},3);
+    %         [tfmu,tfmask,tfpv] = eeglab_time_boot(itco_c{c_i,g_i}, ...
+    %             'BOOT_STRUCT',BOOT_STRUCT);
+    %         comp_mu = mean(tfmask(tfmask>0));
+    %         %-- store
+    %         tmp_tts = TTEST_STRUCT;
+    %         tmp_tts.tail = 'left';
+    %         [tfmu,tfmask,tfpv] = eeglab_tf_ttest(itco_c{c_i,g_i}, comp_mu,...
+    %             'TTEST_STRUCT',tmp_tts);
+    %         %-- store
+    %         bs_ersp{c_i,g_i} = tfmu;
     %         bs_masked{c_i,g_i} = tfmask;
     %         bs_pval{c_i,g_i} = tfpv;
-    %     end
+    %     end            
     % end
-    %--
-    itco_c = bs_ersp;
-    stat_ext = 'bs';
 
-    %##
+    %## BOOT STRAP MASKING
     % stats = CL_STUDY.etc.statistics;
     % stats.condstats = 'on';
     % stats.groupstats = 'off';
@@ -379,8 +479,8 @@ for cl_i = 1:length(cluster_inds_plot)
     clim = cellfun(@(x) [prctile(x,3,'all'),prctile(x,97,'all')],itco_c, ...
         'UniformOutput',false);
     clim = mean(cat(1,clim{:}),1);
-    clim = double([-max(abs(clim)),max(abs(clim))]);
-    % clim = [0,0.23];
+    % clim = double([-max(abs(clim)),max(abs(clim))]);
+    clim = [0,0.20];
 
     %## INITIATE FIGURE
     x_shift = AX_INIT_X;
@@ -404,6 +504,7 @@ for cl_i = 1:length(cluster_inds_plot)
         for c_i = 1:length(conditions)            
             % tmpdat = itco_c{c_i,g_i}(:,:,rsubj);
             %--
+            % itco_c{c_i,g_i} = 1 - itco_c{c_i,g_i};
             % allersp = mean(itco_c{c_i,g_i},3);
             % allersp_mask = mean(itco_c{c_i,g_i},3);
             % allersp = median(itco_c{c_i,g_i},3);
