@@ -179,7 +179,7 @@ cmaps_speed = [cmaps_speed(1,:);cmaps_speed(2,:);cmaps_speed(3,:);cmaps_speed(4,
 %##
 % NUM_STRIDES_AVG = 36;
 % STRIDES_AVG = [3,6,12,24,48];
-STRIDES_AVG = [36];
+STRIDES_AVG = [100];
 % tmp_alleeg = cell(length(STUDY.datasetinfo));
 conds_keep = {'0p25','0p5','0p75','1p0','flat','low','med','high'};
 % xtick_label_g = {'0.25','0.50','0.75','1.0'}; %{'0.25','0.50','0.75','1.0'};
@@ -309,7 +309,7 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                 'indices',[]);
             cond_struct = def_cond_struct;
             ttim = tic();
-            for ct = 1:2 %size(nolog_eeg_psd,3)
+            for ct = 1:size(nolog_eeg_psd,3)
                 %## GET DATA
                 tmpp_raw = zeros(length(f_ind),size(eeg_psd,2),1); 
                 tmpap_raw = zeros(2,size(eeg_psd,2),1); 
@@ -370,14 +370,14 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                         %-- mean std calcs
                         tmpp_mu(:,cnt) = mean(spec_in,2);
                         % tmpp_mu(:,cnt) = median(spec_in,2);
-                        tmpp_std(:,cnt) = std(spec_in,[],2)';
-                        % tmpp_std(:,cnt) = std(spec_in,[],2)'/sqrt(NUM_STRIDES_AVG);
+                        % tmpp_std(:,cnt) = std(spec_in,[],2)';
+                        tmpp_std(:,cnt) = std(spec_in,[],2)'/sqrt(NUM_STRIDES_AVG);
                         tmpap_mu(1,cnt) = mean(ap_tmp(1,slides(i):(slides(i+1)-1)),2);
-                        tmpap_std(1,cnt) = std(ap_tmp(1,slides(i):(slides(i+1)-1)),[],2);
-                        % tmpap_std(1,cnt) = std(ap_tmp(1,slides(i):(slides(i+1)-1)),[],2)/sqrt(NUM_STRIDES_AVG);
+                        % tmpap_std(1,cnt) = std(ap_tmp(1,slides(i):(slides(i+1)-1)),[],2);
+                        tmpap_std(1,cnt) = std(ap_tmp(1,slides(i):(slides(i+1)-1)),[],2)/sqrt(NUM_STRIDES_AVG);
                         tmpap_mu(2,cnt) = mean(ap_tmp(2,slides(i):(slides(i+1)-1)),2);
-                        tmpap_std(2,cnt) = std(ap_tmp(2,slides(i):(slides(i+1)-1)),[],2);
-                        % tmpap_std(2,cnt) = std(ap_tmp(2,slides(i):(slides(i+1)-1)),[],2)/sqrt(NUM_STRIDES_AVG);
+                        % tmpap_std(2,cnt) = std(ap_tmp(2,slides(i):(slides(i+1)-1)),[],2);
+                        tmpap_std(2,cnt) = std(ap_tmp(2,slides(i):(slides(i+1)-1)),[],2)/sqrt(NUM_STRIDES_AVG);
                         
                         %## COV
                         %-- theta

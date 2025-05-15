@@ -1,6 +1,14 @@
 # install.packages(c("parallel","purrr","dplyr","tibble","Matrix",
 #                    "lattice","gridExtra","R.devices","R.matlab","ggplot2",
 #                    "gridExtra","genlasso"));
+print('Clearing Workspace');
+# Clear plots
+if(!is.null(dev.list())) dev.off()
+# Clear console
+cat("\014") 
+# Clean workspace
+rm(list=ls())
+
 print('Loading packages...')
 #%% UTILITY
 library(parallel);
@@ -13,36 +21,49 @@ library(R.devices);
 library(ggplot2)
 library(gridExtra);
 library(grid)
-
 #%% PACKAGES FOR STATS
 library(genlasso);
+library(R.matlab);
 
 #%% CUSTOM FUNCTIONS
-curr_dir <- getwd();
+# curr_dir = "/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/r_scripts/sbs_lme_mods";
+curr_dir = getwd();
+# setwd(curr_dir)
 source(file.path(curr_dir,"tf_flasso_funcs.R"));
+print(curr_dir);
 
 #%% LOAD DATA ============================================================== %%#
 print("Loading data...");
 # clusters = c(3,4,5,6,7,8,9,10,11,12,13) # RSup/RSM, PreC, LSM, Mid Cing, LSup, LPPA, RPPA
 clusters = c(3,4,6,8)
+conds = c(1,2,3,4)
 fext = 'itc_rdata_table_phasec_notw_mw_based'
 
 #%% CREATE SAVE DIR
 curr_dir <- getwd();
-save_dir <- paste0(curr_dir,paste0("/",fext,"_tables_figs"))
+# fname = "itc_rdata_table_phasec_notw_mw_based_flasso_based_results";
+fname = "itc_rdata_table_phasec_notw_mw_based_fl_res_bsz5_nob";
+save_dir <- file.path(curr_dir,fname)
 dir.create(save_dir);
 
 #%% LOAD
-mat_fpath <- paste0("/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/02202025_mim_yaoa_powpow0p3_crit_speed/__iclabel_cluster_allcond_rb3/icrej_5/11/kin_eeg_step_to_step/",fext,".csv")
-
+fname = "itc_rdata_table_phasec_notw_mw_based.csv";
+dpath = "/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/02202025_mim_yaoa_powpow0p3_crit_speed/__iclabel_cluster_allcond_rb3/icrej_5/11/kin_eeg_step_to_step"
+mat_fpath <- file.path(dpath,fname)
+#--
+fname = "itc_rdata_struct_phasec_notw_mw_based.mat";
+dpath = "/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/02202025_mim_yaoa_powpow0p3_crit_speed/__iclabel_cluster_allcond_rb3/icrej_5/11/kin_eeg_step_to_step"
+mat_fpath <- file.path(dpath,fname)
+#--
 if(ispc()){
   mat_fpath <- paste0("M:",mat_fpath)
 }else{
   mat_fpath <- paste0("/blue/dferris",mat_fpath);
 }
 #--
-dtbl <- read.csv(mat_fpath)
-dtbl <- filter_at(dtbl,vars('cond_n'), any_vars(. %in% c(5,6,7,8)));
+tmp_mat = R.matlab::readMat(mat_fpath)
+# dtbl <- read.csv(mat_fpath)
+dtbl <- filter_at(dtbl,vars('cond_n'), any_vars(. %in% conds));
 dtbl <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% clusters));
 
 #%% LOOP VARS ============================================================== %%#
@@ -61,7 +82,17 @@ if(ispc()){
 }
 print(numCores)
 clust <- makeCluster(numCores)
-system.time(saves <- mclapply(loop_items,function(x) mfusedl2d(x,save_dir),
+set.seed(42069)
+# system.time(saves <- mclapply(loop_items,function(x) mfusedl2d(x,save_dir),
+#                               mc.preschedule = TRUE,
+#                               mc.set.seed = TRUE))
+
+system.time(saves <- mclapply(loop_items,mfusedl2d,save_dir=save_dir,
                               mc.preschedule = FALSE,
-                              mc.set.seed = FALSE))
+                              mc.set.seed = FALSE,
+                              mc.cores=numCores))
+# system.time(out <- mapply(mfusedl2d,items=loop_items,MoreArgs=list(save_dir=save_dir)))
+
+inds = !is_null(saves)
+print(str(saves[[inds]]))
 

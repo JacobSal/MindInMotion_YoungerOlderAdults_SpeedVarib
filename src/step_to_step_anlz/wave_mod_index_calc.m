@@ -1,6 +1,8 @@
-function [Comodulogram,p_vec,f_vec,trans_ampf,trans_phasef] = mod_index_calc(sig_in)
+function [Comodulogram,p_vec,f_vec] = wave_mod_index_calc(sig_in)
 %MOD_INDEX_CALC Summary of this function goes here
 %   Detailed explanation goes here
+% [P,param_struct] = morlet_transform_fast(s,t,f,fc,FWHM_tc,squared,data_type)
+
 %% Define the amplitude- and phase-frequencies
 data_length = size(sig_in,2);
 srate = 500; 
@@ -39,6 +41,7 @@ for jj=1:length(phase_fvec)
     [~,phasef] = evalc('eegfilt(sig_in,srate,plof,phif)'); % filtering 
     trans_phasef(jj, :) = angle(hilbert(phasef)); % getting the phase time series
 end
+
 
 %% Compute MI and comodulogram
 

@@ -333,7 +333,7 @@ p_sz = get(fig,'Position');
 set(gca,AXES_DEFAULT_PROPS{:});
 hold on;
 
-%% VIOLIN PLOTS) ================================================== %%
+% VIOLIN PLOTS) ================================================== %%
 %--
 YLIM_NTICKS = 5;
 YLIM_SIG_FIGS = 2;
@@ -477,9 +477,9 @@ for e_i = 1:length(EEG_MEASURES)
     tmp_plot_struct.ytick = YTICKS{e_i};
 
     if e_i ~= 1
-        tmp_vps.y_label = '';
+        tmp_plot_struct.y_label = '';
     else        
-        tmp_vps.y_label = EEG_MEASURE_LABS{e_i};
+        tmp_plot_struct.y_label = EEG_MEASURE_LABS{e_i};
     end
     tmp_plot_struct.x_label = 'Speed (m/s)';
     %-- group violin plot
@@ -495,7 +495,7 @@ for e_i = 1:length(EEG_MEASURES)
     %## LETTER TITLE
     FG_TIT_FIX = [1,1];
     TIT_BOX_SZ = [0.1,0.1];
-    TIT_SHIFT = [-0.11,0.1];
+    TIT_SHIFT = [-0.1,0.11];
     ttxs = x_shift+TIT_SHIFT(1)*FG_TIT_FIX(1)+(TIT_BOX_SZ(1)/2);
     ttys = y_shift+TIT_SHIFT(2)*FG_TIT_FIX(2)+(TIT_BOX_SZ(2)/2);
     TIT_POS = [ttxs,ttys,TIT_BOX_SZ(1),TIT_BOX_SZ(2)];
@@ -509,8 +509,34 @@ for e_i = 1:length(EEG_MEASURES)
         'FontWeight','Bold', ...
         'Units','normalized');
 
+    SIG_K_PROPS = {'HorizontalAlignment','left',...
+        'VerticalAlignment','top', ...
+        'LineStyle','none', ...
+        'FontName','Arial',...
+        'FontSize',10*FG_TXT_SZ, ...
+        'FontWeight','bold', ...
+        'Units','normalized'};
+   
+    % KEY_CHARS = {'Sig. Levels of P_{value}<0.05, 0.01, 0.001:' ...
+    %     [sprintf('Interaction (S:G): %s, %s%s, %s%s%s   ',char(8225),char(8225),char(8225),char(8225),char(8225),char(8225)), ...
+    %     'Speed (S): *, **, ***   ', ...
+    %     'Group (G): +, ++, +++']};
+    KEY_CHARS = ['P_{value}<0.05: ', ...
+        'Speed (S): *  |  ', ...
+        'Group (G): +  |  ', ...
+        sprintf('Interaction (S:G): %s',char(8225))];
+    FG_ANN_FIX = [1,1];
+    % ANNO_BOXSZ = [0.6,0.05];
+    ANNO_SHIFT = [-0.065,0.14];
+    ltxs = 0.175; %key_pos_store(1)+0.17; %+ANNO_SHIFT(1)*FG_ANN_FIX(1)+(0.1/2); %0.7069*FG_FIX(1)+fx_shift+LAB_B_YOFFSET+(0.1/2);
+    ltys = 0.6; %key_pos_store(2)-0.025; %tys+ANNO_SHIFT(2)*FG_ANN_FIX(2)+(0.1/2); %+fy_shift+LAB_B_XOFFSET+(0.1/2);
+    ANNO_POS = [ltxs,ltys,0.8,0.05];
+    annotation(fig,'textbox',ANNO_POS,...
+        'String',KEY_CHARS, ...
+        SIG_K_PROPS{:});
+
     %-- ax sets
-    %## AX SHIFT
+    %## AX SHIFTd
     if x_cnt < X_DIM
         x_shift = x_shift + AX_X_SHIFT*IM_RESIZE*AX_W;
     else

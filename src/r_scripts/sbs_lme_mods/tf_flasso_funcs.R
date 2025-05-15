@@ -42,9 +42,17 @@ get_mcl_dat <- function(dtbl,clusters){
     for(l in 1:length(conds)) {
       ci = conds[l];
       ttc <- filter_at(tt,vars('cond_n'), any_vars(. %in% ci));
+      # mask_matrix <- matrix(0L,nrow=length(freqs)*length(times),ncol=length(subjs));
+      # for(k in 1:length(subjs)){
+      #   si = subjs[k];
+      #   tts <- filter_at(ttc,vars('subj_n'), any_vars(. %in% si));
+      #   mask_matrix[,k] = tts$itc_dat;
+      # }
+      # cmu = rowMeans(mask_matrix);
       for(k in 1:length(subjs)){
         si = subjs[k];
         tts <- filter_at(ttc,vars('subj_n'), any_vars(. %in% si));
+        # ttd = tts$itc_dat-cmu;
         ttd = tts$itc_dat;
         newl <- list(tf_dat=ttd,cli=cli,ci=ci,si=si,freqN=length(freqs),timeN=length(times))
         loop_vals <- cbind(loop_vals,list(newl))
@@ -79,6 +87,10 @@ tf_plot <- function(pwr_dat,times,freqs,title_char,zlim_in){
   zlim_in <- seq(from=zlim_in[1],to=zlim_in[2],length.out=C_TICK_N)
   colMap <- colorRampPalette(c("blue","yellow","red" ))(COLOR_F)
   #--
+  if(length(unique(pwr_dat))==1){
+    return(grob());
+  }
+  #--
   pdin = t(matrix(pwr_dat,nrow=length(freqs)));
   h <- levelplot(pdin,
                  row.values=times,
@@ -96,9 +108,9 @@ tf_plot <- function(pwr_dat,times,freqs,title_char,zlim_in){
 }
 
 #%% FUSEDLASSO CV ============================================================
-mfusedl2d_cv <- function(lambs,tf_dat,freqN,timeN,block_size=10,K=5){
+mfusedl2d_cv <- function(lambs,tf_dat,freqN,timeN,nlambs_test=20,block_size=10,K=5){
   #-- lambda vec
-  lambda_values <- seq(min(lambs), max(lambs), length.out=20)
+  lambda_values <- seq(min(lambs), max(lambs), length.out=nlambs_test)
   #-- get input image
   img = matrix(tf_dat,nrow=freqN);
   
@@ -143,7 +155,6 @@ mfusedl2d_cv <- function(lambs,tf_dat,freqN,timeN,block_size=10,K=5){
 
 fusedl_valid_plots <- function(tf_dat,times,freqs){
   #%% PLOT RESULTS
-  # message(sprintf("iter-%i) Plotting results & saving data ...",i));
   # ggo <- ggplot(data.frame(lambda_values,cv_errors),
   #               aes(x=lambda_values,y=cv_errors),
   #               xlab="Lambda",
@@ -174,8 +185,10 @@ fusedl_valid_plots <- function(tf_dat,times,freqs){
 #%% FUSED LASSO 2D WRAPPER =====================================================
 mfusedl2d <- function(item,save_dir) {
   #%% PARAMETERS
-  block_size = 10
-  K = 5;
+  block_size = 5;
+  nlambs_test = 30;
+  K = 10;
+  #(05/11/2025) JS, bumping to 10
   tf_dat = item$tf_dat;
   cli = item$cli;
   ci = item$ci;
@@ -198,7 +211,10 @@ mfusedl2d <- function(item,save_dir) {
   
   #%% CROSS-VALIDATION
   message(sprintf("cl%i-c%i-s%i) Running fused-lasso CV K-fold ...",cli,ci,si));
-  out <- mfusedl2d_cv(lambs,tf_dat,freqN,timeN,block_size,K);
+  out <- mfusedl2d_cv(lambs,tf_dat,freqN,timeN,
+                      nlambs_test=nlambs_test,
+                      block_size=block_size,
+                      K=K);
   #-- get best lambda and estimate from original model
   cv_errors <- out$cv_errors;
   lambda_values <- out$lamb_vals; 
@@ -219,7 +235,7 @@ mfusedl2d <- function(item,save_dir) {
   # ggsave(file.path(save_dir,fname),ggo)
   
   #%% SAVE DATA
-  message(sprintf("iter-%i) saving data ...",i));
+  message(sprintf("cl%i-c%i-s%i) saving data ...",cli,ci,si));
   #-- save flasso model (larger data?)
   out_dat = list(cv_errors=cv_errors,
                  lamb_vals=lambda_values,
@@ -238,6 +254,7 @@ mfusedl2d <- function(item,save_dir) {
   
   #%% RETURN VALUES?
   message(sprintf("cl%i-c%i-s%i) done ...",cli,ci,si));
-  return(out_dat)
+  # return(out_dat)
+  return(NULL)
   # return(list(flmod=fl,bbeta=beta_hat,blamb=best_lambda,cv_errors=cv_errors,lamb_vals=lambda_values))
 }

@@ -106,12 +106,13 @@ CLUSTER_PICS = main_cl_inds;
 
 %%
 fpaths = {STUDY.datasetinfo.filepath};
-fextr = 'perstridefb_mi_nfslidingb36';
+% fextr = 'perstridefb_mi_nfslidingb36';
 % fextr = 'perstridefb_apfix_std_mi_nfslidingb36';
 dat = par_load(fpaths{1},sprintf('psd_output_%s.mat',fextr));
 %--
 fooof_freqs = dat.freqs;
-basel_chars = {'perstridefb_mi_nfslidingb36'};
+% basel_chars = {'perstridefb_mi_nfslidingb36'};
+basel_chars = {'perstridefb_mi_nfslidingb100'};
 % basel_chars = {'perstridefb_apfix_std_mi_nfslidingb36'};
 
 dat_out_structs = cell(1,length(basel_chars));
@@ -122,21 +123,26 @@ end
 %% (LOAD STATISTICS & DATA EXCEL SHEET FROM R) ========================= %%
 %## FNAMES
 %-- r stats
-fextr = 'allcond_perstridefb_mi_nfslidingb36_rerun';
+% fextr = 'allcond_perstridefb_mi_nfslidingb36_rerun';
 % fextr = 'allcond_perstridefb_apfix_std_mi_nfslidingb36_rerun';
-%## IMPORT DATA
-% KIN_TABLE = par_load(save_dir,sprintf('sbs_eeg_psd_%s.mat',fextr));
-% %-- r-stats
-% RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('03122025_lme_eeg_kin_%s_stats.xlsx',fextr)], ...
-%     "FileType","spreadsheet","UseExcel",true);
 
 %## IMPORT MEANSD DATA
 % KIN_TABLE = readtable([r_stats_dir filesep sprintf('03122025_lme_eeg_kin_meansd_%s_tbl.xlsx',fextr)], ...
 %     "FileType","spreadsheet","UseExcel",true);
-KIN_TABLE = readtable([r_stats_dir filesep sprintf('03312025_lme_eeg_kin_meansd_%s_tbl.xlsx',fextr)], ...
-    "FileType","spreadsheet","UseExcel",true);
+% KIN_TABLE = readtable([r_stats_dir filesep sprintf('03312025_lme_eeg_kin_meansd_%s_tbl.xlsx',fextr)], ...
+%     "FileType","spreadsheet","UseExcel",true);
+% %-- r-stats
+% RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('03312025_lme_eeg_kin_meansd_%s_stats.xlsx',fextr)], ...
+%     "FileType","spreadsheet","UseExcel",true);
+
+%##
+% fextr = 'allcond_perstridefb_mi_nfslidingb36_rerun';
+% fext = 'allcond_perstridefb_mi_nfslidingb36';
+fextr = 'allcond_perstridefb_apfix_std_mi_nfslidingb100_rerun';
+fext = 'allcond_perstridefb_apfix_std_mi_nfslidingb100';
 %-- r-stats
-RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('03312025_lme_eeg_kin_meansd_%s_stats.xlsx',fextr)], ...
+KIN_TABLE = par_load(save_dir,sprintf('sbs_eeg_psd_kin_%s.mat',fext));
+RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('05132025_lme_eeg_kin_%s_stats.xlsx',fextr)], ...
     "FileType","spreadsheet","UseExcel",true);
 %% MEASURES TO ANALYZE ================================================= %%
 %## STATS
@@ -235,10 +241,11 @@ PPLOT_STRUCT = struct( ...
     'y_label',{'10*log_{10}(PSD)'},...
     'do_set_ax_props',true, ...
     'y_label_props',label_struct, ...
+    'y_label_offset',[0,0],...
     'xlim',[fooof_freqs(1),fooof_freqs(end)],...
     'x_label',{'Frequency (Hz)'},...
     'x_label_props',label_struct, ...
-    'x_label_yoffset',-0.1,...
+    'x_label_offset',[0,0],...
     'xtick_labs',{{}}, ...
     'xticks',[], ...
     'xtick_angle',45, ...
@@ -354,7 +361,7 @@ COEFF_CHARS_GROUP = {'(Intercept)','speed_cond_num','group_char1','group_char2'}
 %--
 %% (ALL SUBJS MODEL) =================================================== %%
 meas_ext = 'combo';
-tmp_savedir = [save_dir filesep fextr '_psdvio_manufigs'];
+tmp_savedir = [save_dir filesep fextr '_psdvio_manufigs_alld'];
 mkdir(tmp_savedir);
 DO_RECALC_PSD_STATS = false;
 
@@ -371,15 +378,23 @@ PSDM_YTICKS = [0,1,2,3];
 PSDM_YTICK_LABS = string(PSDM_YTICKS);
 %--
 PSDS_YLIM = [0.275,0.425];
-PSDS_YTICKS = [0.28,0.32,0.36,0.4];
-PSDS_YTICK_LABS = string(PSDS_YTICKS);
+PSDS_YTICKS = [0.28,0.32,0.36,0.40];
+PSDS_YTICK_LABS = ["0.28","0.32","0.36","0.40"]; %string(PSDS_YTICKS);
+% %--
+% VIOT_YLIM = [1.4,3.2];
+% VIOT_YTICKS = [1.5,2.0,2.5,3];
+% VIOT_YTICK_LABS = string(VIOT_YTICKS);
+% %--
+% VIOB_YLIM = [1.4,2];
+% VIOB_YTICKS = [1.4,1.6,1.8,2];
+% VIOB_YTICK_LABS = string(VIOB_YTICKS);
 %--
-VIOT_YLIM = [1.4,3.2];
-VIOT_YTICKS = [1.5,2.0,2.5,3];
+VIOT_YLIM = [0.25,0.45];
+VIOT_YTICKS = [0.25,0.35,0.45];
 VIOT_YTICK_LABS = string(VIOT_YTICKS);
 %--
-VIOB_YLIM = [1.4,2];
-VIOB_YTICKS = [1.4,1.6,1.8,2];
+VIOB_YLIM = [0.25,0.45];
+VIOB_YTICKS = [0.25,0.35,0.45];
 VIOB_YTICK_LABS = string(VIOB_YTICKS);
 %--
 FG_SHIFT_Y = -0.26;
@@ -389,6 +404,7 @@ FG_INIT_Y = -0.035;
 ieee_sz = [8.5-(0.65*2),11-(0.7*2)];
 
 %% COMBO LSM, RSM, LPP, RPP FIGURE ========================================
+tmpl = [];
 for cl_i = 1:length(cluster_inds_plot)
     %%
     %-- initiate params
@@ -472,7 +488,7 @@ for cl_i = 1:length(cluster_inds_plot)
     
     %## LETTER ANNOTATION
     FG_ANN_FIX = [1,1];
-    ANNO_SHIFT = [-0.09,0.045];
+    ANNO_SHIFT = [-0.09,0.065];
     ltxs = AX_INIT_X+ANNO_SHIFT(1)*FG_ANN_FIX(1)+(0.1/2);
     ltys = AX_INIT_Y+ANNO_SHIFT(2)*FG_ANN_FIX(2)+(0.1/2);
     ANNO_POS = [ltxs,ltys,0.1,0.1];
@@ -502,7 +518,7 @@ for cl_i = 1:length(cluster_inds_plot)
         'FontSize',16*FG_TXT_SZ, ...
         'FontWeight','Bold', ...
         'Units','normalized');
-    %%
+    
     % EXTRACT PSD DATA =============================================== %%    
     %## (STD-MEAN PLOT)
     % FG_TXT_SZ = 0.5;
@@ -519,13 +535,13 @@ for cl_i = 1:length(cluster_inds_plot)
     tys = AX_INIT_Y+AX_SHIFT(2)*FG_FIX(2); %0.75*FG_FIX(2)+fy_shift; 
     Y_LIM_SCALE = 1.5;
     %--
-    ANNO_SHIFT = [-0.12,0.045];
+    ANNO_SHIFT = [-0.12,0.065];
     ltxs = txs+ANNO_SHIFT(1)*FG_ANN_FIX(1)+(0.1/2); %0.7069*FG_FIX(1)+fx_shift+LAB_B_YOFFSET+(0.1/2);
     ltys = tys+ANNO_SHIFT(2)*FG_ANN_FIX(2)+(0.1/2); %+fy_shift+LAB_B_XOFFSET+(0.1/2);
     ANNO_POS = [ltxs,ltys,0.1,0.1];
     %-- 
     leg_store = [];
-    LEG_OPOS = [-0.2,0.08];
+    LEG_OPOS = [-0.155,0.0935];
     LEG_OPOS = LEG_OPOS.*FG_LEG_FIX;
 
     %## (STD-MEAN) GET PSD DATA
@@ -549,10 +565,11 @@ for cl_i = 1:length(cluster_inds_plot)
     tp_struct.ylim = [mu-Y_LIM_SCALE*sd,mu+Y_LIM_SCALE*sd];
     tp_struct.y_label = 'SD(10*log_{10}(PSD_{Ns}))';
     tp_struct.title_props.FontSize = 10*FG_TXT_SZ;
-    tp_struct.y_label_props.FontSize = 10*FG_TXT_SZ; 
+    tp_struct.y_label_props.FontSize = 10*FG_TXT_SZ;
+    tp_struct.y_label_offset = [0,0.05];
     tp_struct.x_label_props.FontSize = 10*FG_TXT_SZ; 
     tp_struct.ax_props.Position = [txs,tys,AX_SZ(1)*IM_RESIZE,AX_SZ(2)*IM_RESIZE];
-    tp_struct.ax_props.FontSize = 8*FG_TXT_SZ;
+    tp_struct.ax_props.FontSize = 10*FG_TXT_SZ;
     %--
     psd_params = [];
     psd_params.y_lims = PSDS_YLIM;
@@ -577,6 +594,7 @@ for cl_i = 1:length(cluster_inds_plot)
     psd_params.leg_token_size = 20*FG_TXT_SZ;
     psd_params.legends_specs = {'FontName','Arial', ...
         'FontSize',10*FG_TXT_SZ, ...
+        'FontWeight','bold',...
         'Orientation','Horizontal', ...
         'Units','normalized'};
     
@@ -643,37 +661,44 @@ for cl_i = 1:length(cluster_inds_plot)
         par_save(psd_paramso.stats_in,[tmp_savedir filesep fname]);
     end
     
-    %## LEGEND INSERTION
+    %## LEGEND INSERTION  
     if fx_cnt == 1 && fy_cnt == 1
-        leg_store = [leg_store; psd_paramso.stats_store];
-        leg_store = leg_store(~cellfun(@isempty,leg_store));
-        inds = cellfun(@(x) x.DisplayName,leg_store,'UniformOutput',false);
-        indsu = unique(inds);
-        out = zeros(length(indsu),1);
-        for i = 1:length(indsu)
-            tmp = find(strcmp(indsu{i},inds));
-            out(i) = tmp(1);
+        KEY_BOXSZ = [0.6,0.0275];            
+        if length(tmpl) ~= 6
+            tmpl = [leg_store; psd_paramso.stats_store];
+            tmpl = tmpl(~cellfun(@isempty,tmpl));
+            inds = cellfun(@(x) x.DisplayName,tmpl,'UniformOutput',false);
+            indsu = unique(inds);
+            out = zeros(length(indsu),1);
+            for i = 1:length(indsu)
+                tmp = find(strcmp(indsu{i},inds));
+                out(i) = tmp(1);
+            end
+            tmpl = tmpl(out);
+            tmpl = [psd_paramso.leg_store;tmpl];   
         end
-        leg_store = leg_store(out);
-        leg_store = [psd_paramso.leg_store;leg_store];       
-        
         %##
         % psd_params.leg_position = [-0.225,0.07];
         %-- legend
-        legend(gca,[leg_store{:}]);
-        [lg,~,~,~]  = legend('boxoff');
+        legend(gca,[tmpl{:}]);
+        [lg,~,~,~]  = legend('boxon');
         tmp = get(lg,'String');
-        %-- specs
+        %-- specs        
         set(lg,'String',tmp, ...
             'Position',[lg.Position(1)+psd_params.leg_position(1),...
                 lg.Position(2)+psd_params.leg_position(2), ...
-                lg.Position(3), ...
-                lg.Position(4)], ...
+                lg.Position(3),lg.Position(4)], ...
             psd_params.legends_specs{:});
+        key_pos_store = [lg.Position(1),...
+                lg.Position(2), ...
+                KEY_BOXSZ];
+        set(lg,'Position',key_pos_store);
+        
         lg.ItemTokenSize(1) = psd_params.leg_token_size;
         hold off;
     end
-    %## TITLE    
+
+    %## LETTER    
     annotation(fig,'textbox',ANNO_POS,...
         'String',sprintf('%s','B'), ...
         'HorizontalAlignment','left',...
@@ -692,7 +717,8 @@ for cl_i = 1:length(cluster_inds_plot)
     %--
     IM_RESIZE = 0.7*VIO_FG_RESIZE;
     AX_SZ = [0.35,0.225];
-    AX_SHIFT = [0.385,-0.325]*IM_RESIZE;
+    % AX_SHIFT = [0.385,-0.325]*IM_RESIZE;
+    AX_SHIFT = [0.385,-0.38]*IM_RESIZE;
     AX_SLIDE = [1.35,-1.35].*FG_FIX_SHIFT;
     %--
     PRC_YLIM = [3,97];
@@ -702,17 +728,29 @@ for cl_i = 1:length(cluster_inds_plot)
     X_DIM = 4;
     DES_I = 2;
     %--
-    ANNO_SHIFT = [-0.12,0.04];
+    ANNO_SHIFT = [-0.12,0.075];
     ltxs = txs+ANNO_SHIFT(1)*FG_ANN_FIX(1)+(0.1/2); %0.7069*FG_FIX(1)+fx_shift+LAB_B_YOFFSET+(0.1/2);
     ltys = tys+ANNO_SHIFT(2)*FG_ANN_FIX(2)+(0.1/2); %+fy_shift+LAB_B_XOFFSET+(0.1/2);
     ANNO_POS = [ltxs,ltys,0.1,0.1];
     %-- cov measures
-    EEG_MEASURES = {'cov_i_avg_theta_fn1', ...
-        'cov_i_avg_beta_fn1'};
-    EEG_MEASURE_TITLES = {'COV(\theta)', ...
-        'COV(\beta)'};
-    EEG_MEASURE_LABS = {'<log_{10}(COV(\theta_{Ns}))>', ...
-        '<log_{10}(COV(\beta_{Ns}))>'};
+    % EEG_MEASURES = {'cov_i_avg_theta_fn1', ...
+    %     'cov_i_avg_beta_fn1'};
+    % EEG_MEASURE_TITLES = {'COV(\theta)', ...
+    %     'COV(\beta)'};
+    % EEG_MEASURE_LABS = {'<log_{10}(COV(\theta_{Ns}))>', ...
+    %     '<log_{10}(COV(\beta_{Ns}))>'};
+    % EEG_MEASURES = {'std_avg_theta_fn1', ...
+    %     'std_avg_beta_fn1'};
+    % EEG_MEASURE_TITLES = {'SD \theta_{Ns}', ...
+    %     'SD \beta_{Ns}'};
+    % EEG_MEASURE_LABS = {'SD(10*log_{10}(PSD_{Ns}))', ...
+    %     'SD(10*log_{10}(PSD_{Ns}))'};
+    EEG_MEASURES = {'std_avg_theta', ...
+        'std_avg_beta'};
+    EEG_MEASURE_TITLES = {'SD \theta_{Ns}', ...
+        'SD \beta_{Ns}'};
+    EEG_MEASURE_LABS = {'SD(10*log_{10}(PSD_{Ns}))', ...
+        'SD(10*log_{10}(PSD_{Ns}))'};
     %--
     x_shift = txs;   
     y_shift = tys;
@@ -726,7 +764,10 @@ for cl_i = 1:length(cluster_inds_plot)
         eeg_measure = EEG_MEASURES{e_i};
     
         %## SUB-SELECT DATA
-        inds = strcmp(KIN_TABLE.model_n,num2str(DES_I)) & ...
+        % inds = strcmp(KIN_TABLE.model_n,num2str(DES_I)) & ...
+        %     KIN_TABLE.cluster_n == cl_n & ...
+        %     ~isnan(KIN_TABLE.(eeg_measure)); %num2str(cl_n);
+        inds = KIN_TABLE.model_n == DES_I & ...
             KIN_TABLE.cluster_n == cl_n & ...
             ~isnan(KIN_TABLE.(eeg_measure)); %num2str(cl_n);
         tmp_tbl = KIN_TABLE(inds,:); 
@@ -782,16 +823,16 @@ for cl_i = 1:length(cluster_inds_plot)
         tp_struct = DEF_VPLOT_STRUCT;
         tp_struct.scatter_props.SizeData = 4*FG_TXT_SZ;
         tp_struct.title_props.FontSize = 10*FG_TXT_SZ;
-        tp_struct.x_label_offset = [0,-0.15];
+        tp_struct.x_label_offset = [0,-0.17];
         tp_struct.x_label_props.FontSize = 10*FG_TXT_SZ;
         tp_struct.y_label_props.FontSize = 10*FG_TXT_SZ;
-        tp_struct.group_label_props.FontSize = 8*FG_TXT_SZ;
-        tp_struct.group_label_offset = [0,-0.25];
+        tp_struct.group_label_props.FontSize = 10*FG_TXT_SZ;
+        tp_struct.group_label_offset = [0,-0.26];
         tp_struct.ax_props = struct('box','off', ...
             'LineWidth',1, ...
             'FontWeight','normal', ...
             'FontName','Arial', ...
-            'FontSize',8*FG_TXT_SZ, ...
+            'FontSize',10*FG_TXT_SZ, ...
             'OuterPosition',[0 0 1 1], ...
             'Position',[x_shift,y_shift,AX_SZ(1)*IM_RESIZE,AX_SZ(2)*IM_RESIZE]);
         tp_struct.group_labels = g_chars_subp; %params.group_chars; %g_chars_subp;
@@ -849,7 +890,35 @@ for cl_i = 1:length(cluster_inds_plot)
         'FontWeight','Bold', ...
         'Units','normalized');
     hold off;
-    
+
+    %## SIGNIFICANCE KEY
+    SIG_K_PROPS = {'HorizontalAlignment','left',...
+        'VerticalAlignment','top', ...
+        'LineStyle','-', ...
+        'FontName','Arial',...
+        'FontSize',10, ...
+        'FontWeight','bold', ...
+        'Units','normalized'};
+   
+    % KEY_CHARS = {'Sig. Levels of P_{value}<0.05, 0.01, 0.001:' ...
+    %     [sprintf('Interaction (S:G): %s, %s%s, %s%s%s   ',char(8225),char(8225),char(8225),char(8225),char(8225),char(8225)), ...
+    %     'Speed (S): *, **, ***   ', ...
+    %     'Group (G): +, ++, +++']};
+    KEY_CHARS = ['P_{value}<0.05: ', ...
+        'Speed (S): *  |  ', ...
+        'Group (G): +  |  ', ...
+        sprintf('Interaction (S:G): %s',char(8225))];
+    FG_ANN_FIX = [1,1];
+    % ANNO_BOXSZ = [0.6,0.05];
+    ANNO_SHIFT = [-0.065,0.14];
+    ltxs = txs+ANNO_SHIFT(1)*FG_ANN_FIX(1)+(0.1/2); %0.7069*FG_FIX(1)+fx_shift+LAB_B_YOFFSET+(0.1/2);
+    ltys = tys+ANNO_SHIFT(2)*FG_ANN_FIX(2)+(0.1/2); %+fy_shift+LAB_B_XOFFSET+(0.1/2);
+    ANNO_POS = [key_pos_store(1),ltys,key_pos_store(3:4)];
+    annotation(fig,'textbox',ANNO_POS,...
+        'String',KEY_CHARS, ...
+        SIG_K_PROPS{:});
+
+
     %## FG SHIFT
     % if fx_cnt < FX_DIM
     %     fx_shift = fx_shift + FG_SHIFT_X;
@@ -860,10 +929,12 @@ for cl_i = 1:length(cluster_inds_plot)
     %     fy_cnt = fy_cnt + 1;
     % end
     % fx_cnt = fx_cnt + 1;
+
+    %##
     fname = sprintf('%s_%s_manscript_plot',output_titles{cl_ii},meas_ext);
-    exportgraphics(fig,[tmp_savedir filesep fname '.pdf'],...
-        'ContentType','Vector')
-    exportgraphics(fig,[tmp_savedir filesep fname '.tif'],...
+    % exportgraphics(fig,[tmp_savedir filesep fname '.pdf'],...
+    %     'ContentType','Vector')
+    exportgraphics(fig,[tmp_savedir filesep fname '.png'],...
         'Resolution',SAVE_RES)
 end
 % close(fig)

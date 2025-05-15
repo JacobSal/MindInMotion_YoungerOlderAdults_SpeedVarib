@@ -166,8 +166,10 @@ ERSP_CROP_TIMES = [averaged_warpto_events(1), averaged_warpto_events(end)+1];
 disp(['Grand average (across all subj) warp to: ',num2str(averaged_warpto_events)]);
 %--
 CL_STUDY.cluster = cl_struct;
+
 %% ERSP
 % parfor s_i = 1:length(SBS_STUDY.datasetinfo)
+NUM_SPB = 36; 
 for s_i = 1:length(CL_STUDY.datasetinfo)
     %## PARAM COPIES
     % tmp_study_sbs = SBS_STUDY;
@@ -282,6 +284,9 @@ for s_i = 1:length(CL_STUDY.datasetinfo)
             'xmax',EEG.xmax, ...
             'subject',EEG.subject, ...
             'group',EEG.group);
+        def_cond_struct = struct('ind',[], ...
+            'cond',{''}, ...
+            'indices',[]);
         tt = tic();
         fext = 'phasec_notw_mw_based';
         parfor i = 1:length(itersk)
@@ -301,8 +306,7 @@ for s_i = 1:length(CL_STUDY.datasetinfo)
             inds_cond = cellfun(@(x) strcmp(x,tmp_cc{c_i}),{tmp_ti.cond});
             tmp_eeg.icaact = tmp_eeg.icaact(k_i,:,inds_cond);   
             
-            %## SUBSET DATA & RUN
-            %--
+            %## NO TW DATA & RUN ==========================================
             tmp_ntf_struct.timewarp = tmp_eeg.timewarp.latencies(inds_cond);
             %-- run newtimef
             [~,~,~,ttimes,lfreqs,~,~,all_e_dat] = ...
@@ -316,13 +320,37 @@ for s_i = 1:length(CL_STUDY.datasetinfo)
             tmpedat = bsxfun(@minus,all_e_dat,be);
             itc_dat = newtimefitc(tmpedat(:,:,:),tmp_ntf_struct.itctype);
             %-- clear
-            all_e_dat = double.empty;
+            % all_e_dat = double.empty;
             %--
             %(04/29/2025) JS, newtimefitc seems to take advantage of the
             %precomputed time-freq measures from std_precompute, yet still
             %generates the same values as the newtimef "itc" output;
             %however, by default both use "phasecoher" as itctype.
+
+            %## SLIDING AVERAGE ITC =======================================
+            slides = 1:NUM_SPB:size(tmpedat,3);
+            %-- baseline each stride
+            inds = ttimes > twmed(1) & ttimes < twmed(end);
+            be = mean(all_e_dat(:,inds,:),2);
+            tmpedat = bsxfun(@minus,all_e_dat,be);
             
+            %-- calc itc for each block
+            tmp_id = zeros(size(tmpedat,1),size(tmpedat,2),length(slides)-1)
+            tmp_ed = zeros(size(tmpedat,1),size(tmpedat,2),length(slides)-1)
+            tmp_ebd = zeros(size(tmpedat,1),size(tmpedat,2),length(slides)-1)
+            for j = 1:length(slides)-1
+                tmp = tmpedat(:,:,slides(j):(slides(j+1)-1));
+                itc_dat = newtimefitc(tmp,tmp_ntf_struct.itctype);
+                tmp_id(:,:,j) = itc_dat;
+                tmp_ed(:,:,j) = mean(abs(all_e_dat(:,:,slides(j):(slides(j+1)-1))),3)
+                tmp_ebd(:,:,j) = mean(abs(tmpedat(:,:,slides(j):(slides(j+1)-1))),3)
+                cnt = cnt + 1;
+            end
+            %(05/15/2025) JS, trying to take the absolute value of the itc/ersp
+            %data before averaging.
+            %-- clear
+            all_e_dat = double.empty;
+
             %## MI INDEX (Tort et al. 2010)
             tmpd = tmp_eeg.icaact(:,tmp_ntf_struct.pointrange,:);
             sigd  = reshape(tmpd,[1,length(tmp_ntf_struct.pointrange)*size(tmpd,3)]);
@@ -334,7 +362,36 @@ for s_i = 1:length(CL_STUDY.datasetinfo)
             % ylabel('Amplitude Frequency (Hz)');
             % xlabel('Phase Frequency (Hz)');
             % colorbar;
-           
+
+            %## AMP-ENV CALC
+            % FREQ_RANGE = linspace(62.1,395.5,11-4+1); %linspace(4,11,11-4+1);
+            % FREQ_CENTERS = 1; %linspace(62.1,395.5,11-4+1);
+            % tmpd = tmp_eeg.icaact(:,tmp_ntf_struct.pointrange,:);
+            % freq_dat = zeros([size(tmpd),length(FREQ_RANGE)]);
+            % %--
+            % sigd  = reshape(tmpd,[1,length(tmp_ntf_struct.pointrange)*size(tmpd,3)]);
+            % [P,param_struct] = morlet_transform_fast(sigd,tmp_eeg.times/1000,FREQ_RANGE,FREQ_CENTERS,3,'y');
+            % freq_dat = reshape(P,[1,length(tmp_ntf_struct.pointrange),size(tmpd,3),length(FREQ_RANGE)]);
+            % %--
+            % for si = 1:size(tmpd,3) 
+            %     for fi = 1:length(FREQ_RANGE) 
+            %         % dat_in = squeeze(tmpd(:,:,si))';
+            %         dat_in = tmpd(:,:,si)';
+            %         dat_in = 
+            %         % [P,param_struct] = morlet_transform_fast(tmpd,tmp_eeg.times,FREQ_RANGE(fi),FREQ_CENTERS(fi),3,'y')
+            %         [P,param_struct] = morlet_transform_fast(dat_in,tmp_eeg.times/1000,FREQ_RANGE,FREQ_CENTERS,3,'y');
+            %         freq_dat(1,:,si,fi) = P;
+            %     end
+            % end
+            % %--
+            % dat_in = mean(freq_dat(1,:,:,:),3);
+            % figure;
+            % contourf(tmp_eeg.times,FREQ_RANGE,squeeze(dat_in)',30,'lines','none');
+            % set(gca,'fontsize',14);
+            % ylabel('Frequency (Hz)');
+            % xlabel('Time (s)');
+            % colorbar;
+
             %## STORE IN STRUCT
             mod_n = cellfun(@(x) any(strcmp(tmp_cc{c_i},x)),MOD_CHARS);   
             twmed = mean(tmp_eeg.timewarp.latencies(inds_cond,:),1);
@@ -346,11 +403,15 @@ for s_i = 1:length(CL_STUDY.datasetinfo)
             tmp_itc_dato.comp_n = k_i;
             tmp_itc_dato.cluster_n = cl_i;
             tmp_itc_dato.itc_dat = single(itc_dat);
+            tmp_itc_dato.itc_dat_slide = tmp_id;
+            tmp_itc_dato.ersp_dat_slide = tmp_ed;
+            tmp_itc_dato.erspb_dat_slide = tmp_ebd;
+            tmp_itc_dato.nstrides = NUM_SPB;
             % tmp_itc_dato.e_dat = single(e_dat);
             tmp_itc_dato.itc_times = ttimes';
             tmp_itc_dato.itc_freqs = lfreqs';
-            tmp_itc_dato.mi_freqs = f_vec;
-            tmp_itc_dato.mi_phase = p_vec;
+            tmp_itc_dato.mi_freqs = f_vec';
+            tmp_itc_dato.mi_phase = p_vec';
             tmp_itc_dato.mi_dat =  comod;
             tmp_itc_dato.twc_times = twmed;
             tmp_itc_dato.twg_times = averaged_warpto_events; 

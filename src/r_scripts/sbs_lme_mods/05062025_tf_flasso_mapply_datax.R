@@ -1,6 +1,14 @@
 # install.packages(c("parallel","purrr","dplyr","tibble","Matrix",
 #                    "lattice","gridExtra","R.devices","R.matlab","ggplot2",
 #                    "gridExtra","genlasso"));
+print('Clearing Workspace');
+# Clear plots
+if(!is.null(dev.list())) dev.off()
+# Clear console
+cat("\014") 
+# Clean workspace
+rm(list=ls())
+
 print('Loading packages...')
 #%% UTILITY
 library(parallel);
@@ -13,6 +21,7 @@ library(R.devices);
 library(ggplot2)
 library(gridExtra);
 library(grid)
+library(R.matlab)
 #%% PACKAGES FOR STATS
 library(genlasso);
 
@@ -24,49 +33,66 @@ source(file.path(curr_dir,"tf_flasso_funcs.R"));
 print("Loading data...");
 # clusters = c(3,4,5,6,7,8,9,10,11,12,13) # RSup/RSM, PreC, LSM, Mid Cing, LSup, LPPA, RPPA
 clusters = c(3,4,6,8)
-fext = 'itc_rdata_table_phasec_notw_mw_based'
+conds = c(1,2,3,4)
 
 #%% CREATE SAVE DIR
 curr_dir <- getwd();
-save_dir <- paste0(curr_dir,paste0("/",fext,"_tables_figs"))
+# fname = "itc_rdata_table_phasec_notw_mw_based_flasso_based_results";
+fname = "itc_rdata_table_phasec_notw_mw_based_fl_res_bsz5_nob";
+save_dir <- file.path(curr_dir,fname)
 dir.create(save_dir);
 
 #%% LOAD
-mat_fpath <- paste0("/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/02202025_mim_yaoa_powpow0p3_crit_speed/__iclabel_cluster_allcond_rb3/icrej_5/11/kin_eeg_step_to_step/",fext,".csv")
-
+#-- .csv
+fname = "itc_rdata_table_phasec_notw_mw_based.csv";
+dpath = "/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/02202025_mim_yaoa_powpow0p3_crit_speed/__iclabel_cluster_allcond_rb3/icrej_5/11/kin_eeg_step_to_step"
+mat_fpath <- file.path(dpath,fname)
+#-- .mat 
+# fname = "itc_rdata_struct_phasec_notw_mw_based.mat";
+# dpath = "/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/02202025_mim_yaoa_powpow0p3_crit_speed/__iclabel_cluster_allcond_rb3/icrej_5/11/kin_eeg_step_to_step"
+# mat_fpath <- file.path(dpath,fpath,fname)
+#--
 if(ispc()){
   mat_fpath <- paste0("M:",mat_fpath)
 }else{
   mat_fpath <- paste0("/blue/dferris",mat_fpath);
 }
+
 #--
 dtbl <- read.csv(mat_fpath)
-dtbl <- filter_at(dtbl,vars('cond_n'), any_vars(. %in% c(5,6,7,8)));
+dtbl <- filter_at(dtbl,vars('cond_n'), any_vars(. %in% conds));
 dtbl <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% clusters));
 
 #%% LOOP VARS ============================================================== %%#
-# clusters=unique(dtbl$cluster_n)
-tmp = get_loop_vals(dtbl,clusters)
-clis = tmp$clis;
-cis = tmp$cis;
-sis = tmp$sis;
-
-#%% GET SAVED DATA
+clusters=unique(dtbl$cluster_n)
+conds=unique(dtbl$cond_n)
+subjs=unique(dtbl$subj_n)
+#--
 cli = clusters[1]
 ci = conds[1];
 si = subjs[1];
 tmp <- get_tf_dat(cli,ci,si,dtbl) # tmp load
 datl <- length(tmp$tf_dat);
-cnt = 1;
+
+#%%
 for(i in 1:length(clusters)){
   cli = clusters[i];
   tt <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% cli));
   #--
   subjs = unique(tt$subj_n);
   #--
+  tmp_save_dir <- file.path(save_dir,sprintf("cl%i_plots",cli))
+  dir.create(tmp_save_dir);
+  #--
   for(l in 1:length(conds)){
+    cnt = 1;
+    orig_matrix <- matrix(0L,nrow=datl,ncol=length(subjs));
     mask_matrix <- matrix(0L,nrow=datl,ncol=length(subjs));
     lamb_vec <- vector(mode="double",length(subjs))
+    subj_vec <- vector(mode="double",length(subjs))
+    cond_vec <- vector(mode="double",length(subjs))
+    clust_vec <- vector(mode="double",length(subjs))
+    
     for(k in 1:length(subjs)){
       ci = conds[l];
       si = subjs[k];
@@ -76,28 +102,47 @@ for(i in 1:length(clusters)){
       tfd <- readRDS(file=file.path(save_dir,fname)) #list(beta_hat,best_lambda)
       beta_hat <- tfd$bbeta;
       best_lambda <- tfd$blamb;
+      lambda_values = tfd$lamb_vals;
+      cv_errors = tfd$cv_errors;
       #--
       tmp <- get_tf_dat(cli,ci,si,dtbl)
       tf_dat = tmp$tf_dat;
       times = tmp$times;
       freqs = tmp$freqs;
       
+      #%% PLOT RESULTS
+      # ggo <- ggplot(data.frame(lambda_values,cv_errors),
+      #               aes(x=lambda_values,y=cv_errors),
+      #               xlab="Lambda",
+      #               ylab="Cross-Validation Error") +
+      #   geom_point(pch=19) +
+      #   geom_line(col="blue") +
+      #   geom_vline(xintercept=best_lambda,col="red",lty=2)
+      # #-- save plot
+      # fname = sprintf("cl%i-s%i-c%i_cv.png",cli,si,ci);
+      # ggsave(file.path(tmp_save_dir,fname),ggo)
+      
       #%% TF PLOT
       # zlim_in = range(tf_dat)
       # op <- tf_plot(tf_dat,times,freqs,"Original",zlim_in)
       # #-- plot fusedlasso mask
-      # zlim_in = range(beta_hat$beta)
+      # tf_dat = beta_hat$beta[,1];
+      # zlim_in = range(tf_dat)
       # tit_in = bquote(lambda==.(sprintf("%.3f",beta_hat$lambda[1])));
-      # np <- tf_plot(beta_hat$beta[,1],times,freqs,tit_in,zlim_in)
+      # np <- tf_plot(tf_dat,times,freqs,tit_in,zlim_in)
       # #-- join them
       # pl <- list(op,np)
       # grid.arrange(grid::rectGrob(),grid::rectGrob())
       # ml <- marrangeGrob(pl, nrow=2, ncol=1);
       # #-- resave tf-plots?
-      # fname = sprintf("cl%i-s%i-c%i_tfplot.png",clis[i],sis[i],cis[i]); 
-      # ggsave(file.path(save_dir,fname), ml)
+      # fname = sprintf("cl%i-s%i-c%i_tfplot.png",cli,si,ci);
+      # ggsave(file.path(tmp_save_dir,fname), ml)
       
       #%% ADD MASK TO MATRIX
+      subj_vec[cnt] <- si;
+      cond_vec[cnt] <- ci;
+      clust_vec[cnt] <- cli;
+      orig_matrix[,cnt] <- tf_dat;
       mask_matrix[,cnt] <- beta_hat$beta;
       lamb_vec[cnt] <- best_lambda;
       
@@ -105,7 +150,35 @@ for(i in 1:length(clusters)){
       cnt = cnt + 1;
     }
     #-- save mask-mat for each condition
-    fname = sprintf("cl%i-c%i_flmask.RData",clis[i],sis[i],cis[i]); 
-    saveRDS(list(fl,cv_errors,lambda_values),file=file.path(save_dir,fname))
+    fname = sprintf("cl%i-c%i_flmaskagg.RData",cli,ci); 
+    saveRDS(list(orig_mat=orig_matrix,mask_mat=mask_matrix,lamb_vec=lamb_vec),file=file.path(save_dir,fname))
+    
+    #%% TF PLOT
+    tf_dat = rowMeans(orig_matrix)
+    zlim_in = range(tf_dat)
+    op <- tf_plot(tf_dat,times,freqs,"Original",zlim_in)
+    #-- plot fusedlasso mask
+    tit_in = bquote(lambda==.(sprintf("%.3f",mean(lamb_vec))));
+    tf_dat = rowMeans(mask_matrix)
+    zlim_in = range(tf_dat)
+    np <- tf_plot(tf_dat,times,freqs,tit_in,zlim_in)
+    #-- join them
+    pl <- list(op,np)
+    grid.arrange(grid::rectGrob(),grid::rectGrob())
+    ml <- marrangeGrob(pl, nrow=2, ncol=1);
+    #-- resave tf-plots?
+    fname = sprintf("allmean_cl%i-c%i_tfplot.png",cli,ci);
+    ggsave(file.path(tmp_save_dir,fname), ml)
+    #--
+    dato = list(odat=orig_matrix,
+                mmat=mask_matrix,
+                lvec=lamb_vec,
+                svec=subj_vec,
+                cvec=cond_vec,
+                clvec=clust_vec,
+                times=times,
+                freqs=freqs)
+    fname = sprintf("allmat_cl%i-c%i.mat",cli,ci);
+    writeMat(con=file.path(save_dir,fname), flasso_tbl = dato)
   }
 }

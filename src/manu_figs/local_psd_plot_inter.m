@@ -285,11 +285,12 @@ end
 % npos = get(ax,'Position',PLOT_STRUCT.ax_props.Position);
 
 %## PLOT BANDMARKS
-% BM_HZ = 0.9;
 BM_HZ = 0.7;
-% BM_VR = 1.75;
-% BM_VR = [0.155,0.25,0.49,0.75];
 BM_VR = [0.235,0.325,0.55,0.85];
+%--
+% BM_HZ = 0.9;
+% BM_VR = [0.155,0.25,0.49,0.75];
+%--
 tmpfg = gcf();
 psr = tmpfg.Position(4)/tmpfg.Position(3);
 bm_struct = struct(...
