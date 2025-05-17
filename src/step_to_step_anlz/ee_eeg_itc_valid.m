@@ -129,44 +129,23 @@ for des_i = 1:length(STUDY_DESI_PARAMS)
     [CL_STUDY] = std_makedesign(CL_STUDY,[],des_i,STUDY_DESI_PARAMS{des_i}{:});
 end
 
-%% (GROUP-CONDITION PLOTS) ========================================== %%
-%-- tmp load
-fext = 'phasec_notw_mw_based';
-itc_dato = par_load([CL_STUDY.datasetinfo(1).filepath filesep sprintf('%s_custom_itc_%s.mat',CL_STUDY.datasetinfo(1).subject,fext)]);
-twp = itc_dato.parameters;
-tws = itc_dato.itc_dat_struct;
-%--
-TW_CHARS = {'RHS','RTO','LHS','LTO','RHS'};
-ALPHA = 0.05;
-FREQ_BOUND = [3,60];
-TIME_BOUND = [twp.timewarpms(1),twp.timewarpms(end)];
-% FREQ_BOUND = [3,60];
-% TIME_BOUND = [-500,3000];
-alltimes = tws(1).itc_times';
-allfreqs = tws(1).itc_freqs';
-tinds = alltimes > TIME_BOUND(1) & alltimes < TIME_BOUND(2);
-finds = allfreqs > FREQ_BOUND(1) & allfreqs < FREQ_BOUND(2);
-tcrop = alltimes(tinds);
-fcrop = allfreqs(finds);
-
 %% PARAMS =========================================================== %%
 %-- load dat table
 % fext = 'phasec_notw_mw';
 fext = 'phasec_notw_mw_based';
-itc_so = par_load([save_dir filesep sprintf('itc_table_%s_new.mat',fext)]);
+% itc_so = par_load([save_dir filesep sprintf('itc_table_%s_new.mat',fext)]);
 itc_so = par_load([save_dir filesep sprintf('itc_table_%s.mat',fext)]);
 %--
-twp = itc_dato.parameters;
-tws = itc_dato.itc_dat_struct;
+twp = struct('timewarpms',itc_so.twg_times(1,:));
+% twp = itc_so.twg_times(1,:);
 %--
 TW_CHARS = {'RHS','RTO','LHS','LTO','RHS'};
-ALPHA = 0.05;
-FREQ_BOUND = [3,60];
-TIME_BOUND = [twp.timewarpms(1),twp.timewarpms(end)];
 % FREQ_BOUND = [3,60];
-% TIME_BOUND = [-500,3000];
-alltimes = tws(1).itc_times';
-allfreqs = tws(1).itc_freqs';
+% TIME_BOUND = [twp.timewarpms(1),twp.timewarpms(end)];
+FREQ_BOUND = [3,250];
+TIME_BOUND = [-500,3000];
+alltimes = itc_so.itc_times{1};
+allfreqs = itc_so.itc_freqs{1};
 tinds = alltimes > TIME_BOUND(1) & alltimes < TIME_BOUND(2);
 finds = allfreqs > FREQ_BOUND(1) & allfreqs < FREQ_BOUND(2);
 tcrop = alltimes(tinds);
@@ -270,7 +249,7 @@ X_DIM = 4;
 fy_shift = 0;
 
 %##
-tmp_save_dir = [save_dir filesep 'itc_plots'];
+tmp_save_dir = [save_dir filesep 'itc_raw_plots'];
 mkdir(tmp_save_dir);
 
 %% (MORE EFFICIENT PLOTTING) ============================================
@@ -281,8 +260,8 @@ for cl_i = 1:length(cluster_inds_plot)
     stat_ext = 'none';    
     %--
     cl_ii = find(cluster_inds_plot(cl_i) == double(string(clusters)));
-    cl_n = clusters(cl_i);
-    atlas_name = cluster_titles{cl_n};
+    cl_n = clusters(cl_ii);
+    atlas_name = cluster_titles{cl_ii};
 
     %## EXTRACT DATA
     allitc = cell(length(COND_CHARS),length(groups));
@@ -298,12 +277,12 @@ for cl_i = 1:length(cluster_inds_plot)
             % itc_dat = cellfun(@abs,tt.itc_dat,'UniformOutput',false);
             % itc_dat = cat(3,itc_dat{:});
             %--
-            itc_dat = cellfun(@abs,tt.itc_dat_slide,'UniformOutput',false);
-            itc_dat = cat(3,itc_dat{:});
+            % itc_dat = cellfun(@abs,tt.itc_dat_slide,'UniformOutput',false);
+            % itc_dat = cat(3,itc_dat{:});
 
             %--
-            % itc_dat = cellfun(@abs,tt.ersp_dat_slide,'UniformOutput',false);
-            % itc_dat = cat(3,itc_dat{:});
+            itc_dat = cellfun(@abs,tt.ersp_dat_slide,'UniformOutput',false);
+            itc_dat = cat(3,itc_dat{:});
             %--
             % itc_dat = cellfun(@abs,tt.erspb_dat_slide,'UniformOutput',false);
             % itc_dat = cat(3,itc_dat{:});
@@ -327,7 +306,7 @@ for cl_i = 1:length(cluster_inds_plot)
     % clim = cellfun(@(x) [prctile(x,3,'all'),prctile(x,97,'all')],itco_c, ...
     %     'UniformOutput',false);
     % clim = mean(cat(1,clim{:}),1);
-    clim = [0,0.20];
+    clim = [0,0.25];
 
    %## INITIATE FIGURE
     x_shift = AX_INIT_X;
@@ -368,9 +347,9 @@ for cl_i = 1:length(cluster_inds_plot)
             % allersp_mask = bs_masked{c_i,g_i};
             % allersp_pcond = bs_pval{c_i,g_i};
             %--
-            allersp = itco_c{c_i,g_i};
-            allersp_mask = itco_c{c_i,g_i};
-            allersp_pcond = zeros(size(bs_pval{c_i,g_i}));
+            allersp = mean(itco_c{c_i,g_i},3);
+            allersp_mask = mean(itco_c{c_i,g_i},3);
+            allersp_pcond = zeros(size(itco_c{c_i,g_i},1),size(itco_c{c_i,g_i},2));
 
             %## PLOT
             tmp_plot_struct = PLOT_STRUCT;
@@ -414,7 +393,7 @@ for cl_i = 1:length(cluster_inds_plot)
         end
     end
     drawnow;
-    exportgraphics(fig,[tmp_save_dir filesep sprintf('cl%i_stdstats_%s_%s_%s.tiff',cl_n,fext,stat_ext,blext)],'Resolution',300);
+    exportgraphics(fig,[tmp_save_dir filesep sprintf('cl%i_%s_%s_%s_clim.png',cl_n,fext,stat_ext,blext)],'Resolution',300);
     % close(fig);
 end
 
@@ -519,7 +498,7 @@ AX_INIT_Y = 0.775;
 X_DIM = 4;
 fy_shift = 0;
 %##
-tmp_save_dir = [save_dir filesep 'itc_plots'];
+tmp_save_dir = [save_dir filesep 'mi_plots'];
 mkdir(tmp_save_dir);
 
 %% (MORE EFFICIENT PLOTTING) ============================================
@@ -689,7 +668,8 @@ clusters_ext = [3,4,6,8];
 conds_ext = [1,2,3,4];
 % fext = 'itc_rdata_table_phasec_notw_mw_based';
 % fext = 'itc_rdata_table_phasec_notw_mw_based_flasso_results_bsz5';
-fext = 'itc_rdata_table_phasec_notw_mw_based_fl_res_bsz5_nob';
+% fext = 'itc_rdata_table_phasec_notw_mw_based_fl_res_bsz5_nob';
+fext = 'itc_rdata_flasso_out_bsz5_nob_sliding';
 itc_dat_masks = par_load(save_dir,sprintf('itc_rdata_table_%s_cl%s_c%s.mat',fext,strjoin(string(conds_ext),''),strjoin(string(clusters_ext),'')));
 %--
 COND_CHARS = {'0p25','0p5','0p75','1p0'};
@@ -802,6 +782,7 @@ MOD_CUTOFF = 0.08;
 for cl_i = 1:length(cluster_inds_plot)
     %%
     %##
+    fext = 'itc_dat';
     blext = 'none';
     stat_ext = 'none';    
     %--
@@ -821,7 +802,7 @@ for cl_i = 1:length(cluster_inds_plot)
                 strcmp(itc_dat_masks.cond_char,COND_CHARS{c_i});
             % inds = itc_dat_masks.cluster_n == cl_n & ...
             %     strcmp(itc_dat_masks.cond_char,COND_CHARS{c_i});
-            fext = 'mod_nogroup';
+            % fext = 'mod_nogroup';
             tt = itc_dat_masks(inds,:);
             %--
             itc_dat = tt.itc_dat;
@@ -838,8 +819,8 @@ for cl_i = 1:length(cluster_inds_plot)
         end
     end
     %--
-    itco_c = allitc;
-    % itco_c = allmod;
+    % itco_c = allitc;
+    itco_c = allmod;
     itco_c_mod = allmod;
     itco_c_modb = allmodb;
 
@@ -855,7 +836,7 @@ for cl_i = 1:length(cluster_inds_plot)
 
     %##
     %-- clims
-    clim = cellfun(@(x) [prctile(x,3,'all'),prctile(x,97,'all')],itco_c, ...
+    clim = cellfun(@(x) [prctile(x,5,'all'),prctile(x,95,'all')],itco_c, ...
         'UniformOutput',false);
     clim = mean(cat(1,clim{:}),1);
     %--

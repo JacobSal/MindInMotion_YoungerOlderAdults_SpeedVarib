@@ -25,6 +25,98 @@ round_even <- function(x,rnd_num) {
 }
 
 #%% GET LOOP VALS ==============================================================
+get_mat_dat <- function(mat_dat){
+  #%% GET FORMATTING
+  tmp = mat_dat[[1]];
+  times = tmp[[1]][[1]][[11]];
+  freqs = tmp[[1]][[1]][[10]];
+  ntimes = length(times);
+  nfreqs = length(freqs);
+  fns = attr(tmp[[1]][[1]],"dimnames");
+  print(str(fns[[1]]))
+  
+  #%% MAKE DATA LISTS
+  #-- reduced data list
+  tmp_dat_store <- list()
+  index_l <- data.frame(
+    subj_n=double(),
+    cond_n=double(),
+    group_n=double(),
+    cluster_n=double(),
+    index_n=double())
+  #%% EXTRACT DATA
+  for(i in 1:length(tmp)){
+    tt = tmp[[i]][[1]];
+    #-- data list
+    tmp_dat_store <- append(tmp_dat_store,
+                            list(itc_dat=matrix(tt[[9]],nrow=nfreqs,ncol=ntimes)));
+    #-- indexing list
+    index_l <- rbind(index_l,data.frame(
+      subj_n=as.numeric(tt[[2]]),
+      cond_n=as.numeric(tt[[6]]),
+      group_n=as.numeric(tt[[4]]),
+      cluster_n=as.numeric(tt[[8]]),
+      index_n=i))
+  }
+  return(list(itc_datl=tmp_dat_store,indexl=index_l,freqs=freqs,times=times))
+}
+
+#%%
+get_mcl_dat_mat <- function(indexl,itc_datl,nfreqs,ntimes,
+                            do_cond_baseline=FALSE){
+  subjs=unique(indexl$subj_n);
+  conds=unique(indexl$cond_n);
+  groups=unique(indexl$group_n);
+  clusters=unique(indexl$cluster_n);
+  #--
+  loop_vals = list();
+  cnt = 1;
+  for (i in 1:length(clusters)) {
+    cli = clusters[i];
+    tt <- filter_at(indexl,vars('cluster_n'), any_vars(. %in% cli));
+    subjs=unique(tt$subj_n)
+    conds=unique(tt$cond_n)
+    for(l in 1:length(conds)) {
+      ci = conds[l];
+      ttc <- filter_at(tt,vars('cond_n'), any_vars(. %in% ci));
+      #-- baseline, if one.
+      if(do_cond_baseline){
+        mask_matrix <- matrix(0,nrow=nfreqs*ntimes,ncol=length(subjs));
+        for(k in 1:length(subjs)){
+          si = subjs[k];
+          tts <- filter_at(ttc,vars('subj_n'), any_vars(. %in% si));
+          ii = tts$index;
+          mask_matrix[,k] = matrix(itc_datl[[ii]],nrow=ntimes*nfreqs,ncol=1);
+        }
+        cmu = rowMeans(mask_matrix);
+      }else{
+        cmu = matrix(0,nrow=ntimes*nfreqs,ncol=1);
+      }
+      #-- loop subjects
+      for(k in 1:length(subjs)){
+        si = subjs[k];
+        tts <- filter_at(ttc,vars('subj_n'), any_vars(. %in% si));
+        #-- subtract baseline, if one.
+        ii = tts$index;
+        itcd = matrix(itc_datl[[ii]],nrow=ntimes*nfreqs,ncol=1);
+        ttd = itcd-cmu;
+        #-- assign to list
+        loop_vals <- cbind(loop_vals,
+                           list(list(
+                             tf_dat=ttd,
+                             cli=cli,
+                             ci=ci,
+                             si=si,
+                             freqN=nfreqs,
+                             timeN=ntimes)))
+        cnt = cnt + 1;
+      }
+    }
+  }
+  return(loop_vals)
+}
+
+#%% 
 get_mcl_dat <- function(dtbl,clusters){
   freqs = unique(dtbl$itc_freq);
   times = unique(dtbl$itc_time);
@@ -78,6 +170,17 @@ get_tf_dat <- function(cli,ci,si,dtbl){
   return(list(tf_dat=y,freqs=freqs,times=times))
 }
 
+get_tf_dat_mat <- function(cli,ci,si,indexl,itc_dat){
+  #--
+  indexl <- filter_at(indexl,vars('cluster_n'), any_vars(. %in% cli));
+  indexl <- filter_at(indexl,vars('cond_n'), any_vars(. %in% ci));
+  tt <- filter_at(indexl,vars('subj_n'), any_vars(. %in% si));
+  #-- get data and run
+  y = itc_dat[[tt$index]];
+  #--
+  return(list(tf_dat=y))
+}
+
 #%% TF PLOT FUNCTION ===========================================================
 tf_plot <- function(pwr_dat,times,freqs,title_char,zlim_in){
   #-- set params
@@ -108,7 +211,7 @@ tf_plot <- function(pwr_dat,times,freqs,title_char,zlim_in){
 }
 
 #%% FUSEDLASSO CV ============================================================
-mfusedl2d_cv <- function(lambs,tf_dat,freqN,timeN,nlambs_test=20,block_size=10,K=5){
+mfusedl2d_cv <- function(lambs,tf_dat,freqN,timeN,nlambs_test=30,block_size=5,K=5){
   #-- lambda vec
   lambda_values <- seq(min(lambs), max(lambs), length.out=nlambs_test)
   #-- get input image

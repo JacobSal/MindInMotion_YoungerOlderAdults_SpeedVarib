@@ -123,7 +123,8 @@ parfor subj_i = 1:length(CL_STUDY.datasetinfo)
 
             %## RMV FIELDS & STORE
             % tmp = rmfield(tmp,{'itc_freqs','itc_times','ersp_dat_slide','erspb_dat_slide','itc_dat'});
-            tmp = rmfield(tmp,{'ersp_dat_slide','erspb_dat_slide','itc_dat'});
+            % tmp = rmfield(tmp,{'ersp_dat_slide','erspb_dat_slide','itc_dat'});
+            tmp = rmfield(tmp,{'itc_dat'});
             tmp = struct2table(tmp);            
             itc_so{subj_i} = tmp;
             
@@ -169,10 +170,12 @@ fext = 'phasec_notw_mw_based';
 CL_NUM_CUTOFF = 13;
 GROUP_CHARS = {'H1000','H2000','H3000'};
 COND_CHARS = {'0p25','0p5','0p75','1p0','flat','low','med','high'};
-FREQ_BOUND = [3,80];
-TIME_BOUND = [0,1500];
+% FREQ_BOUND = [3,80];
+FREQ_BOUND = [3,250];
+TIME_BOUND = [0,2000];
 
 %## LOOP
+% itc_so = cell(11,length(CL_STUDY.datasetinfo));
 itc_so = cell(length(CL_STUDY.datasetinfo),1);
 parfor subj_i = 1:length(CL_STUDY.datasetinfo)
     tmp_sbs_study = SBS_STUDY;
@@ -198,6 +201,7 @@ parfor subj_i = 1:length(CL_STUDY.datasetinfo)
             %--
             tclu = unique([tmp.cluster_n]);
             % tcu = unique({tmp.cond_char});
+            % dats_store = cell(length(tclu)*length(COND_CHARS),11);
             dats_store = cell(length(tclu)*length(COND_CHARS),1);
             cnt = 1;
             tti = tic();
@@ -218,42 +222,69 @@ parfor subj_i = 1:length(CL_STUDY.datasetinfo)
                         %## STORE DATA
                         gg = strcmp(tt.group_char,GROUP_CHARS);
                         cc = strcmp(tt.cond_char,COND_CHARS);
-                        tmp_dats = struct(...
-                            'subj_char',tt.subj_char, ...
-                            'subj_n',subj_i, ...
-                            'group_char',tt.group_char, ...
-                            'group_n',find(gg), ...
-                            'cond_char',tt.cond_char, ...
-                            'cond_n',find(cc), ...
-                            'mod_n',tt.mod_n, ...
-                            'cluster_n',tt.cluster_n, ...
-                            'itc_dat',rtd, ...
-                            'itc_freq',tt.itc_freqs(finds), ...
-                            'itc_time',tt.itc_times(tinds) ...
-                        );
+                        if cnt == 1
+                            tmp_dats = struct(...
+                                'subj_char',tt.subj_char, ...
+                                'subj_n',subj_i, ...
+                                'group_char',tt.group_char, ...
+                                'group_n',find(gg), ...
+                                'cond_char',tt.cond_char, ...
+                                'cond_n',find(cc), ...
+                                'mod_n',tt.mod_n, ...
+                                'cluster_n',tt.cluster_n, ...
+                                'itc_dat',rtd, ...
+                                'itc_freq',tt.itc_freqs(finds), ...
+                                'itc_time',tt.itc_times(tinds) ...
+                            );
+                            % tmp_dats(cnt,:) = {tt.subj_char,subj_i,tt.group_char,find(gg),tt.cond_char, ...
+                            %     find(cc),tt.mod_n,tt.cluster_n,rtd,tt.itc_freqs(finds),tt.itc_times(tinds)};
+                        else
+                            tmp_dats = struct(...
+                                'subj_char',tt.subj_char, ...
+                                'subj_n',subj_i, ...
+                                'group_char',tt.group_char, ...
+                                'group_n',find(gg), ...
+                                'cond_char',tt.cond_char, ...
+                                'cond_n',find(cc), ...
+                                'mod_n',tt.mod_n, ...
+                                'cluster_n',tt.cluster_n, ...
+                                'itc_dat',rtd, ...
+                                'itc_freq',0, ...
+                                'itc_time',0 ...
+                            );
+                            % tmp_dats = {tt.subj_char,subj_i,tt.group_char,find(gg),tt.cond_char, ...
+                            %     find(cc),tt.mod_n,tt.cluster_n,rtd,0,0};
+                        end
                         dats_store{cnt} = tmp_dats;
+                        % dats_store(cnt,:) = tmp_dats;
                         cnt = cnt + 1;
                     end
                 end
             end
-            tmp = util_resolve_struct(dats_store);
+            % tmp = util_resolve_struct(dats_store);
+            % tmp = dats_store(all(~cellfun(@isempty,dats_store),2),:);
+            tmp = dats_store(~cellfun(@isempty,dats_store));
             itc_so{subj_i} = tmp;
-            fprintf('%s) loading and conversion done. %0.2f min',tmp_cl_study.datasetinfo(subj_i).subject,toc(tti)/60)
+            fprintf('%s) loading and conversion done. %0.2f min\n',tmp_cl_study.datasetinfo(subj_i).subject,toc(tti)/60)
         end
     catch e 
         fprintf('%s) %s\n',tmp_cl_study.datasetinfo(subj_i).subject ,getReport(e));
     end
 end
 %--
-% itc_so = util_resolve_table(itc_so);
-itc_so = util_resolve_struct(itc_so);
+itc_so = itc_so(~cellfun(@isempty,itc_so));
+itc_so = cat(1,tmp{:});
 %--
-tt = num2cell(zeros(size(itc_so,1),1));
-[itc_so(2:length(itc_so)).itc_freq] = tt{:}; %abs(mean(tmp.itc_dat_slide))
-itc_so.itc_freq
+itc_so = cat(1,tmp{:});
 %--
-par_save(itc_so,save_dir,sprintf('itc_rdata_struct_%s.mat',fext));
-save([save_dir filesep sprintf('itc_rdata_struct_%s.mat',fext)],'itc_so','-mat')
+% tt = num2cell(zeros(length(itc_so)-1,1));
+% [itc_so(2:length(itc_so)).itc_freq] = tt{:}; %abs(mean(tmp.itc_dat_slide))
+% [itc_so(2:length(itc_so)).itc_time] = tt{:}; %abs(mean(tmp.itc_dat_slide))
+%--
+par_save(itc_so,save_dir,sprintf('itc_rdata_struct_125f_%s.mat',fext));
+% par_save(itc_so,save_dir,sprintf('itc_rdata_cell_%s.mat',fext));
+% save([save_dir filesep sprintf('itc_rdata_struct_%s.mat',fext)],'itc_so','-mat')
+% save([save_dir filesep sprintf('itc_rdata_cell_%s.mat',fext)],'itc_so','-mat','v6')
 
 %% ===================================================================== %%
 %## VALIDATION PLOT
@@ -293,7 +324,8 @@ ax = axes();
 % fext = 'itc_rdata_table_phasec_notw_mw_based';
 % fext = sprintf('%s_tables_figs',fext);
 % fext = 'itc_rdata_table_phasec_notw_mw_based_flasso_results_bsz5';
-fext = 'itc_rdata_table_phasec_notw_mw_based_fl_res_bsz5_nob';
+% fext = 'itc_rdata_table_phasec_notw_mw_based_fl_res_bsz5_nob';
+fext = 'itc_rdata_flasso_out_bsz5_nob_sliding';
 COND_CHARS = {'0p25','0p5','0p75','1p0','flat','low','med','high'};
 GROUP_CHARS = {'H1000','H2000','H3000'};
 clusters = [3,4,6,8];

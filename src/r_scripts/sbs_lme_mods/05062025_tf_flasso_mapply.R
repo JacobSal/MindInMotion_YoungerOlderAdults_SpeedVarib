@@ -28,7 +28,7 @@ library(R.matlab);
 #%% CUSTOM FUNCTIONS
 # curr_dir = "/blue/dferris/jsalminen/GitHub/MIND_IN_MOTION_PRJ/MindInMotion_YoungerOlderAdult_KinEEGCorrs/src/r_scripts/sbs_lme_mods";
 curr_dir = getwd();
-# setwd(curr_dir)
+setwd(curr_dir)
 source(file.path(curr_dir,"tf_flasso_funcs.R"));
 print(curr_dir);
 
@@ -42,16 +42,15 @@ fext = 'itc_rdata_table_phasec_notw_mw_based'
 #%% CREATE SAVE DIR
 curr_dir <- getwd();
 # fname = "itc_rdata_table_phasec_notw_mw_based_flasso_based_results";
-fname = "itc_rdata_table_phasec_notw_mw_based_fl_res_bsz5_nob";
+# fname = "itc_rdata_table_phasec_notw_mw_based_fl_res_bsz5_nob";
+fname = "itc_rdata_flasso_125f_out_bsz5_nob_sliding";
 save_dir <- file.path(curr_dir,fname)
 dir.create(save_dir);
 
 #%% LOAD
-fname = "itc_rdata_table_phasec_notw_mw_based.csv";
-dpath = "/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/02202025_mim_yaoa_powpow0p3_crit_speed/__iclabel_cluster_allcond_rb3/icrej_5/11/kin_eeg_step_to_step"
-mat_fpath <- file.path(dpath,fname)
-#--
-fname = "itc_rdata_struct_phasec_notw_mw_based.mat";
+# fname = "itc_rdata_struct_phasec_notw_mw_based.mat";
+fname = "itc_rdata_struct_125f_phasec_notw_mw_based.mat";
+# fname = "itc_rdata_cell_phasec_notw_mw_based.mat";
 dpath = "/jsalminen/GitHub/MIND_IN_MOTION_PRJ/_data/MIM_dataset/_studies/02202025_mim_yaoa_powpow0p3_crit_speed/__iclabel_cluster_allcond_rb3/icrej_5/11/kin_eeg_step_to_step"
 mat_fpath <- file.path(dpath,fname)
 #--
@@ -60,15 +59,24 @@ if(ispc()){
 }else{
   mat_fpath <- paste0("/blue/dferris",mat_fpath);
 }
-#--
+#-- load mat data and manipulate
 tmp_mat = R.matlab::readMat(mat_fpath)
-# dtbl <- read.csv(mat_fpath)
-dtbl <- filter_at(dtbl,vars('cond_n'), any_vars(. %in% conds));
-dtbl <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% clusters));
+#-- extract data
+dato = get_mat_dat(tmp_mat);
+indexl <- dato$indexl;
+itc_datl <- dato$itc_datl;
+freqs <- dato$freqs;
+times <- dato$times;
+nfreqs = length(freqs)
+ntimes = length(times);
+#-- filter
+indexl <- filter_at(indexl,vars('cond_n'), any_vars(. %in% conds));
+indexl <- filter_at(indexl,vars('cluster_n'), any_vars(. %in% clusters));
 
 #%% LOOP VARS ============================================================== %%#
-loop_items = get_mcl_dat(dtbl,clusters)
-# loop_items = get_mcl_dat(dtbl,3)
+loop_items = get_mcl_dat_mat(indexl,itc_datl,nfreqs,ntimes,
+                             do_cond_baseline=FALSE)
+
 
 #%% TEST
 # saves <- lapply(loop_items,function(x) mfusedl2d(x,save_dir))
@@ -83,14 +91,15 @@ if(ispc()){
 print(numCores)
 clust <- makeCluster(numCores)
 set.seed(42069)
-# system.time(saves <- mclapply(loop_items,function(x) mfusedl2d(x,save_dir),
-#                               mc.preschedule = TRUE,
-#                               mc.set.seed = TRUE))
-
-system.time(saves <- mclapply(loop_items,mfusedl2d,save_dir=save_dir,
+system.time(saves <- mclapply(loop_items,function(x) mfusedl2d(x,save_dir),
                               mc.preschedule = FALSE,
                               mc.set.seed = FALSE,
-                              mc.cores=numCores))
+                              mc.cores=numCores));
+
+# system.time(saves <- mclapply(loop_items,mfusedl2d,save_dir=save_dir,
+#                               mc.preschedule = FALSE,
+#                               mc.set.seed = FALSE,
+#                               mc.cores=numCores))
 # system.time(out <- mapply(mfusedl2d,items=loop_items,MoreArgs=list(save_dir=save_dir)))
 
 inds = !is_null(saves)
