@@ -21,6 +21,7 @@ library(R.devices);
 library(ggplot2)
 library(gridExtra);
 library(grid)
+library(lmerTest)
 #%% PACKAGES FOR STATS
 library(genlasso);
 library(R.matlab);
@@ -183,5 +184,6 @@ for(i in 1:length(clusters)){
                 freqs=freqs)
     fname = sprintf("allmat_cl%i-c%i.mat",cli,ci);
     writeMat(con=file.path(save_dir,fname), flasso_tbl = dato)
+    saveRDS(dato, file=file.path(save_dir,fname))
   }
 }

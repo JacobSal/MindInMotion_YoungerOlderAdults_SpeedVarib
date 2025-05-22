@@ -216,8 +216,10 @@ parfor subj_i = 1:length(CL_STUDY.datasetinfo)
                         % rtd = abs(tt.erspb_dat_slide(finds,tinds,:));
                         % rtd = abs(tt.ersp_dat_slide(finds,tinds,:));
                         % rtd = abs(tt.itc_dat(finds,tinds));
-                        %--
-                        rtd = mean(abs(tt.itc_dat_slide(finds,tinds,:)),3);
+                        %-- one image
+                        % rtd = mean(abs(tt.itc_dat_slide(finds,tinds,:)),3);
+                        %-- multi image
+                        rtd = abs(tt.itc_dat_slide(finds,tinds,:));
                         
                         %## STORE DATA
                         gg = strcmp(tt.group_char,GROUP_CHARS);
@@ -325,7 +327,8 @@ ax = axes();
 % fext = sprintf('%s_tables_figs',fext);
 % fext = 'itc_rdata_table_phasec_notw_mw_based_flasso_results_bsz5';
 % fext = 'itc_rdata_table_phasec_notw_mw_based_fl_res_bsz5_nob';
-fext = 'itc_rdata_flasso_out_bsz5_nob_sliding';
+% fext = 'itc_rdata_flasso_out_bsz5_nob_sliding';
+fext = 'itc_rdata_flasso_125f_out_bsz5_nob_sliding';
 COND_CHARS = {'0p25','0p5','0p75','1p0','flat','low','med','high'};
 GROUP_CHARS = {'H1000','H2000','H3000'};
 clusters = [3,4,6,8];

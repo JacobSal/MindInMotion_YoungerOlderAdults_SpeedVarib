@@ -75,34 +75,31 @@ indexl <- filter_at(indexl,vars('cond_n'), any_vars(. %in% conds));
 indexl <- filter_at(indexl,vars('cluster_n'), any_vars(. %in% clusters));
 
 #%% LOOP VARS ============================================================== %%#
-loop_items = get_mcl_dat_mat(indexl,itc_datl,nfreqs,ntimes,
-                             do_cond_baseline=FALSE)
+clusters=unique(indexl$cluster_n);
+conds=unique(indexl$cond_n);
+subjs=unique(indexl$subj_n);
+datl <- ntimes*nfreqs;
 
+#%% ======================================================================== %%#
+X1 <- array(rnorm(107*60*4), dim=c(107,60,4))
+X2 <- array(rnorm(107*60*4), dim=c(107,60,3))
 
-#%% TEST
-# saves <- lapply(loop_items,function(x) mfusedl2d(x,save_dir))
+speed = c(0.25,0.5,0.75,1,0.25,0.5,1)
 
-#%% RUN MPI
-print("Running MPI");
-if(ispc()){
-  numCores <- detectCores()
-}else{
-  numCores = as.integer(Sys.getenv("SLURM_CPUS_ON_NODE"))
+subid = c(1,1,1,1,2,2,2)
+library(lmerTest)
+
+estimate <- matrix(0, 107, 60)
+pvalue   <- matrix(0, 107, 60)
+
+for(i in 1:107){
+  for(j in 1:60){
+    y <- c(X1[i,j,], X2[i,j,])
+    
+    fit <- lmer(y~speed + (1|subid) )
+    
+    summary_fit <- summary(fit)
+    estimate[i,j] <- summary_fit$coefficients["speed", "Estimate"]
+    pvalue[i,j] <- summary_fit$coefficients["speed", "Pr(>|t|)"]
+  }
 }
-print(numCores)
-clust <- makeCluster(numCores)
-set.seed(42069)
-system.time(saves <- mclapply(loop_items,function(x) mfusedl2d(x,save_dir),
-                              mc.preschedule = FALSE,
-                              mc.set.seed = FALSE,
-                              mc.cores=numCores));
-
-# system.time(saves <- mclapply(loop_items,mfusedl2d,save_dir=save_dir,
-#                               mc.preschedule = FALSE,
-#                               mc.set.seed = FALSE,
-#                               mc.cores=numCores))
-# system.time(out <- mapply(mfusedl2d,items=loop_items,MoreArgs=list(save_dir=save_dir)))
-
-inds = !is_null(saves)
-print(str(saves[[inds]]))
-

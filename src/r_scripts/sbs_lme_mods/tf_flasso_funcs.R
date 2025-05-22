@@ -1,3 +1,5 @@
+
+
 #%% LOAD FUNCTIONS
 print('Adding Functions');
 ispc <- function() {
@@ -60,6 +62,8 @@ get_mat_dat <- function(mat_dat){
   }
   return(list(itc_datl=tmp_dat_store,indexl=index_l,freqs=freqs,times=times))
 }
+
+
 
 #%%
 get_mcl_dat_mat <- function(indexl,itc_datl,nfreqs,ntimes,
@@ -182,7 +186,8 @@ get_tf_dat_mat <- function(cli,ci,si,indexl,itc_dat){
 }
 
 #%% TF PLOT FUNCTION ===========================================================
-tf_plot <- function(pwr_dat,times,freqs,title_char,zlim_in){
+tf_plot <- function(pwr_dat,times,freqs,title_char,zlim_in,
+                    do_cbar=TRUE,do_contour=FALSE,x_lab="Time (ms)",y_lab="Frequency (Hz)"){
   #-- set params
   COLOR_F = 120;
   C_TICK_N = 20;
@@ -200,11 +205,11 @@ tf_plot <- function(pwr_dat,times,freqs,title_char,zlim_in){
                  column.values=freqs,
                  aspect="fill",
                  col.regions=colMap,
-                 colorkey=TRUE,
-                 contour=FALSE,
+                 colorkey=do_cbar,
+                 contour=do_contour,
                  at=zlim_in,
-                 xlab=c('Time'),
-                 ylab=c('Frequency (Hz)'),
+                 xlab=x_lab,
+                 ylab=y_lab,
                  main=list(title_char))
   
   return(h)
@@ -360,4 +365,233 @@ mfusedl2d <- function(item,save_dir) {
   # return(out_dat)
   return(NULL)
   # return(list(flmod=fl,bbeta=beta_hat,blamb=best_lambda,cv_errors=cv_errors,lamb_vals=lambda_values))
+}
+
+#%% STAT TESTS ======================
+get_stat_vecs <- function(indexl,clust_i,freqs,times,finds,tinds,
+                             save_dir){ 
+  #%% LOOP THROUGH CONDS & SUBJS
+  tt <- filter_at(indexl,vars('cluster_n'), any_vars(. %in% clust_i));
+  subjs = unique(tt$subj_n);
+  conds = 1:length(unique(tt$cond_n));
+  nsubjs = length(subjs)
+  nconds = length(conds);
+  cond_vals = c(0.25,0.50,0.75,1.0);
+  freqso = freqs[finds];
+  timeso = times[tinds];
+  
+  #--
+  speed_fl_mod = array(dim=c(length(freqso),length(timeso),nsubjs,nconds))
+  subj_id = array(dim=c(nsubjs*nconds))
+  group_id = array(dim=c(nsubjs*nconds))
+  speed_val = array(dim=c(nsubjs*nconds))
+  cnt = 1;
+  #--
+  for(l in 1:nconds){
+    ci = conds[l];
+    #-- load data
+    fname = sprintf("cl%i-c%i_flmaskagg.RData",clust_i,ci); 
+    flmodo = readRDS(file=file.path(save_dir,fname))
+    #--
+    for(k in 1:nsubjs){
+      si = subjs[k];
+      tts <- filter_at(tt,vars('subj_n'), any_vars(. %in% si));
+      #--
+      ttd = matrix(flmodo$mask_mat[,k],nrow=length(freqs),ncol=length(times));
+      ttd = ttd[finds,tinds];
+      #--
+      speed_fl_mod[,,k,l] = matrix(ttd,nrow=length(freqso),ncol=length(timeso));
+      subj_id[cnt] = si;
+      group_id[cnt] = tts$group_n[1];
+      speed_val[cnt] = cond_vals[ci];
+      #--
+      cnt = cnt + 1;
+    }
+  }
+  return(list(dat_mat=speed_fl_mod,
+              subj_vals=subj_id,
+              group_vals=group_id,
+              speed_vals=speed_val,
+              nfreqs=length(freqso),
+              ntimes=length(timeso)))
+}
+
+#%% LOOP DATA
+get_stat_dat_mat <- function(dat_mat,nfreqs,ntimes,
+                             speed_vals,group_vals,subj_vals){
+  #-- loop vals
+  cnt = 1;
+  loop_vals = list();
+  for(i in 1:nfreqs){
+    for(j in 1:ntimes){
+      y <- c(dat_mat[i,j,,1], dat_mat[i,j,,2], dat_mat[i,j,,3], dat_mat[i,j,,4])
+      loop_vals <- cbind(loop_vals,
+                         list(list(
+                           point_dat=y,
+                           speeds=speed_vals,
+                           groups=group_vals,
+                           subjs=subj_vals,
+                           i=i,
+                           j=j,
+                           cnt=cnt)))
+      cnt = cnt + 1;
+    }
+  }
+  return(loop_vals)
+}
+
+#%% PERFORM STATS
+lmer_fl_intstat_ij <- function(loop_dat){
+  coeffis = 1:6;
+  y = loop_dat$point_dat;
+  tspeed = loop_dat$speeds;
+  tgrp = as.factor(loop_dat$groups);
+  tsubj = as.factor(loop_dat$subjs);
+  i = loop_dat$i;
+  j = loop_dat$j;
+  #--
+  estimate <- vector(mode="double",length=6)+1;
+  pvalue <- vector(mode="double",length=6)+1;
+  rown <- vector(mode="character",length=6);
+  
+  #%% MODELS
+  tryCatch(
+    {
+      #-- group-speed interaction model
+      fit <- lmer(y ~ tspeed + tgrp + tspeed:tgrp + (1|tsubj))
+      # fit <- lm(y ~ tspeed + tgrp + tspeed:tgrp)
+      ann <- car::Anova(fit)
+      sfit <- summary(fit)
+      estimate[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Estimate"])
+      pvalue[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Pr(>|t|)"])
+      rown[coeffis] <- rownames(sfit$coefficients[coeffis,])
+    },
+    #if an error occurs, tell me the error
+    error=function(e) {
+      message('An Error Occurred')
+      print(e)
+    },
+    #if a warning occurs, tell me the warning
+    warning=function(w) {
+      message('A Warning Occurred')
+      print(w)
+    }
+    )
+  return(list(est=estimate,pv=pvalue,statnames=rown,i=i,j=j))
+}
+lmer_fl_grpstat_ij <- function(loop_dat){
+  coeffis = 1:4;
+  y = loop_dat$point_dat;
+  tspeed = loop_dat$speeds;
+  tgrp = as.factor(loop_dat$groups);
+  tsubj = as.factor(loop_dat$subjs);
+  i = loop_dat$i;
+  j = loop_dat$j;
+  
+  estimate <- vector(mode="double",6)+1;
+  pvalue <- vector(mode="double",6)+1;
+  rown <- vector(mode="character",6);
+  
+  #%% MODELS
+  tryCatch(
+    {
+      ann <- car::Anova(fit)
+      fit <- lmer(y ~ tspeed + tgrp + (1|tsubj))
+      # fit <- lm(y ~ tspeed + tgrp)
+      sfit <- summary(fit)
+      #--
+      estimate[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Estimate"])
+      pvalue[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Pr(>|t|)"])
+      rown[coeffis] <- rownames(sfit$coefficients[coeffis,])
+    },
+    #if an error occurs, tell me the error
+    error=function(e) {
+      message('An Error Occurred')
+      print(e)
+      estimate <- c(1,1,1);
+      pvalue <- c(1,1,1);
+      rown <- c("none","none","none")
+    },
+    #if a warning occurs, tell me the warning
+    warning=function(w) {
+      message('A Warning Occurred')
+      print(w)
+      estimate <- c(1,1,1);
+      pvalue <- c(1,1,1);
+      rown <- c("none","none","none")
+    }
+  )
+  return(list(est=estimate,pv=pvalue,statnames=rown,i=i,j=j))
+}
+
+#%%
+lmer_flstat_agg <- function(estimate,pvalue,freqs,times,cli,ci){
+  #%% FDR CORRECTION
+  fdrp <- p.adjust(matrix(pvalue,nrow=length(freqs)*length(times)*3),
+                   method="fdr",
+                   n=length(freqs)*length(times)*3);
+  fdrp <- array(fdrp,c(length(freqs),length(times),3));
+  
+  #%% SAVE
+  dato = list(fdrp=fdrp,
+              estimate=estimate,
+              speed=speed_val,
+              subj_id=subj_id,
+              group_id=group_id)
+  fname = sprintf("statmat_cl%i-c%i.mat",cli,ci);
+  writeMat(con=file.path(save_dir,fname), stat_mat = dato)
+  fname = sprintf("statrds_cl%i-c%i.mat",cli,ci);
+  saveRDS(dato, file=file.path(save_dir,fname))
+}
+
+
+#%% PERFORM STATS ONE COND
+get_statdat_onesubj <- function(dat_mat,nfreqs,ntimes,speed_i,cond_i,
+                             speed_vals,group_vals,subj_vals){
+  #-- loop vals
+  indso <- speed_vals == speed_i
+  cnt = 1;
+  loop_vals = list();
+  for(i in 1:nfreqs){
+    for(j in 1:ntimes){
+      y <- dat_mat[i,j,,cond_i]
+      loop_vals <- cbind(loop_vals,
+                         list(list(
+                           point_dat=y,
+                           speeds=speed_vals[indso],
+                           groups=group_vals[indso],
+                           subjs=subj_vals[indso],
+                           i=i,
+                           j=j,
+                           cnt=cnt)))
+      cnt = cnt + 1;
+    }
+  }
+  return(loop_vals)
+}
+
+#---
+flstat_onecond_ij <- function(loop_dat){
+  y = loop_dat$point_dat;
+  tspeed = loop_dat$speeds;
+  tgrp = as.factor(loop_dat$groups);
+  tsubj = as.factor(loop_dat$subjs);
+  estimate <- vector(mode="double",3);
+  pvalue <- vector(mode="double",3);
+  i = loop_dat$i;
+  j = loop_dat$j;
+  cnt = loop_dat$cnt;
+  
+  #%% MODELS
+  #-- group-speed interaction model
+  fit <- lm(y ~ tgrp)
+  summary_fit <- summary(fit)
+  #--
+  estimate[1] <- summary_fit$coefficients["tgrp2", "Estimate"]
+  pvalue[1] <- summary_fit$coefficients["tgrp2", "Pr(>|t|)"]
+  #--
+  estimate[2] <- summary_fit$coefficients["tgrp3", "Estimate"]
+  pvalue[2] <- summary_fit$coefficients["tgrp3", "Pr(>|t|)"]
+  
+  return(list(est=estimate,pv=pvalue,i=i,j=j,cnt=cnt))
 }
