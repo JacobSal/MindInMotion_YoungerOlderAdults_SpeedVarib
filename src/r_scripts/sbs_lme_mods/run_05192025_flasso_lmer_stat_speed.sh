@@ -4,7 +4,7 @@
 #SBATCH --mail-user=jsalminen@ufl.edu # Where to send mail
 #SBATCH --nodes=1 # Number of nodes
 #SBATCH --ntasks=1 # Number of MPI ranks
-#SBATCH --cpus-per-task=64 # Number of tasks on each node
+#SBATCH --cpus-per-task=32 # Number of tasks on each node
 #SBATCH --mem-per-cpu=8gb# Total memory limit
 #SBATCH --distribution=cyclic:cyclic # Distribute tasks cyclically first among nodes and then among sockets within a node
 #SBATCH --time=02:00:00 # Time limit hrs:min:sec

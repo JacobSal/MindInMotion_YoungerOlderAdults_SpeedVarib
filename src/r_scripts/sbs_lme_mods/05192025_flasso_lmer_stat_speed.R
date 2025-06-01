@@ -21,10 +21,11 @@ library(R.devices);
 library(ggplot2)
 library(gridExtra);
 library(grid)
-# library(lmerTest)
-library(lme4)
+library(lmerTest)
+# library(lme4)
 #%% PACKAGES FOR STATS
 library(genlasso);
+# library(car);
 library(R.matlab);
 
 #%% CUSTOM FUNCTIONS
@@ -62,6 +63,8 @@ tmp_mat = R.matlab::readMat(mat_fpath)
 #-- extract data
 FREQ_BOUND = c(3,60);
 TIME_BOUND = c(0,1450);
+# FREQ_BOUND = c(3,13); # test
+# TIME_BOUND = c(0,200); # test
 #--
 dato = get_mat_dat(tmp_mat);
 indexl <- dato$indexl;
@@ -82,13 +85,24 @@ tinds = times > TIME_BOUND[1] & times < TIME_BOUND[2];
 #-- filter
 indexl <- filter_at(indexl,vars('cond_n'), any_vars(. %in% conds));
 indexl <- filter_at(indexl,vars('cluster_n'), any_vars(. %in% clusters));
-
-#%% LOOP VARS ============================================================== %%#
+#--
 clusters=unique(indexl$cluster_n);
 conds=unique(indexl$cond_n);
 subjs=unique(indexl$subj_n);
 datl <- ntimes*nfreqs;
 cond_vals = c(0.25,0.50,0.75,1.0);
+
+#%% LOOP =================================================================== %%#
+#-- RUN MPI
+print("Running MPI");
+if(ispc()){
+  numCores <- detectCores()
+}else{
+  numCores = as.integer(Sys.getenv("SLURM_CPUS_ON_NODE"))
+}
+print(numCores)
+clust <- makeCluster(numCores)
+set.seed(42069)
 
 for(i in 1:length(clusters)){
   #-- get dirs and clust
@@ -98,27 +112,16 @@ for(i in 1:length(clusters)){
   #--
   vals <- get_stat_vecs(indexl,cli,freqs,times,finds,tinds,
                                     save_dir)
-  
-  #%% RUN MPI
-  # print("Running MPI");
-  # if(ispc()){
-  #   numCores <- detectCores()
-  # }else{
-  #   numCores = as.integer(Sys.getenv("SLURM_CPUS_ON_NODE"))
-  # }
-  # print(numCores)
-  # clust <- makeCluster(numCores)
-  # set.seed(42069)
   #%%
   loop_dat <- get_stat_dat_mat(vals$dat_mat,vals$nfreqs,vals$ntimes,
                                vals$speed_vals,vals$group_vals,vals$subj_vals);
   #--
-  system.time(saves <- mclapply(loop_dat,function(x) lmer_fl_grpstat_ij(x),
+  system.time(saves_grp <- mclapply(loop_dat,function(x) lmer_fl_grpstat_ij(x),
                                 mc.preschedule = FALSE,
                                 mc.set.seed = FALSE,
                                 mc.cores=numCores));
   #--
-  system.time(saves <- mclapply(loop_dat,function(x) lmer_fl_intstat_ij(x),
+  system.time(saves_int <- mclapply(loop_dat,function(x) lmer_fl_intstat_ij(x),
                                 mc.preschedule = FALSE,
                                 mc.set.seed = FALSE,
                                 mc.cores=numCores));
@@ -126,149 +129,139 @@ for(i in 1:length(clusters)){
   #%% RUN LOCAL
   # loop_dat <- get_stat_dat_mat(vals$dat_mat,vals$nfreqs,vals$ntimes,
   #                              vals$speed_vals,vals$group_vals,vals$subj_vals);
-  # saves <- lapply(loop_dat,function(x) lmer_fl_grpstat_ij(x))
-  # saves <- lapply(loop_dat,function(x) lmer_fl_intstat_ij(x))
-
+  #-- unit test
+  # saves_int <- lmer_fl_intstat_ij(loop_dat[[1]]);
   #--
-  tmp <- lapply(saves,function(x) x$i)
-  is <- as.numeric(tmp)
-  tmp <- lapply(saves,function(x) x$j)
-  js <- as.numeric(tmp)
-  # tmp <- lapply(saves,function(x) x$cnt)
-  # cnts <- as.numeric(tmp)
-  tmp <- lapply(saves,function(x) x$statnames)
-  statnames <- unique(as.character(tmp))
-  # unm <- sort(cnts,index.return=TRUE)
-  #--
-  pvo <- array(0,dim=c(vals$nfreqs,vals$ntimes,3))
-  esto <- array(0,dim=c(vals$nfreqs,vals$ntimes,3))
-  cnt = 1;
-  for(cnt in 1:length(saves)){
-    i = as.numeric(saves[[cnt]]$i);
-    j = as.numeric(saves[[cnt]]$j);
-    pv = as.numeric(saves[[cnt]]$pv);
-    est = as.numeric(saves[[cnt]]$est);
-    pvo[i,j,1] = pv[1];
-    pvo[i,j,2] = pv[2];
-    pvo[i,j,3] = pv[3];
-    pvo[i,j,4]
-    pvo[i,j,5]
-    esto[i,j,1] = est[1];
-    esto[i,j,2] = est[2];
-    esto[i,j,3] = est[3];
-    
-  }
+  # saves_grp <- lapply(loop_dat[1:10],function(x) lmer_fl_grpstat_ij(x))
+  # saves_int <- lapply(loop_dat[1:10],function(x) lmer_fl_intstat_ij(x))
+  # dato <- flstat_int_agg(saves_int,cli,freqs,times,pinds=1:6,apinds=1:3)
 
-  #%% FDR CORRECTION
-  fdrp <- p.adjust(matrix(pvo,nrow=vals$nfreqs*vals$ntimes*3),
-                   method="fdr",
-                   n=vals$nfreqs*vals$ntimes*3);
-  fdrp <- array(fdrp,c(vals$nfreqs,vals$ntimes,3));
-
+  #%% EXTRACT DATA
+  dato <- flstat_int_agg(saves_int,cli,vals$freqs,vals$times,pinds=1:6,apinds=1:3)
+  esto <- array(dato$estimate,dim=c(vals$nfreqs,vals$ntimes,length(dato$pinds)));
+  fdrp <- array(dato$fdrp,dim=c(vals$nfreqs,vals$ntimes,length(dato$pinds)));
+  astato <- array(dato$astat,dim=c(vals$nfreqs,vals$ntimes,length(dato$apinds)));
+  afdrp <- array(dato$afdrp,dim=c(vals$nfreqs,vals$ntimes,length(dato$apinds)));
+  
+  #%% SAVE
+  fname = sprintf("statmatint_cl%i.mat",cli);
+  writeMat(con=file.path(save_dir,fname),stat_mat=dato)
+  fname = sprintf("statrdsint_cl%i.RData",cli);
+  saveRDS(dato, file=file.path(save_dir,fname))
+  
   #%% PLOT
-  zlim_in = range(esto)
-  p1 <- tf_plot(esto[,,1],times[tinds],freqs[finds],"speed",zlim_in,
+  zlim_in = range(esto,na.rm=TRUE)
+  p1 <- tf_plot(esto[,,1],vals$times,vals$freqs,"intercept",zlim_in,
                 do_cbar=FALSE)
-  p2 <- tf_plot(esto[,,2],times[tinds],freqs[finds],"grp2-grp1",zlim_in,
+  p2 <- tf_plot(esto[,,2],vals$times,vals$freqs,"speed",zlim_in,
                 do_cbar=FALSE)
-  p3 <- tf_plot(esto[,,3],times[tinds],freqs[finds],"grp3-grp1",zlim_in,
+  p3 <- tf_plot(esto[,,3],vals$times,vals$freqs,"grp2-grp1",zlim_in,
+                do_cbar=FALSE)
+  p4 <- tf_plot(esto[,,4],vals$times,vals$freqs,"grp3-grp1",zlim_in,
+                do_cbar=TRUE)
+  p5 <- tf_plot(esto[,,5],vals$times,vals$freqs,"sp:grp2",zlim_in,
+                do_cbar=FALSE)
+  p6 <- tf_plot(esto[,,6],vals$times,vals$freqs,"sp:grp3",zlim_in,
+                do_cbar=TRUE)
+  zlim_in = range(afdrp,na.rm=TRUE)
+  p11 <- tf_plot(astato[,,1],vals$times,vals$freqs,"aSpeed",zlim_in,
+                do_cbar=FALSE)
+  p22 <- tf_plot(astato[,,2],vals$times,vals$freqs,"aGroup",zlim_in,
+                do_cbar=FALSE)
+  p33 <- tf_plot(astato[,,3],vals$times,vals$freqs,"aInt",zlim_in,
                 do_cbar=TRUE)
   #-- join them
-  pl <- list(p1,p2,p3)
+  pl <- list(p1,p2,p3,p4,p5,p6,p11,p22,p33)
   grid.arrange(grid::rectGrob(),grid::rectGrob())
   ml <- marrangeGrob(pl, nrow=1, ncol=2);
   #-- resave tf-plots?
-  fname = sprintf("allest_cl%i_tfplot.png",cli);
+  fname = sprintf("allestint_cl%i_tfplot.pdf",cli);
   ggsave(file.path(tmp_save_dir,fname), ml)
 
   #%%
-  zlim_in = range(fdrp)
-  p1 <- tf_plot(fdrp[,,1],times[tinds],freqs[finds],"speed",zlim_in,
+  zlim_in = range(fdrp,na.rm=TRUE)
+  p1 <- tf_plot(fdrp[,,1],vals$times,vals$freqs,"intercept",zlim_in,
                 do_cbar=FALSE)
-  p2 <- tf_plot(fdrp[,,2],times[tinds],freqs[finds],"grp2-grp1",zlim_in,
+  p2 <- tf_plot(fdrp[,,2],vals$times,vals$freqs,"speed",zlim_in,
                 do_cbar=FALSE)
-  p3 <- tf_plot(fdrp[,,3],times[tinds],freqs[finds],"grp3-grp1",zlim_in,
+  p3 <- tf_plot(fdrp[,,3],vals$times,vals$freqs,"grp2-grp1",zlim_in,
+                do_cbar=FALSE)
+  p4 <- tf_plot(fdrp[,,4],vals$times,vals$freqs,"grp3-grp1",zlim_in,
                 do_cbar=TRUE)
+  p5 <- tf_plot(fdrp[,,5],vals$times,vals$freqs,"sp:grp2",zlim_in,
+                do_cbar=FALSE)
+  p6 <- tf_plot(fdrp[,,6],vals$times,vals$freqs,"sp:grp3",zlim_in,
+                do_cbar=TRUE)
+  p11 <- tf_plot(afdrp[,,1],vals$times,vals$freqs,"aSpeed",zlim_in,
+                 do_cbar=FALSE)
+  p22 <- tf_plot(afdrp[,,2],vals$times,vals$freqs,"aGroup",zlim_in,
+                 do_cbar=FALSE)
+  p33 <- tf_plot(afdrp[,,3],vals$times,vals$freqs,"aInt",zlim_in,
+                 do_cbar=TRUE)
   #-- join them
-  pl <- list(p1,p2,p3)
+  pl <- list(p1,p2,p3,p4,p5,p6,p11,p22,p33)
   grid.arrange(grid::rectGrob(),grid::rectGrob())
   ml <- marrangeGrob(pl, nrow=1, ncol=2);
   #-- resave tf-plots?
-  fname = sprintf("allpval_cl%i_tfplot.png",cli);
+  fname = sprintf("allpvalint_cl%i_tfplot.pdf",cli);
   ggsave(file.path(tmp_save_dir,fname), ml)
-
-  #%% SAVE
-  dato = list(fdrp=matrix(fdrp,nrow=vals$nfreqs*vals$ntimes*3),
-              estimate=matrix(esto,nrow=vals$nfreqs*vals$ntimes*3),
-              freqs=freqs[finds],
-              times=times[tinds],
-              dim3=statnames);
   
-  fname = sprintf("statmat_cl%i.mat",cli);
+  
+  #%% EXTRACT DATA
+  dato <- flstat_int_agg(saves_grp,cli,vals$freqs,vals$times,pinds=1:4,apinds=1:2)
+  esto <- array(dato$estimate,dim=c(vals$nfreqs,vals$ntimes,length(dato$pinds)));
+  fdrp <- array(dato$fdrp,dim=c(vals$nfreqs,vals$ntimes,length(dato$pinds)));
+  
+  #%% SAVE
+  fname = sprintf("statmatgrp_cl%i.mat",cli);
   writeMat(con=file.path(save_dir,fname),stat_mat=dato)
-  fname = sprintf("statrds_cl%i.RData",cli);
+  fname = sprintf("statrdsgrp_cl%i.RData",cli);
   saveRDS(dato, file=file.path(save_dir,fname))
   
-  #%% SINGLE SPEED TEST
-  # speed_i = 1.0;
-  # cond_i = 4;
-  # loop_dat <- get_statdat_onesubj(vals$dat_mat,vals$nfreqs,vals$ntimes,speed_i,cond_i,
-  #                                 vals$speed_vals,vals$group_vals,vals$subj_vals)
-  # saves <- lapply(loop_dat,function(x) flstat_onecond_ij(x))
-  # system.time(saves <- mclapply(loop_dat,function(x) flstat_onecond_ij(x),
-  #                               mc.preschedule = FALSE,
-  #                               mc.set.seed = FALSE,
-  #                               mc.cores=numCores));
-  # 
-  # #--
-  # tmp <- lapply(saves,function(x) x$i)
-  # is <- as.numeric(tmp)
-  # tmp <- lapply(saves,function(x) x$j)
-  # js <- as.numeric(tmp)
-  # tmp <- lapply(saves,function(x) x$cnt)
-  # cnts <- as.numeric(tmp)
-  # unm <- sort(cnts,index.return=TRUE)
-  # #--
-  # pvo <- array(0,dim=c(vals$nfreqs,vals$ntimes,2))
-  # esto <- array(0,dim=c(vals$nfreqs,vals$ntimes,2))
-  # cnt = 1;
-  # for(cnt in 1:length(saves)){
-  #   i = as.numeric(saves[[cnt]]$i);
-  #   j = as.numeric(saves[[cnt]]$j);
-  #   pv = as.numeric(saves[[cnt]]$pv);
-  #   est = as.numeric(saves[[cnt]]$est);
-  #   pvo[i,j,1] = pv[1];
-  #   pvo[i,j,2] = pv[2];
-  #   esto[i,j,1] = est[1];
-  #   esto[i,j,2] = est[2]
-  # }
-  # 
-  # #%% FDR CORRECTION
-  # fdrp <- p.adjust(matrix(pvo,nrow=vals$nfreqs*vals$ntimes*2),
-  #                  method="fdr",
-  #                  n=vals$nfreqs*vals$ntimes*2);
-  # fdrp <- array(fdrp,c(vals$nfreqs,vals$ntimes,2));
-  # # fdrp <- array(fdrp,c(vals$ntimes,vals$nfreqs,2));
-  # 
-  # #%% PLOT
-  # zlim_in = range(esto)
-  # p2 <- tf_plot(esto[,,1],times,freqs,"grp1-grp3",zlim_in,
-  #               do_cbar=FALSE)
-  # p3 <- tf_plot(esto[,,2],times,freqs,"grp2-grp3",zlim_in,
-  #               do_cbar=TRUE)
-  # #-- join them
-  # pl <- list(p2,p3)
-  # grid.arrange(grid::rectGrob(),grid::rectGrob())
-  # ml <- marrangeGrob(pl, nrow=1, ncol=2);
-  # 
-  # #%%
-  # zlim_in = range(fdrp)
-  # p2 <- tf_plot(fdrp[,,1],times,freqs,"grp1-grp3",zlim_in,
-  #               do_cbar=FALSE)
-  # p3 <- tf_plot(fdrp[,,2],times,freqs,"grp2-grp3",zlim_in,
-  #               do_cbar=TRUE)
-  # #-- join them
-  # pl <- list(p2,p3)
-  # grid.arrange(grid::rectGrob(),grid::rectGrob())
-  # ml <- marrangeGrob(pl, nrow=1, ncol=2);
+  #%% PLOT
+  zlim_in = range(esto,na.rm=TRUE)
+  p1 <- tf_plot(esto[,,1],vals$times,vals$freqs,"intercept",zlim_in,
+                do_cbar=FALSE)
+  p2 <- tf_plot(esto[,,2],vals$times,vals$freqs,"speed",zlim_in,
+                do_cbar=FALSE)
+  p3 <- tf_plot(esto[,,3],vals$times,vals$freqs,"grp2-grp1",zlim_in,
+                do_cbar=FALSE)
+  p4 <- tf_plot(esto[,,4],vals$times,vals$freqs,"grp3-grp1",zlim_in,
+                do_cbar=TRUE)
+  zlim_in = range(afdrp,na.rm=TRUE)
+  p11 <- tf_plot(afdrp[,,1],vals$times,vals$freqs,"aSpeed",zlim_in,
+                 do_cbar=FALSE)
+  p22 <- tf_plot(afdrp[,,2],vals$times,vals$freqs,"aGroup",zlim_in,
+                 do_cbar=TRUE)
+  #-- join them
+  pl <- list(p1,p2,p3,p4,p11,p22)
+  grid.arrange(grid::rectGrob(),grid::rectGrob())
+  ml <- marrangeGrob(pl, nrow=1, ncol=2);
+  #-- resave tf-plots?
+  fname = sprintf("allestgrp_cl%i_tfplot.pdf",cli);
+  ggsave(file.path(tmp_save_dir,fname), ml)
+  
+  #%%
+  zlim_in = range(fdrp,na.rm=TRUE)
+  p1 <- tf_plot(fdrp[,,1],vals$times,vals$freqs,"intercept",zlim_in,
+                do_cbar=FALSE)
+  p2 <- tf_plot(fdrp[,,2],vals$times,vals$freqs,"speed",zlim_in,
+                do_cbar=FALSE)
+  p3 <- tf_plot(fdrp[,,3],vals$times,vals$freqs,"grp2-grp1",zlim_in,
+                do_cbar=FALSE)
+  p4 <- tf_plot(fdrp[,,4],vals$times,vals$freqs,"grp3-grp1",zlim_in,
+                do_cbar=TRUE)
+  p11 <- tf_plot(afdrp[,,1],vals$times,vals$freqs,"aSpeed",zlim_in,
+                 do_cbar=FALSE)
+  p22 <- tf_plot(afdrp[,,2],vals$times,vals$freqs,"aGroup",zlim_in,
+                 do_cbar=TRUE)
+  #-- join them
+  pl <- list(p1,p2,p3,p4,p11,p22)
+  grid.arrange(grid::rectGrob(),grid::rectGrob())
+  ml <- marrangeGrob(pl, nrow=1, ncol=2);
+  #-- resave tf-plots?
+  fname = sprintf("allpvalgrp_cl%i_tfplot.pdf",cli);
+  ggsave(file.path(tmp_save_dir,fname), ml)
+
+
 }

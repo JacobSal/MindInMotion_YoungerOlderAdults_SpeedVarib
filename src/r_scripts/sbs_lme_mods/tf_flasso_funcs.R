@@ -1,6 +1,5 @@
-
-
-#%% LOAD FUNCTIONS
+#%% ======================================================================== %%#
+#%% CHK OS
 print('Adding Functions');
 ispc <- function() {
   sys_name <- Sys.info()["sysname"]
@@ -11,7 +10,8 @@ ispc <- function() {
   }
 }
 
-#%% PAR & PLOT FUNCTIONS
+#%% ======================================================================== %%#
+#%% ROUND EVEN FOR CV PROC.
 round_even <- function(x,rnd_num) {
   rounded <- round(x)
   if (rounded %% rnd_num != 0) {
@@ -26,7 +26,8 @@ round_even <- function(x,rnd_num) {
   }
 }
 
-#%% GET LOOP VALS ==============================================================
+#%% ======================================================================== %%#
+#%% GET DAT .MAT
 get_mat_dat <- function(mat_dat){
   #%% GET FORMATTING
   tmp = mat_dat[[1]];
@@ -64,8 +65,8 @@ get_mat_dat <- function(mat_dat){
 }
 
 
-
-#%%
+#%% ======================================================================== %%#
+#%% GET DAT FOR MCLAPPLY
 get_mcl_dat_mat <- function(indexl,itc_datl,nfreqs,ntimes,
                             do_cond_baseline=FALSE){
   subjs=unique(indexl$subj_n);
@@ -120,60 +121,63 @@ get_mcl_dat_mat <- function(indexl,itc_datl,nfreqs,ntimes,
   return(loop_vals)
 }
 
-#%% 
-get_mcl_dat <- function(dtbl,clusters){
-  freqs = unique(dtbl$itc_freq);
-  times = unique(dtbl$itc_time);
-  subjs=unique(dtbl$subj_n)
-  conds=unique(dtbl$cond_n)
-  groups=unique(dtbl$group_n)
-  #--
-  loop_vals = list();
-  cnt = 1;
-  for (i in 1:length(clusters)) {
-    cli = clusters[i];
-    tt <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% cli));
-    subjs=unique(tt$subj_n)
-    conds=unique(tt$cond_n)
-    for(l in 1:length(conds)) {
-      ci = conds[l];
-      ttc <- filter_at(tt,vars('cond_n'), any_vars(. %in% ci));
-      # mask_matrix <- matrix(0L,nrow=length(freqs)*length(times),ncol=length(subjs));
-      # for(k in 1:length(subjs)){
-      #   si = subjs[k];
-      #   tts <- filter_at(ttc,vars('subj_n'), any_vars(. %in% si));
-      #   mask_matrix[,k] = tts$itc_dat;
-      # }
-      # cmu = rowMeans(mask_matrix);
-      for(k in 1:length(subjs)){
-        si = subjs[k];
-        tts <- filter_at(ttc,vars('subj_n'), any_vars(. %in% si));
-        # ttd = tts$itc_dat-cmu;
-        ttd = tts$itc_dat;
-        newl <- list(tf_dat=ttd,cli=cli,ci=ci,si=si,freqN=length(freqs),timeN=length(times))
-        loop_vals <- cbind(loop_vals,list(newl))
-        cnt = cnt + 1;
-      }
-    }
-  }
-  return(loop_vals)
-}
+#%% ======================================================================== %%#
+#%% GET DAT CSV
+# get_mcl_dat <- function(dtbl,clusters){
+#   freqs = unique(dtbl$itc_freq);
+#   times = unique(dtbl$itc_time);
+#   subjs=unique(dtbl$subj_n)
+#   conds=unique(dtbl$cond_n)
+#   groups=unique(dtbl$group_n)
+#   #--
+#   loop_vals = list();
+#   cnt = 1;
+#   for (i in 1:length(clusters)) {
+#     cli = clusters[i];
+#     tt <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% cli));
+#     subjs=unique(tt$subj_n)
+#     conds=unique(tt$cond_n)
+#     for(l in 1:length(conds)) {
+#       ci = conds[l];
+#       ttc <- filter_at(tt,vars('cond_n'), any_vars(. %in% ci));
+#       # mask_matrix <- matrix(0L,nrow=length(freqs)*length(times),ncol=length(subjs));
+#       # for(k in 1:length(subjs)){
+#       #   si = subjs[k];
+#       #   tts <- filter_at(ttc,vars('subj_n'), any_vars(. %in% si));
+#       #   mask_matrix[,k] = tts$itc_dat;
+#       # }
+#       # cmu = rowMeans(mask_matrix);
+#       for(k in 1:length(subjs)){
+#         si = subjs[k];
+#         tts <- filter_at(ttc,vars('subj_n'), any_vars(. %in% si));
+#         # ttd = tts$itc_dat-cmu;
+#         ttd = tts$itc_dat;
+#         newl <- list(tf_dat=ttd,cli=cli,ci=ci,si=si,freqN=length(freqs),timeN=length(times))
+#         loop_vals <- cbind(loop_vals,list(newl))
+#         cnt = cnt + 1;
+#       }
+#     }
+#   }
+#   return(loop_vals)
+# }
 
-#%% TF GET DATA ================================================================
-get_tf_dat <- function(cli,ci,si,dtbl){
-  #--
-  dtbl <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% cli));
-  dtbl <- filter_at(dtbl,vars('cond_n'), any_vars(. %in% ci));
-  tt <- filter_at(dtbl,vars('subj_n'), any_vars(. %in% si));
-  #--
-  freqs=unique(dtbl$itc_freq)
-  times=unique(dtbl$itc_time)
-  #-- get data and run
-  y = tt$itc_dat;
-  #--
-  return(list(tf_dat=y,freqs=freqs,times=times))
-}
+#%% ======================================================================== %%#
+# #%% TF GET DATA (csv implement)
+# get_tf_dat <- function(cli,ci,si,dtbl){
+#   #--
+#   dtbl <- filter_at(dtbl,vars('cluster_n'), any_vars(. %in% cli));
+#   dtbl <- filter_at(dtbl,vars('cond_n'), any_vars(. %in% ci));
+#   tt <- filter_at(dtbl,vars('subj_n'), any_vars(. %in% si));
+#   #--
+#   freqs=unique(dtbl$itc_freq)
+#   times=unique(dtbl$itc_time)
+#   #-- get data and run
+#   y = tt$itc_dat;
+#   #--
+#   return(list(tf_dat=y,freqs=freqs,times=times))
+# }
 
+#%% ======================================================================== %%#
 get_tf_dat_mat <- function(cli,ci,si,indexl,itc_dat){
   #--
   indexl <- filter_at(indexl,vars('cluster_n'), any_vars(. %in% cli));
@@ -185,7 +189,8 @@ get_tf_dat_mat <- function(cli,ci,si,indexl,itc_dat){
   return(list(tf_dat=y))
 }
 
-#%% TF PLOT FUNCTION ===========================================================
+#%% ======================================================================== %%#
+#%% TF PLOT FUNCTION
 tf_plot <- function(pwr_dat,times,freqs,title_char,zlim_in,
                     do_cbar=TRUE,do_contour=FALSE,x_lab="Time (ms)",y_lab="Frequency (Hz)"){
   #-- set params
@@ -215,7 +220,8 @@ tf_plot <- function(pwr_dat,times,freqs,title_char,zlim_in,
   return(h)
 }
 
-#%% FUSEDLASSO CV ============================================================
+#%% ======================================================================== %%#
+#%% FUSEDLASSO CV 
 mfusedl2d_cv <- function(lambs,tf_dat,freqN,timeN,nlambs_test=30,block_size=5,K=5){
   #-- lambda vec
   lambda_values <- seq(min(lambs), max(lambs), length.out=nlambs_test)
@@ -261,36 +267,8 @@ mfusedl2d_cv <- function(lambs,tf_dat,freqN,timeN,nlambs_test=30,block_size=5,K=
   return(list(cv_errors=cve,lamb_vals=lambda_values))
 }
 
-fusedl_valid_plots <- function(tf_dat,times,freqs){
-  #%% PLOT RESULTS
-  # ggo <- ggplot(data.frame(lambda_values,cv_errors),
-  #               aes(x=lambda_values,y=cv_errors),
-  #               xlab="Lambda",
-  #               ylab="Cross-Validation Error") +
-  #   geom_point(pch=19) +
-  #   geom_line(col="blue") +
-  #   geom_vline(xintercept=best_lambda,col="red",lty=2)
-  # #-- save plot
-  # fname = sprintf("cl%i-s%i-c%i_cv.png",cli,si,ci); 
-  # ggsave(file.path(save_dir,fname),ggo)
-  
-  #%% TF PLOT
-  # zlim_in = range(tf_dat)
-  # op <- tf_plot(tf_dat,times,freqs,"Original",zlim_in)
-  # #-- plot fusedlasso mask
-  # zlim_in = range(beta_hat$beta)
-  # tit_in = bquote(lambda==.(sprintf("%.3f",beta_hat$lambda[1])));
-  # np <- tf_plot(beta_hat$beta[,1],times,freqs,tit_in,zlim_in)
-  # #-- join them
-  # pl <- list(op,np)
-  # grid.arrange(grid::rectGrob(),grid::rectGrob())
-  # ml <- marrangeGrob(pl, nrow=2, ncol=1);
-  # #-- save plot
-  # fname = sprintf("cl%i-s%i-c%i_tfplot.png",cli,si,ci); 
-  # ggsave(file.path(save_dir,fname), ml)
-}
-
-#%% FUSED LASSO 2D WRAPPER =====================================================
+#%% ======================================================================== %%#
+#%% FUSED LASSO 2D WRAPPER
 mfusedl2d <- function(item,save_dir) {
   #%% PARAMETERS
   block_size = 5;
@@ -329,19 +307,6 @@ mfusedl2d <- function(item,save_dir) {
   best_lambda <- lambda_values[which.min(cv_errors)];
   beta_hat <- coef(fl,lambda=best_lambda);
   
-  #%% PLOT RESULTS
-  # message(sprintf("cl%i-c%i-s%i) Plotting results & saving data ...",cli,ci,si));
-  # ggo <- ggplot(data.frame(lambda_values,cv_errors),
-  #               aes(x=lambda_values,y=cv_errors),
-  #               xlab="Lambda",
-  #               ylab="Cross-Validation Error") +
-  #   geom_point(pch=19) +
-  #   geom_line(col="blue") +
-  #   geom_vline(xintercept=best_lambda,col="red",lty=2)
-  # #-- save plot
-  # fname = sprintf("cl%i-s%i-c%i_cv.png",cli,si,ci);
-  # ggsave(file.path(save_dir,fname),ggo)
-  
   #%% SAVE DATA
   message(sprintf("cl%i-c%i-s%i) saving data ...",cli,ci,si));
   #-- save flasso model (larger data?)
@@ -352,22 +317,21 @@ mfusedl2d <- function(item,save_dir) {
                  cli=cli,
                  si=si,
                  ci=ci)
-  #(05/09/2025) JS, removing the fl model because its a really big memory
   fname = sprintf("cl%i-s%i-c%i_flmoddat.RData",cli,si,ci);
   saveRDS(out_dat,file=file.path(save_dir,fname))
-  
-  #(05/09/2025) JS, these 2 save methods both work, not entirely sure the difference but I think saveRDS is more efficient memory-wise?
-  # save() will overwrite any variables with the saved name when load() while saveRDS() values must be extracted upon readRDS(). saveRDS()
-  # and readRDS() seem to be preferred by most?
   
   #%% RETURN VALUES?
   message(sprintf("cl%i-c%i-s%i) done ...",cli,ci,si));
   # return(out_dat)
   return(NULL)
-  # return(list(flmod=fl,bbeta=beta_hat,blamb=best_lambda,cv_errors=cv_errors,lamb_vals=lambda_values))
 }
+#(05/09/2025) JS, removing the fl model because its a really big memory
+#(05/09/2025) JS, these 2 save methods both work, not entirely sure the difference but I think saveRDS is more efficient memory-wise?
+# save() will overwrite any variables with the saved name when load() while saveRDS() values must be extracted upon readRDS(). saveRDS()
+# and readRDS() seem to be preferred by most?
 
-#%% STAT TESTS ======================
+#%% ======================================================================== %%#
+#%% STAT TESTS
 get_stat_vecs <- function(indexl,clust_i,freqs,times,finds,tinds,
                              save_dir){ 
   #%% LOOP THROUGH CONDS & SUBJS
@@ -412,10 +376,13 @@ get_stat_vecs <- function(indexl,clust_i,freqs,times,finds,tinds,
               subj_vals=subj_id,
               group_vals=group_id,
               speed_vals=speed_val,
+              freqs=freqso,
+              times=timeso,
               nfreqs=length(freqso),
               ntimes=length(timeso)))
 }
 
+#%% ======================================================================== %%#
 #%% LOOP DATA
 get_stat_dat_mat <- function(dat_mat,nfreqs,ntimes,
                              speed_vals,group_vals,subj_vals){
@@ -440,9 +407,11 @@ get_stat_dat_mat <- function(dat_mat,nfreqs,ntimes,
   return(loop_vals)
 }
 
+#%% ======================================================================== %%#
 #%% PERFORM STATS
 lmer_fl_intstat_ij <- function(loop_dat){
   coeffis = 1:6;
+  coeffis_a = 1:3;
   y = loop_dat$point_dat;
   tspeed = loop_dat$speeds;
   tgrp = as.factor(loop_dat$groups);
@@ -450,9 +419,13 @@ lmer_fl_intstat_ij <- function(loop_dat){
   i = loop_dat$i;
   j = loop_dat$j;
   #--
-  estimate <- vector(mode="double",length=6)+1;
-  pvalue <- vector(mode="double",length=6)+1;
-  rown <- vector(mode="character",length=6);
+  estimate <- array(NA,dim=c(6));
+  pvalue <- array(NA,dim=c(6));
+  statvalue <- array(NA,dim=c(6));
+  c_chars <- array("NA",dim=c(6));
+  anpvalue <- array(NA,dim=c(3));
+  anstat <- array(NA,dim=c(3));
+  anchar <- array("NA",dim=c(3));
   
   #%% MODELS
   tryCatch(
@@ -460,11 +433,16 @@ lmer_fl_intstat_ij <- function(loop_dat){
       #-- group-speed interaction model
       fit <- lmer(y ~ tspeed + tgrp + tspeed:tgrp + (1|tsubj))
       # fit <- lm(y ~ tspeed + tgrp + tspeed:tgrp)
-      ann <- car::Anova(fit)
+      ann <- anova(fit)
       sfit <- summary(fit)
+      #--
       estimate[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Estimate"])
       pvalue[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Pr(>|t|)"])
-      rown[coeffis] <- rownames(sfit$coefficients[coeffis,])
+      statvalue[coeffis] <- as.numeric(sfit$coefficients[coeffis, "t value"])
+      c_chars[coeffis] <- rownames(sfit$coefficients[coeffis,])
+      anpvalue[coeffis_a] <- as.numeric(ann[coeffis_a,"Pr(>F)"])
+      anstat[coeffis_a] <- as.numeric(ann[coeffis_a,"F value"])
+      anchar[coeffis_a] <- rownames(ann)
     },
     #if an error occurs, tell me the error
     error=function(e) {
@@ -477,10 +455,21 @@ lmer_fl_intstat_ij <- function(loop_dat){
       print(w)
     }
     )
-  return(list(est=estimate,pv=pvalue,statnames=rown,i=i,j=j))
+  return(list(est=estimate,
+              pv=pvalue,
+              cch=c_chars,
+              stat=statvalue,
+              apv=anpvalue,
+              astat=anstat,
+              acch=anchar,
+              i=i,
+              j=j))
 }
+
+#%% ======================================================================== %%#
 lmer_fl_grpstat_ij <- function(loop_dat){
   coeffis = 1:4;
+  coeffis_a = 1:2;
   y = loop_dat$point_dat;
   tspeed = loop_dat$speeds;
   tgrp = as.factor(loop_dat$groups);
@@ -488,64 +477,207 @@ lmer_fl_grpstat_ij <- function(loop_dat){
   i = loop_dat$i;
   j = loop_dat$j;
   
-  estimate <- vector(mode="double",6)+1;
-  pvalue <- vector(mode="double",6)+1;
-  rown <- vector(mode="character",6);
+  estimate <- array(NA,dim=c(6));
+  pvalue <- array(NA,dim=c(6));
+  statvalue <- array(NA,dim=c(6));
+  c_chars <- array("NA",dim=c(6));
+  anpvalue <- array(NA,dim=c(3));
+  anstat <- array(NA,dim=c(3));
+  anchar <- array("NA",dim=c(3));
   
   #%% MODELS
   tryCatch(
     {
-      ann <- car::Anova(fit)
       fit <- lmer(y ~ tspeed + tgrp + (1|tsubj))
       # fit <- lm(y ~ tspeed + tgrp)
+      ann <- anova(fit)
       sfit <- summary(fit)
       #--
       estimate[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Estimate"])
       pvalue[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Pr(>|t|)"])
-      rown[coeffis] <- rownames(sfit$coefficients[coeffis,])
+      statvalue[coeffis] <- as.numeric(sfit$coefficients[coeffis, "t value"])
+      c_chars[coeffis] <- rownames(sfit$coefficients[coeffis,])
+      anpvalue[coeffis_a] <- as.numeric(ann[coeffis_a,"Pr(>F)"])
+      anstat[coeffis_a] <- as.numeric(ann[coeffis_a,"F value"])
+      anchar[coeffis_a] <- rownames(ann)
     },
     #if an error occurs, tell me the error
     error=function(e) {
       message('An Error Occurred')
       print(e)
-      estimate <- c(1,1,1);
-      pvalue <- c(1,1,1);
-      rown <- c("none","none","none")
     },
     #if a warning occurs, tell me the warning
     warning=function(w) {
       message('A Warning Occurred')
       print(w)
-      estimate <- c(1,1,1);
-      pvalue <- c(1,1,1);
-      rown <- c("none","none","none")
     }
   )
-  return(list(est=estimate,pv=pvalue,statnames=rown,i=i,j=j))
+  return(list(est=estimate,
+              pv=pvalue,
+              cch=c_chars,
+              stat=statvalue,
+              apv=anpvalue,
+              astat=anstat,
+              acch=anchar,
+              i=i,
+              j=j))
 }
 
-#%%
-lmer_flstat_agg <- function(estimate,pvalue,freqs,times,cli,ci){
-  #%% FDR CORRECTION
-  fdrp <- p.adjust(matrix(pvalue,nrow=length(freqs)*length(times)*3),
-                   method="fdr",
-                   n=length(freqs)*length(times)*3);
-  fdrp <- array(fdrp,c(length(freqs),length(times),3));
+#%% ======================================================================== %%#
+# flstat_grp_agg <- function(saves,cli,freqs,times){
+#   nfreqs = length(freqs);
+#   ntimes = length(times);
+#   
+#   #%% EXTRACT DATA
+#   tmp <- lapply(saves,function(x) x$i)
+#   is <- as.numeric(tmp)
+#   tmp <- lapply(saves,function(x) x$j)
+#   js <- as.numeric(tmp)
+#   tmp <- lapply(saves,function(x) x$cch)
+#   cch <- unique(tmp); #as.character(tmp))
+#   indsk <- !(cch == "NA");
+#   tmp <- lapply(saves,function(x) x$acch)
+#   acch <- unique(tmp); #as.character(tmp))
+#   indsk <- !(acch == "NA");
+#   #--
+#   pvo <- array(1,dim=c(nfreqs,ntimes,6))
+#   esto <- array(0,dim=c(nfreqs,ntimes,6))
+#   stato <- array(0,dim=c(nfreqs,ntimes,6))
+#   apvo <- array(1,dim=c(nfreqs,ntimes,3))
+#   astato <- array(0,dim=c(nfreqs,ntimes,3))
+#   #--
+#   for(cnt in 1:length(saves)){
+#     ii = as.numeric(saves[[cnt]]$i);
+#     jj = as.numeric(saves[[cnt]]$j);
+#     pv = as.numeric(saves[[cnt]]$pv);
+#     est = as.numeric(saves[[cnt]]$est);
+#     stt = as.numeric(saves[[cnt]]$stat);
+#     apv = as.numeric(saves[[cnt]]$apv);
+#     astt = as.numeric(saves[[cnt]]$astat);
+#     #--
+#     pvo[ii,jj,] = pv;
+#     esto[ii,jj,] = est;
+#     stato[ii,jj,] = stt;
+#     apvo[ii,jj,] = apv;
+#     astato[ii,jj,] = astt;
+#   }
+#   
+#   #%% FDR CORRECTION
+#   pvo = pvo[,,2:4];
+#   fdrp <- p.adjust(matrix(pvo,nrow=nfreqs*ntimes*3),
+#                    method="fdr",
+#                    n=nfreqs*ntimes*3);
+#   fdrp <- array(fdrp,c(nfreqs,ntimes,3));
+#   
+#   #%% SAVE
+#   dato = list(fdrp=matrix(fdrp,nrow=nfreqs*ntimes*3),
+#               estimate=matrix(esto,nrow=nfreqs*ntimes*3),
+#               freqs=freqs,
+#               times=times,
+#               dim3=cch,
+#               modtype=c('interact'));
+#   return(dato)
+# }
+
+#%% ======================================================================== %%#
+flstat_int_agg <- function(saves,cli,freqs,times,pinds=1:6,apinds=1:3){
+  nfreqs = length(freqs);
+  ntimes = length(times);
+  lnpi = length(pinds);
+  lnapi = length(apinds);
+  lno = 6;
+  lnoa = 3;
   
+  #%% EXTRACT DATA
+  tmp <- lapply(saves,function(x) x$i)
+  is <- as.numeric(tmp)
+  tmp <- lapply(saves,function(x) x$j)
+  js <- as.numeric(tmp)
+  tmp <- lapply(saves,function(x) x$cch)
+  cch <- unique(tmp); #as.character(tmp))
+  cch <- cch[[1]];
+  # indsk <- !is.na(cch);
+  # indsk <- !(cch=='NA')
+  tmp <- lapply(saves,function(x) x$acch)
+  acch <- unique(tmp); #as.character(tmp))
+  acch <- acch[[1]];
+  # indsk <- !is.na(acch);
+  # indsk <- !(acch=='NA')
+  #--
+  fdrp <- array(1,dim=c(nfreqs,ntimes,lnpi))
+  afdrp <- array(1,dim=c(nfreqs,ntimes,lnapi))
+  #--
+  pvo <- array(1,dim=c(nfreqs,ntimes,lno))
+  esto <- array(0,dim=c(nfreqs,ntimes,lno))
+  stato <- array(0,dim=c(nfreqs,ntimes,lno))
+  apvo <- array(1,dim=c(nfreqs,ntimes,lnoa))
+  astato <- array(0,dim=c(nfreqs,ntimes,lnoa))
+  #--
+  for(cnt in 1:length(saves)){
+    ii = as.numeric(saves[[cnt]]$i);
+    jj = as.numeric(saves[[cnt]]$j);
+    pv = as.numeric(saves[[cnt]]$pv);
+    est = as.numeric(saves[[cnt]]$est);
+    stt = as.numeric(saves[[cnt]]$stat);
+    apv = as.numeric(saves[[cnt]]$apv);
+    astt = as.numeric(saves[[cnt]]$astat);
+    
+    #--
+    pvo[ii,jj,] = pv;
+    esto[ii,jj,] = est;
+    stato[ii,jj,] = stt;
+    apvo[ii,jj,] = apv;
+    astato[ii,jj,] = astt;
+  }
+  
+  #%% FDR CORRECTION
+  pvot = pvo[,,pinds];
+  apvot = apvo[,,apinds];
+  #-- correct LMER values (Satterthwaite)
+  # for(pi in 1:length(pinds)){
+  #   tmp <- p.adjust(matrix(pvo[,,pi],nrow=nfreqs*ntimes),
+  #                    method="fdr",
+  #                    n=nfreqs*ntimes);
+  #   fdrp[,,pi] <- matrix(tmp,nrow=nfreqs,ncol=ntimes);
+  # }
+  
+  tmp <- p.adjust(matrix(pvot,nrow=nfreqs*ntimes*lnpi),
+                  method="fdr",
+                  n=nfreqs*ntimes*lnpi);
+  fdrp <- array(tmp,dim=c(nfreqs,ntimes,lnpi));
+  
+  #-- correct anova values (Satterthwaite F-values)
+  # for(pi in 1:length(apinds)){
+  #   tmp <- p.adjust(matrix(apvot[,,pi],nrow=nfreqs*ntimes),
+  #                   method="fdr",
+  #                   n=nfreqs*ntimes);
+  #   afdrp[,,pi] <- matrix(tmp,nrow=nfreqs,ncol=ntimes);
+  # }
+  
+  tmp <- p.adjust(matrix(apvot,nrow=nfreqs*ntimes*lnapi),
+                  method="fdr",
+                  n=nfreqs*ntimes*lnapi);
+  afdrp <- array(tmp,dim=c(nfreqs,ntimes,lnapi));
+
   #%% SAVE
-  dato = list(fdrp=fdrp,
-              estimate=estimate,
-              speed=speed_val,
-              subj_id=subj_id,
-              group_id=group_id)
-  fname = sprintf("statmat_cl%i-c%i.mat",cli,ci);
-  writeMat(con=file.path(save_dir,fname), stat_mat = dato)
-  fname = sprintf("statrds_cl%i-c%i.mat",cli,ci);
-  saveRDS(dato, file=file.path(save_dir,fname))
+  dato = list(fdrp=matrix(fdrp,nrow=nfreqs*ntimes*lnpi),
+              rawp=matrix(pvo,nrow=nfreqs*ntimes*lno),
+              estimate=matrix(esto,nrow=nfreqs*ntimes*lno),
+              stat=matrix(stato,nrow=nfreqs*ntimes*lno),
+              afdrp=matrix(afdrp,nrow=nfreqs*ntimes*lnapi),
+              arawp=matrix(apvo,nrow=nfreqs*ntimes*lnoa),
+              astat=matrix(astato,nrow=nfreqs*ntimes*lnoa),
+              freqs=freqs,
+              times=times,
+              coeff_c=cch,
+              acoeff_c=acch,
+              pinds=pinds,
+              apinds=apinds);
+  return(dato)
 }
 
-
-#%% PERFORM STATS ONE COND
+#%% ======================================================================== %%#
+#%% GET ONE COND STAT DATA
 get_statdat_onesubj <- function(dat_mat,nfreqs,ntimes,speed_i,cond_i,
                              speed_vals,group_vals,subj_vals){
   #-- loop vals
@@ -570,7 +702,8 @@ get_statdat_onesubj <- function(dat_mat,nfreqs,ntimes,speed_i,cond_i,
   return(loop_vals)
 }
 
-#---
+#%% ======================================================================== %%#
+#%% RUN ONE COND STAT DATA
 flstat_onecond_ij <- function(loop_dat){
   y = loop_dat$point_dat;
   tspeed = loop_dat$speeds;

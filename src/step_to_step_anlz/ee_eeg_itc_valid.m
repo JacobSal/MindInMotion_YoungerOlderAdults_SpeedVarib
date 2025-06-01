@@ -754,7 +754,7 @@ PLOT_STRUCT = struct( ...
     'clim',[],...
     'freq_lims',[],...
     'time_lims',[],...    
-    'contourf_grain',ceil((500/pi())),...
+    'contourf_grain',ceil(500/(2*pi())),...
     'alpha_multiple',0.6,...
     'do_display_sgtitle',true, ...
     'sgtitle_char',{''}, ...
@@ -807,8 +807,7 @@ MOD_CUTOFF = 0.08;
 for cl_i = 1:length(cluster_inds_plot)
     %%
     
-    %##
-    fext = 'mod_group2';
+    fext = 'mod_group';
     blext = 'none';
     stat_ext = 'none';    
     %--
@@ -818,18 +817,66 @@ for cl_i = 1:length(cluster_inds_plot)
 
     %## LOAD STATS
     fexts = 'itc_rdata_flasso_125f_out_bsz5_nob_sliding';
-    flasso_fpath = [r_stats_dir filesep fexts filesep sprintf('statmat_cl%i.mat',cl_n)];
-    tmp = load(flasso_fpath,'-mat');
+    %--
+    % stat_ext = 'int_rafdr';
+    % stat_ext = 'int_rindvfdr';
+    % stat_ext = 'int_rrawp';
+    % flasso_fpath = [r_stats_dir filesep fexts filesep sprintf('statmatint_cl%i.mat',cl_n)];
+    %--
+    stat_ext = 'grp_rafdr';
+    % stat_ext = 'grp_rindvfdr';
+    flasso_fpath = [r_stats_dir filesep fexts filesep sprintf('statmatgrp_cl%i.mat',cl_n)];
+    %--
+    % tmp = load(flasso_fpath,'-mat');
+    tmp = load(flasso_fpath);
     tmp = tmp.stat_mat;
-    estm = reshape(tmp.estimate,[length(tmp.freqs),length(tmp.times),3]);
-    pval = reshape(tmp.fdrp,[length(tmp.freqs),length(tmp.times),3]);
+    %--
+    estm = reshape(tmp.estimate,[length(tmp.freqs),length(tmp.times),length(tmp.coeff_c)]);
+    pval = reshape(tmp.fdrp,[length(tmp.freqs),length(tmp.times),length(tmp.pinds)]);
+    % pval = reshape(tmp.rawp,[length(tmp.freqs),length(tmp.times),length(tmp.coeff_c)]);
+    %--
+    astat = reshape(tmp.astat,[length(tmp.freqs),length(tmp.times),length(tmp.acoeff_c)]);
+    apval = reshape(tmp.afdrp(:,1),[length(tmp.freqs),length(tmp.times),length(tmp.apinds)]);
+    % apval = reshape(tmp.arawp,[length(tmp.freqs),length(tmp.times),length(tmp.acoeff_c)]);
+    %--
     TIME_BOUND = [min(tmp.times),max(tmp.times)];
     FREQ_BOUND = [min(tmp.freqs),max(tmp.freqs)];
     tinds = itc_times > TIME_BOUND(1) & itc_times < TIME_BOUND(2);
     finds = itc_freqs > FREQ_BOUND(1) & itc_freqs < FREQ_BOUND(2);
     tcrop = itc_times(tinds);
     fcrop = itc_freqs(finds);
-
+    %--
+    pval(isnan(pval)) = 1;
+    estm(isnan(estm)) = 0;
+    %--
+    % stat_ext = [stat_ext,'_anv'];
+    % stattitles = {'Speed','Group','Speed:Group'};
+    % allpvs = {apval(:,:,1),apval(:,:,2),apval(:,:,3)};
+    % allest = {astat(:,:,1),astat(:,:,2),astat(:,:,3)};
+    % clim_asi = [0,0,0];
+    % clim_tit = {'F Stat','F Stat','F Stat'};
+    %--
+    % stat_ext = [stat_ext,'_est'];
+    % stattitles = {'\DeltaSpeed_{YA}','OHFA-YA','OLFA-YA','\DeltaSpeed_{OHFA-YA}','\DeltaSpeed_{OLFA-YA}'};
+    % allpvs = {pval(:,:,2),pval(:,:,3),pval(:,:,4),pval(:,:,5),pval(:,:,6)};
+    % allest = {estm(:,:,2),estm(:,:,3),estm(:,:,4),estm(:,:,5),estm(:,:,6)};
+    % clim_asi = [1,2,2,3,3];
+    % clim_tit = {'slope (m_{YA})','intercept (b_{OHFA}-b_{YA})','intercept (b_{OLFA}-b_{YA})','slope (m_{OHFA}-m_{YA})','slope (m_{OLFA}-m_{YA})'};
+    %--
+    stat_ext = [stat_ext,'_anv'];
+    stattitles = {'Speed','Group','OHFA-YA','OLFA-YA'};
+    allpvs = {apval(:,:,1),apval(:,:,2),pval(:,:,3),pval(:,:,4)};
+    allest = {astat(:,:,1),astat(:,:,2),estm(:,:,3),estm(:,:,4)};
+    clim_asi = [4,5,2,2];
+    clim_tit = {'F Stat','F Stat','intercept (ITC)','intercept (ITC)'};
+    %--
+    % stat_ext = [stat_ext,'_est'];
+    % stattitles = {'\DeltaSpeed_{YA}','OHFA-YA','OLFA-YA'};
+    % allpvs = {pval(:,:,2),pval(:,:,3),pval(:,:,4)};
+    % allest = {estm(:,:,2),estm(:,:,3),estm(:,:,4)};
+    % clim_asi = [1,2,2,3,3];
+    % clim_tit = {'slope (m_{YA})','intercept (b_{OHFA}-b_{YA})','intercept (b_{OLFA}-b_{YA})'};
+    
     %## EXTRACT DATA
     allitc = cell(length(COND_CHARS),length(groups));
     allmod = cell(length(COND_CHARS),length(groups));
@@ -858,8 +905,8 @@ for cl_i = 1:length(cluster_inds_plot)
     itco_c = allmod;
     
     %-- common
-    blc = mean(cat(3,itco_c{:}),3);
-    itco_c = cellfun(@(x) x-blc,itco_c,'UniformOutput',false);
+    % blc = mean(cat(3,itco_c{:}),3);
+    % itco_c = cellfun(@(x) x-blc,itco_c,'UniformOutput',false);
 
     %## CONDITION & GROUP SPECIFIC BASELINES
     % tmp = cell(size(itco_c));
@@ -905,14 +952,17 @@ for cl_i = 1:length(cluster_inds_plot)
     % clim_ticks = [0,0.005,0.01,0.015,0.020];
     % clim_tlabs = {'0','0.0050','0.010','0.015','0.020'};
     %-- baseline to common
-    clim = [-0.012,0.012];
-    clim_ticks = [-0.012,-0.006,0,0.006,0.012];
-    clim_tlabs = {'-0.012','-0.0060','0','0.0060','0.012'};
+    % clim = [-0.012,0.012];
+    % clim_ticks = [-0.012,-0.006,0,0.006,0.012];
+    % clim_tlabs = {'-0.012','-0.0060','0','0.0060','0.012'};
     %-- no baseline
     % clim = [0,0.20];
     % clim_ticks = [0,0.05,0.1,0.15,0.20];
     % clim_tlabs = {'0','0.050','0.10','0.15','0.20'};
-
+    %--
+    clim = [0.145,0.185];
+    clim_ticks = [0.15,0.16,0.17,0.18];
+    clim_tlabs = {'0.15','0.16','0.17','0.18'};
     %## INITIATE FIGURE
     ieee_sz = [8.5-(0.65*2),11-(0.7*2)];
     FIGURE_POSITION =ieee_sz;
@@ -956,7 +1006,7 @@ for cl_i = 1:length(cluster_inds_plot)
     for g_i = 1:length(groups)
         for c_i = 1:length(COND_CHARS)
             %##
-            stat_ext = 'mod';
+            % stat_ext = 'mod';
             tmpst = zeros(size(itco_c{c_i,g_i},1),size(itco_c{c_i,g_i},2));
             % tmpst = pval < 0.05;
             % tmpst = tmpst(:,:,1);
@@ -965,8 +1015,9 @@ for cl_i = 1:length(cluster_inds_plot)
             tmp = itco_c{c_i,g_i};
             allersp = mean(tmp,3);
             % allersp_mask = mean(tmp,3).*tmpst;
-            allersp_mask = mean(tmp,3);
-            allersp_pcond = double(tmpst);
+            % allersp_mask = mean(tmp,3);
+            % allersp_pcond = double(tmpst);
+            allersp_pcond = tmpst;
             %--
             cmp = linspecer();
 
@@ -989,7 +1040,9 @@ for cl_i = 1:length(cluster_inds_plot)
             tmp_plot_struct.clim = clim;
             tmp_plot_struct.cbar_ticklabs = clim_tlabs; %{'0','0.04','0.08','0.12'};
             tmp_plot_struct.cbar_ticks = clim_ticks; %[0,0.04,0.08,0.12];
-            tmp_plot_struct.cbar_label_shift = [5,0.9172];
+            tmp_plot_struct.cbar_label_shift = [-0.45,0.7];
+            tmp_plot_struct.cbar_label = 'ITC';
+            
             if c_i > 1
                 tmp_plot_struct.do_display_bandmarks = false;
                 tmp_plot_struct.ylabel = '';
@@ -1045,7 +1098,7 @@ for cl_i = 1:length(cluster_inds_plot)
             end
             ax = axes();
             [ax] = plot_contourf_cell(ax,allersp,itc_times(tinds),itc_freqs(finds),...
-                allersp_mask,allersp_pcond, ...
+                allersp_pcond, ...
                 'PLOT_STRUCT',tmp_plot_struct);
             %## AX SHIFT
             if x_cnt < X_DIM
@@ -1061,59 +1114,122 @@ for cl_i = 1:length(cluster_inds_plot)
     end
 
     %## ADD STATS
+    X_DIM = 5;
+    % AX_INIT_X = 0.05;
+    AX_INIT_X = 0.135;
     x_shift = AX_INIT_X+AX_DIM(1)/2;
     y_shift = y_shift + (-0.075);
     x_cnt = 1;
     y_cnt = 1;
-    stattitles = {'\Delta Faster Speeds','OHFA-YA','OLFA-YA'};
-    allpvs = {pval(:,:,1),pval(:,:,2),pval(:,:,3)};
-    allest = {estm(:,:,1),estm(:,:,2),estm(:,:,3)};
+    % stattitles = {'\Delta Faster Speeds','OHFA-YA','OLFA-YA'};
+    % allpvs = {pval(:,:,1),pval(:,:,2),pval(:,:,3)};
+    % allest = {estm(:,:,1),estm(:,:,2),estm(:,:,3)};
+    
     for s_i = 1:length(allpvs)
         %##
+        p_masked = allpvs{s_i}<0.05;
+        %## MATLAB BASED FDR
+        % FDR()
+        % [p_masked,~,~,adjp] = fdr_bh(allpvs{s_i},0.05,'pdep');
+        % [adjp,p_masked] = fdr(allpvs{s_i},0.05,'nonparameteric');        
+        % [inds,pcrit] = local_fdr(reshape(allpvs{s_i},1,[]),0.05,false);
+        % p_masked = allpvs{s_i} < pcrit;
+        %##
         allersp = allest{s_i};
-        allersp_mask = allersp.*(allpvs{s_i}<0.05);
-        allersp_pcond = double(allpvs{s_i}<0.05);
+        allersp_pcond = allpvs{s_i};
+        % allersp_mask = allersp.*p_masked; %(allpvs{s_i}<0.05);
+        % allersp_pcond = double(p_masked); %allpvs{s_i}<0.05);
+        if all(isnan(allersp),[1,2])
+            continue;
+        end
         % allersp_mask = allersp;
         % allersp_pcond = zeros(size(allersp));
         %-- clim
         % clim = cellfun(@(x) [prctile(x,5,'all'),prctile(x,95,'all')],{allersp}, ...
         %     'UniformOutput',false);
-        % clim = mean(cat(1,clim{:}),1);
+        % clim = round(mean(cat(1,clim{:}),1),2,'significant');
+        % clim_ticks = linspace(clim(1),clim(2),5);
+        % clim_tlabs = cellstr(string(clim_ticks));
+        %--
+        switch clim_asi(s_i)
+            case 1
+                %-- speed
+                clim = [0.010,0.040];
+                clim_ticks = [0.010,0.020,0.03,0.04];
+                clim_tlabs = cellstr(string(clim_ticks)); %{'0','0.01','0.02','0.03'};
+            case 2
+                %-- group
+                clim = [0,0.009];
+                clim_ticks = [0,0.003,0.006,0.009];
+                clim_tlabs = cellstr(string(clim_ticks)); %{'0','0.01','0.02','0.03'};
+            case 3
+                %-- comps
+                clim = [-0.012,0];
+                clim_ticks = [-0.012,-0.006,0];
+                clim_tlabs = cellstr(string(clim_ticks));
+            case 4
+                %-- a speed
+                clim = [0,120];
+                clim_ticks = [0,40,80,120];
+                clim_tlabs = cellstr(string(clim_ticks));
+            case 5
+                %-- a group
+                clim = [0,4];
+                clim_ticks = [0,1,2,3,4];
+                clim_tlabs = cellstr(string(clim_ticks));
+            otherwise
+                %-- clim
+                clim = cellfun(@(x) [prctile(x,5,'all'),prctile(x,95,'all')],{allersp}, ...
+                    'UniformOutput',false);
+                clim = round(mean(cat(1,clim{:}),1),2,'significant');
+                clim_ticks = linspace(clim(1),clim(2),5);
+                clim_tlabs = cellstr(string(clim_ticks));
+        end
         %-- speed
         % clim = [0,0.03];
         % clim_ticks = [0,0.01,0.02,0.03];
         % clim_tlabs = {'0','0.01','0.02','0.03'};
         %-- group
-        clim = [-0.001,0.03];
-        clim_ticks = [0,0.01,0.02,0.03];
-        clim_tlabs = {'0','0.01','0.02','0.03'};
+        % clim = [-0.001,0.03];
+        % clim_ticks = [0,0.01,0.02,0.03];
+        % clim_tlabs = {'0','0.01','0.02','0.03'};
 
         %##
         tmp_plot_struct = PLOT_STRUCT;
         tmp_plot_struct.colormap = linspecer(); %cmp(ceil(length(cmp)/2):length(cmp),:);
-        tmp_plot_struct.alpha_multiple=0.9;
+        tmp_plot_struct.alpha_multiple=0.8;
         tmp_plot_struct.title = stattitles{s_i};
         tmp_plot_struct.title_props.FontSize = 10;
         % tmp_plot_struct.title = c_alltitles{c_i};
+        
         tmp_plot_struct.ax_props.FontSize = 8;
         tmp_plot_struct.ax_props.Box = 'on';
         tmp_plot_struct.ax_props.LineWidth = 2;
         tmp_plot_struct.contourf_grain = 30;
         tmp_plot_struct.ax_props.Position = [x_shift,y_shift,AX_DIM(1),AX_DIM(2)];
         tmp_plot_struct.clim = clim;
+        %-- cbar
+        tmp_plot_struct.cbar_label_props.VerticalAlignment = 'bottom';
+        tmp_plot_struct.cbar_label_props.Rotation = 0;
+        tmp_plot_struct.cbar_props.Location = 'SouthOutside';
+        tmp_plot_struct.cbar_tickangle = 45;
+        tmp_plot_struct.cbar_shift = [1,0.7];
+        tmp_plot_struct.cbar_label_shift = [-0.15,-0.36];
         tmp_plot_struct.cbar_ticklabs = clim_tlabs; %{'0','0.04','0.08','0.12'};
         tmp_plot_struct.cbar_ticks = clim_ticks; %[0,0.04,0.08,0.12];
-        tmp_plot_struct.cbar_label = 'Estiamte (\beta)';
+        tmp_plot_struct.cbar_label = clim_tit{s_i}; %'ITC Estimate';
+        tmp_plot_struct.xlabel = '';
+        tmp_plot_struct.xticklabel_chars = {'','','','',''};
         if s_i > 1
             tmp_plot_struct.do_display_bandmarks = false;
             tmp_plot_struct.ylabel = '';
         end
-        if s_i < length(allpvs)
-            tmp_plot_struct.do_display_colorbar = false;
-        end
-        if s_i > 1
-            tmp_plot_struct.xlabel = '';
-        end
+        % if s_i < length(allpvs)
+        %     tmp_plot_struct.do_display_colorbar = false;
+        % end
+        % if s_i > 1
+        %     tmp_plot_struct.xlabel = '';
+        % end
         % tmp_plot_struct.xlabel = '';
         % tmp_plot_struct.xticklabel_chars = {''};
         %--
@@ -1138,7 +1254,7 @@ for cl_i = 1:length(cluster_inds_plot)
         %##
         ax = axes();
         [ax] = plot_contourf_cell(ax,allersp,itc_times(tinds),itc_freqs(finds),...
-            allersp_mask,allersp_pcond, ...
+            allersp_pcond, ...
             'PLOT_STRUCT',tmp_plot_struct);
         %## AX SHIFT
         if x_cnt < X_DIM
@@ -1155,7 +1271,7 @@ for cl_i = 1:length(cluster_inds_plot)
     drawnow;
     exportgraphics(fig,[tmp_save_dir filesep sprintf('cl%i_%s_%s_%s.png',cl_n,fext,stat_ext,blext)], ...
         'Resolution',300);
-    exportgraphics(fig,[tmp_save_dir filesep sprintf('cl%i_%s_%s_%s.pdf',cl_n,fext,stat_ext,blext)], ...
-        'ContentType','vector');
+    % exportgraphics(fig,[tmp_save_dir filesep sprintf('cl%i_%s_%s_%s.pdf',cl_n,fext,stat_ext,blext)], ...
+    %     'ContentType','vector');
     % close(fig);
 end

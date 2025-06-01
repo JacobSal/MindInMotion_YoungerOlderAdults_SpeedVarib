@@ -107,13 +107,13 @@ CLUSTER_PICS = main_cl_inds;
 %%
 fpaths = {STUDY.datasetinfo.filepath};
 % fextr = 'perstridefb_mi_nfslidingb36';
-% fextr = 'perstridefb_apfix_std_mi_nfslidingb36';
+fextr = 'perstridefb_apfix_std_mi_nfslidingb36';
 dat = par_load(fpaths{1},sprintf('psd_output_%s.mat',fextr));
 %--
 fooof_freqs = dat.freqs;
 % basel_chars = {'perstridefb_mi_nfslidingb36'};
-basel_chars = {'perstridefb_mi_nfslidingb100'};
-% basel_chars = {'perstridefb_apfix_std_mi_nfslidingb36'};
+% basel_chars = {'perstridefb_mi_nfslidingb100'};
+basel_chars = {'perstridefb_apfix_std_mi_nfslidingb36'};
 
 dat_out_structs = cell(1,length(basel_chars));
 %## LOAD
@@ -125,6 +125,7 @@ end
 %-- r stats
 % fextr = 'allcond_perstridefb_mi_nfslidingb36_rerun';
 % fextr = 'allcond_perstridefb_apfix_std_mi_nfslidingb36_rerun';
+fextr = 'allcond_perstridefb_apfix_std_mi_nfslidingb36';
 
 %## IMPORT MEANSD DATA
 % KIN_TABLE = readtable([r_stats_dir filesep sprintf('03122025_lme_eeg_kin_meansd_%s_tbl.xlsx',fextr)], ...
@@ -134,16 +135,21 @@ end
 % %-- r-stats
 % RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('03312025_lme_eeg_kin_meansd_%s_stats.xlsx',fextr)], ...
 %     "FileType","spreadsheet","UseExcel",true);
+KIN_TABLE = readtable([r_stats_dir filesep sprintf('05132025_lme_eeg_kin_meansd_%s_tbl.xlsx',fextr)], ...
+    "FileType","spreadsheet","UseExcel",true);
+%-- r-stats
+RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('05132025_lme_eeg_kin_meansd_%s_stats.xlsx',fextr)], ...
+    "FileType","spreadsheet","UseExcel",true);
 
 %##
 % fextr = 'allcond_perstridefb_mi_nfslidingb36_rerun';
 % fext = 'allcond_perstridefb_mi_nfslidingb36';
-fextr = 'allcond_perstridefb_apfix_std_mi_nfslidingb100_rerun';
-fext = 'allcond_perstridefb_apfix_std_mi_nfslidingb100';
+% fextr = 'allcond_perstridefb_apfix_std_mi_nfslidingb100_rerun';
+% fext = 'allcond_perstridefb_apfix_std_mi_nfslidingb100';
 %-- r-stats
-KIN_TABLE = par_load(save_dir,sprintf('sbs_eeg_psd_kin_%s.mat',fext));
-RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('05132025_lme_eeg_kin_%s_stats.xlsx',fextr)], ...
-    "FileType","spreadsheet","UseExcel",true);
+% KIN_TABLE = par_load(save_dir,sprintf('sbs_eeg_psd_kin_%s.mat',fext));
+% RSTATS_IMPORT = readtable([r_stats_dir filesep sprintf('05132025_lme_eeg_kin_%s_stats.xlsx',fextr)], ...
+%     "FileType","spreadsheet","UseExcel",true);
 %% MEASURES TO ANALYZE ================================================= %%
 %## STATS
 try
@@ -360,8 +366,9 @@ ANV_CHARS_GROUP = {'(Intercept)','speed_cond_num','group_char'};
 COEFF_CHARS_GROUP = {'(Intercept)','speed_cond_num','group_char1','group_char2'};
 %--
 %% (ALL SUBJS MODEL) =================================================== %%
-meas_ext = 'combo';
-tmp_savedir = [save_dir filesep fextr '_psdvio_manufigs_alld'];
+% meas_ext = 'combo_per';
+meas_ext = 'combo_inform';
+tmp_savedir = [save_dir filesep fextr '_manufigs'];
 mkdir(tmp_savedir);
 DO_RECALC_PSD_STATS = false;
 
@@ -373,34 +380,49 @@ DIP_FG_RESIZE = 1;
 PSD_FG_RESIZE = 1;
 VIO_FG_RESIZE = 1;
 %--
+% PSDM_YLIM = [-0.35,3.5];
+% PSDM_YTICKS = [0,1,2,3];
+% PSDM_YTICK_LABS = string(PSDM_YTICKS);
+%--
+% PSDS_YLIM = [0.275,0.425];
+% PSDS_YTICKS = [0.28,0.32,0.36,0.40];
+% PSDS_YTICK_LABS = ["0.28","0.32","0.36","0.40"]; %string(PSDS_YTICKS);
+PSDS_YLIM = [1.5,2.5];
+PSDS_YTICKS = [1.5,2,2.5];
+PSDS_YTICK_LABS = string(PSDS_YTICKS); %["0.28","0.32","0.36","0.40"]; %string(PSDS_YTICKS);
+%--
 PSDM_YLIM = [-0.35,3.5];
 PSDM_YTICKS = [0,1,2,3];
 PSDM_YTICK_LABS = string(PSDM_YTICKS);
 %--
-PSDS_YLIM = [0.275,0.425];
-PSDS_YTICKS = [0.28,0.32,0.36,0.40];
-PSDS_YTICK_LABS = ["0.28","0.32","0.36","0.40"]; %string(PSDS_YTICKS);
-% %--
-% VIOT_YLIM = [1.4,3.2];
-% VIOT_YTICKS = [1.5,2.0,2.5,3];
-% VIOT_YTICK_LABS = string(VIOT_YTICKS);
-% %--
+% PSDS_YLIM = [0.275,0.425];
+% PSDS_YTICKS = [0.28,0.32,0.36,0.4];
+% PSDS_YTICK_LABS = string(PSDS_YTICKS);
+%--
+VIOT_YLIM = [1.5,2.75];
+VIOT_YTICKS = [1.5,2.0,2.5];
+VIOT_YTICK_LABS = string(VIOT_YTICKS);
+%--
+VIOB_YLIM = [1.5,2.75];
+VIOB_YTICKS = [1.5,2.0,2.5];
+VIOB_YTICK_LABS = string(VIOB_YTICKS);
+%--
 % VIOB_YLIM = [1.4,2];
 % VIOB_YTICKS = [1.4,1.6,1.8,2];
 % VIOB_YTICK_LABS = string(VIOB_YTICKS);
 %--
-VIOT_YLIM = [0.25,0.45];
-VIOT_YTICKS = [0.25,0.35,0.45];
-VIOT_YTICK_LABS = string(VIOT_YTICKS);
-%--
-VIOB_YLIM = [0.25,0.45];
-VIOB_YTICKS = [0.25,0.35,0.45];
-VIOB_YTICK_LABS = string(VIOB_YTICKS);
+% VIOT_YLIM = [0.25,0.45];
+% VIOT_YTICKS = [0.25,0.35,0.45];
+% VIOT_YTICK_LABS = string(VIOT_YTICKS);
+% %--
+% VIOB_YLIM = [0.25,0.45];
+% VIOB_YTICKS = [0.25,0.35,0.45];
+% VIOB_YTICK_LABS = string(VIOB_YTICKS);
 %--
 FG_SHIFT_Y = -0.26;
 FG_SHIFT_X = 0.5;
 FG_INIT_X = -0.025;
-FG_INIT_Y = -0.035;
+FG_INIT_Y = -0.04;
 ieee_sz = [8.5-(0.65*2),11-(0.7*2)];
 
 %% COMBO LSM, RSM, LPP, RPP FIGURE ========================================
@@ -504,9 +526,9 @@ for cl_i = 1:length(cluster_inds_plot)
 
     %## CLUSTER TITLE
     FG_TIT_FIX = [1,1];
-    TIT_BOX_SZ = [0.4,0.1];
-    TIT_SHIFT = [0,0.125];
-    ttxs = AX_INIT_X+TIT_SHIFT(1)*FG_TIT_FIX(1)+(TIT_BOX_SZ(1)/2);
+    TIT_BOX_SZ = [0.5,0.1];
+    TIT_SHIFT = [-AX_INIT_X,0.135];    
+    ttxs = AX_INIT_X+TIT_SHIFT(1)*FG_TIT_FIX(1)+(1-TIT_BOX_SZ(1))/2;
     ttys = AX_INIT_Y+TIT_SHIFT(2)*FG_TIT_FIX(2)+(TIT_BOX_SZ(2)/2);
     TIT_POS = [ttxs,ttys,TIT_BOX_SZ(1),TIT_BOX_SZ(2)];
     annotation('textbox',TIT_POS,...
@@ -546,7 +568,7 @@ for cl_i = 1:length(cluster_inds_plot)
 
     %## (STD-MEAN) GET PSD DATA
     dat_out_struct = dat_out_structs{1};
-    dat_calcs = {'std','mean'};
+    dat_calcs = {'mean','mean'};
     conds_out = {'0p25','0p5','0p75','1p0'};
     groups_out = g_chars;
     [psd_dat_out] = extract_psd_sbs(dat_out_struct,dat_calcs,cl_n,conds_out,groups_out);
@@ -558,12 +580,12 @@ for cl_i = 1:length(cluster_inds_plot)
     tl_struct.do_err_shading = true;
     %--
     tp_struct = PPLOT_STRUCT;    
-    tp_struct.title = {'SD PSD Signature'};  
+    tp_struct.title = {'Mean PSD Signature'};  
     mu = mean(cat(2,psd_dat_in{:}),[2,1]);
     sd = std(cat(2,psd_dat_in{:}),[],[2,1]);
     %--
     tp_struct.ylim = [mu-Y_LIM_SCALE*sd,mu+Y_LIM_SCALE*sd];
-    tp_struct.y_label = 'SD(10*log_{10}(PSD_{Ns}))';
+    tp_struct.y_label = '10*log_{10}(PSD_{Ns})';
     tp_struct.title_props.FontSize = 10*FG_TXT_SZ;
     tp_struct.y_label_props.FontSize = 10*FG_TXT_SZ;
     tp_struct.y_label_offset = [0,0.05];
@@ -572,11 +594,12 @@ for cl_i = 1:length(cluster_inds_plot)
     tp_struct.ax_props.FontSize = 10*FG_TXT_SZ;
     %--
     psd_params = [];
-    psd_params.y_lims = PSDS_YLIM;
-    psd_params.yticks = PSDS_YTICKS;
-    psd_params.ytick_labs = PSDS_YTICK_LABS;
+    %--
+    psd_params.y_lims = PSDM_YLIM;
+    psd_params.yticks = PSDM_YTICKS;
+    psd_params.ytick_labs = PSDM_YTICK_LABS;
     psd_params.do_display_leg = false;
-    psd_params.line_plot_opt = 'cond'; %'group';
+    psd_params.line_plot_opt = 'group'; %'group';
     psd_params.xtick_label = xtick_label_g;
     psd_params.xtick_label_g = g_chars_subp;
     psd_params.xtick_label_c = xtick_label_g;
@@ -597,6 +620,8 @@ for cl_i = 1:length(cluster_inds_plot)
         'FontWeight','bold',...
         'Orientation','Horizontal', ...
         'Units','normalized'};
+    psd_params.bandmark_shifts = [0.9,0.9,0.9,0.9;
+                                0.155,0.25,0.49,0.75];
     
     %## PLOT
     fname = sprintf('cl%i_inter_%s_stats.mat',cl_n,strjoin(dat_calcs,''));
@@ -621,7 +646,7 @@ for cl_i = 1:length(cluster_inds_plot)
     % PSD PLOTS =======================================================   
     %## (MEAN-MEAN) GET PSD DATA
     dat_out_struct = dat_out_structs{1};
-    dat_calcs = {'mean','mean'};
+    dat_calcs = {'std','mean'};
     conds_out = {'0p25','0p5','0p75','1p0'};
     groups_out = g_chars;
     [psd_dat_out] = extract_psd_sbs(dat_out_struct,dat_calcs,cl_n,conds_out,groups_out);
@@ -632,14 +657,17 @@ for cl_i = 1:length(cluster_inds_plot)
     %--
     mu = mean(cat(2,psd_dat_in{:}),[2,1]);
     sd = std(cat(2,psd_dat_in{:}),[],[2,1]);
-    tp_struct.title = {'Mean PSD Signature'};  
-    tp_struct.y_label = '<10*log_{10}(PSD_{Ns})>';
+    tp_struct.title = {'SD PSD Signature'};  
+    tp_struct.y_label = '10*log_{10}(PSD_{Ns})';
     tp_struct.ylim = [mu-Y_LIM_SCALE*sd,mu+Y_LIM_SCALE*sd];
     tp_struct.ax_props.Position = [txs,tys,AX_SZ(1)*IM_RESIZE,AX_SZ(2)*IM_RESIZE];
     %--
-    psd_params.y_lims = PSDM_YLIM;
-    psd_params.yticks = PSDM_YTICKS;
-    psd_params.ytick_labs = PSDM_YTICK_LABS;
+    % psd_params.y_lims = PSDM_YLIM;
+    % psd_params.yticks = PSDM_YTICKS;
+    % psd_params.ytick_labs = PSDM_YTICK_LABS;
+    psd_params.y_lims = PSDS_YLIM;
+    psd_params.yticks = PSDS_YTICKS;
+    psd_params.ytick_labs = PSDS_YTICK_LABS;
     %--
     fname = sprintf('cl%i_inter_%s_stats.mat',cl_n,strjoin(dat_calcs,''));
     if exist([tmp_savedir filesep fname],'file') && ~DO_RECALC_PSD_STATS
@@ -739,18 +767,20 @@ for cl_i = 1:length(cluster_inds_plot)
     %     'COV(\beta)'};
     % EEG_MEASURE_LABS = {'<log_{10}(COV(\theta_{Ns}))>', ...
     %     '<log_{10}(COV(\beta_{Ns}))>'};
-    % EEG_MEASURES = {'std_avg_theta_fn1', ...
-    %     'std_avg_beta_fn1'};
-    % EEG_MEASURE_TITLES = {'SD \theta_{Ns}', ...
-    %     'SD \beta_{Ns}'};
-    % EEG_MEASURE_LABS = {'SD(10*log_{10}(PSD_{Ns}))', ...
-    %     'SD(10*log_{10}(PSD_{Ns}))'};
-    EEG_MEASURES = {'std_avg_theta', ...
-        'std_avg_beta'};
+    %--
+    EEG_MEASURES = {'std_avg_theta_fn1', ...
+        'std_avg_beta_fn1'};
     EEG_MEASURE_TITLES = {'SD \theta_{Ns}', ...
         'SD \beta_{Ns}'};
     EEG_MEASURE_LABS = {'SD(10*log_{10}(PSD_{Ns}))', ...
         'SD(10*log_{10}(PSD_{Ns}))'};
+    %--
+    % EEG_MEASURES = {'std_avg_theta', ...
+    %     'std_avg_beta'};
+    % EEG_MEASURE_TITLES = {'SD \theta_{Ns}', ...
+    %     'SD \beta_{Ns}'};
+    % EEG_MEASURE_LABS = {'SD(10*log_{10}(PSD_{Ns}))', ...
+    %     'SD(10*log_{10}(PSD_{Ns}))'};
     %--
     x_shift = txs;   
     y_shift = tys;
@@ -764,17 +794,19 @@ for cl_i = 1:length(cluster_inds_plot)
         eeg_measure = EEG_MEASURES{e_i};
     
         %## SUB-SELECT DATA
-        % inds = strcmp(KIN_TABLE.model_n,num2str(DES_I)) & ...
-        %     KIN_TABLE.cluster_n == cl_n & ...
-        %     ~isnan(KIN_TABLE.(eeg_measure)); %num2str(cl_n);
-        inds = KIN_TABLE.model_n == DES_I & ...
+        inds = strcmp(KIN_TABLE.model_n,num2str(DES_I)) & ...
             KIN_TABLE.cluster_n == cl_n & ...
             ~isnan(KIN_TABLE.(eeg_measure)); %num2str(cl_n);
+        % inds = KIN_TABLE.model_n == DES_I & ...
+        %     KIN_TABLE.cluster_n == cl_n & ...
+        %     ~isnan(KIN_TABLE.(eeg_measure)); %num2str(cl_n);
         tmp_tbl = KIN_TABLE(inds,:); 
         prc_ylim = [round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(1))-YLIM_FAC*std(tmp_tbl.(eeg_measure)),1),...
                     round(prctile(tmp_tbl.(eeg_measure),PRC_YLIM(2))+YLIM_FAC*std(tmp_tbl.(eeg_measure)),1)];
     
         %## EXTRACT STATS INFO
+        % STR_FONT_SZ = 8*FG_TXT_SZ;
+        STR_FONT_SZ = 5*FG_TXT_SZ;
         EXTRACT_STRUCT = struct( ...
             'group_chars', {{'H1000','H2000','H3000'}}, ...
             'group_order', categorical({'H1000','H2000','H3000'}), ...
@@ -788,9 +820,9 @@ for cl_i = 1:length(cluster_inds_plot)
             'eeg_measure', {EEG_MEASURES{e_i}}, ...
             'kin_measure', {'none'}, ...
             'coeff_study', {'speed'}, ...
-            'do_display_str',true,...
+            'str_option',{'information'}, ... %'simple',...
             'str_offset', [-0.1, -0.05], ...
-            'str_font_size', 8*FG_TXT_SZ, ...
+            'str_font_size', STR_FONT_SZ, ...
             'ci_bar_width', 0.15, ...
             'ci_bar_xpos', 0, ...
             'ci_bar_linespecs', {{'LineStyle','-','LineWidth',2,'Color','k'}}, ...
@@ -802,7 +834,7 @@ for cl_i = 1:length(cluster_inds_plot)
         );
         %--
         % [STATS_STRUCT,CONFINT_STRUCT,ranef] = extract_violin_stats(RSTATS_IMPORT,cl_n,params);
-        [tmp_stats_struct,tmp_confint_struct,ranef] = get_r_stats_func(RSTATS_IMPORT,cl_n, ...
+        [tmp_stats_struct,tmp_confint_struct,ranef,rawdat] = get_r_stats_func(RSTATS_IMPORT,cl_n, ...
             'EXTRACT_STRUCT',EXTRACT_STRUCT);
         
         %## NORMALIZE DATA USING SUBJECT INTERCEPTS
@@ -836,7 +868,7 @@ for cl_i = 1:length(cluster_inds_plot)
             'OuterPosition',[0 0 1 1], ...
             'Position',[x_shift,y_shift,AX_SZ(1)*IM_RESIZE,AX_SZ(2)*IM_RESIZE]);
         tp_struct.group_labels = g_chars_subp; %params.group_chars; %g_chars_subp;
-        tp_struct.color_map = color_dark;
+        tp_struct.color_map = spcolor_dark;
         tp_struct.title = EEG_MEASURE_TITLES(e_i);
         tp_struct.y_label = EEG_MEASURE_LABS{e_i};
         tp_struct.x_label = 'Speed (m/s)';
@@ -852,7 +884,13 @@ for cl_i = 1:length(cluster_inds_plot)
                 tp_struct.ytick = VIOB_YTICKS;
         end
         %--
-        tmp_plot_Struct.scatter_props.SizeData = 4*FG_TXT_SZ;
+        tp_struct.scatter_props.SizeData = 4*FG_TXT_SZ;
+        switch EXTRACT_STRUCT.str_option
+            case 'information'
+                tp_struct.stats_char_props.FontSize = 5*FG_TXT_SZ;
+            case 'simple'
+                tp_struct.stats_char_props.FontSize = 8*FG_TXT_SZ;
+        end
 
         %%% PLOT VIO
         ax = axes();
@@ -931,7 +969,7 @@ for cl_i = 1:length(cluster_inds_plot)
     % fx_cnt = fx_cnt + 1;
 
     %##
-    fname = sprintf('%s_%s_manscript_plot',output_titles{cl_ii},meas_ext);
+    fname = sprintf('cl%i_%s_%s_manscript_plot',cl_n,output_titles{cl_ii},meas_ext);
     % exportgraphics(fig,[tmp_savedir filesep fname '.pdf'],...
     %     'ContentType','Vector')
     exportgraphics(fig,[tmp_savedir filesep fname '.png'],...
