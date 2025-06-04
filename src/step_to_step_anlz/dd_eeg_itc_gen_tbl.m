@@ -288,6 +288,88 @@ par_save(itc_so,save_dir,sprintf('itc_rdata_struct_125f_%s.mat',fext));
 % save([save_dir filesep sprintf('itc_rdata_struct_%s.mat',fext)],'itc_so','-mat')
 % save([save_dir filesep sprintf('itc_rdata_cell_%s.mat',fext)],'itc_so','-mat','v6')
 
+%% (SAVE R TABLE SPCA ERSP) =================================================== %%
+fext = 'ersp_spca';
+%- spca dir
+SPCA_STUDY_DNAME = '02202025_mim_yaoa_spca_calcs';
+STUDY_FNAME_GAIT = 'spca_gait_epoch_study_all';
+spca_dir = [studies_fpath filesep sprintf('%s',SPCA_STUDY_DNAME)];
+%- gait
+if ~ispc
+    tmp = load('-mat',[spca_dir filesep sprintf('%s_UNIX.study',STUDY_FNAME_GAIT)]);
+    SPCA_STUDY = tmp.STUDY;
+else
+    tmp = load('-mat',[spca_dir filesep sprintf('%s.study',STUDY_FNAME_GAIT)]);
+    SPCA_STUDY = tmp.STUDY;
+end
+
+%## GET TIMEWARPING INFORMATION
+tmpf = par_load(SPCA_STUDY.datasetinfo(1).filepath,'gait_ersp_spca.mat');
+timef_params = tmpf.icatimefopts;
+timef_params.timewarpms = tmpf.warptimes;
+hardcode_times = tmpf.icatimefopts.times;
+hardcode_freqs = tmpf.icatimefopts.freqs;
+%-- bounds and crops
+time_bound = [timef_params.timewarpms(1),timef_params.timewarpms(end)];
+finds = find(hardcode_freqs>=FREQ_BOUND(1) & hardcode_freqs<=FREQ_BOUND(2));
+tinds = find(hardcode_times>=time_bound(1) & hardcode_times<=time_bound(2));
+
+SPCA_TABLE = par_load(cluster_k_dir,'spca_cluster_table_ersp.mat');
+alltimes = hardcode_times(tinds);
+allfreqs = hardcode_freqs(finds);
+
+%## REMOVE UNNECESSARY INFORMATION
+% meas_del = 'tf_gpmcorr_c';
+meas_del = 'tf_erspcorr_c'; 
+outs = table2struct(SPCA_TABLE);
+outs = rmfield(outs,{'tf_ersporig_c','tf_gpmorig_c','tf_pc1_c','tf_coeff_c', ...
+    'comp_c','cluster_n',meas_del});
+outc = cell2struct(struct2cell(outs), ...
+    {'subj_char','group_char','cluster_n','group_n','cond_char','itc_dat'});
+
+%## CONVERT TABLE TO RDATA
+ter_cs = {'flat','low','med','high'};
+sp_cs = {'0p25','0p5','0p75','1p0'};
+all_cs = [ter_cs,sp_cs];
+%-- add subj_n
+subj_n = cell(length(outc),1);
+for subj_i = 1:length(CL_STUDY.datasetinfo)
+    tmps = CL_STUDY.datasetinfo(subj_i).subject;
+    inds = strcmp(tmps,{outc.subj_char});
+    subj_n(inds) = repmat({subj_i},[sum(inds),1]);    
+end
+%-- add mod_n
+mod_n = cell(length(outc),1);
+indst = cellfun(@(x) strcmp(x,{outc.cond_char}),ter_cs,'UniformOutput',false);
+indst = any(cat(1,indst{:}),1);
+indss = cellfun(@(x) strcmp(x,{outc.cond_char}),sp_cs,'UniformOutput',false);
+indss = any(cat(1,indss{:}),1);
+mod_n(indst) = repmat({1},[sum(indst),1]);
+mod_n(indss) = repmat({2},[sum(indss),1]);
+%-- add cond_n
+cond_n = cell(length(outc),1);
+for c_i = 1:length(all_cs)
+    inds = strcmp(all_cs{c_i},{outc.cond_char});
+    cond_n(inds) = repmat({c_i},[sum(inds),1]);
+end
+%-- crop ersp dat
+dd = cellfun(@(x) x(finds,tinds),{outc.itc_dat},'UniformOutput',false);
+%-- remake struct
+[outc(:).subj_n] = subj_n{:};
+[outc(:).mod_n] = mod_n{:};
+[outc(:).cond_n] = cond_n{:};
+[outc(1).itc_freq] = allfreqs;
+[outc(1).itc_time] = alltimes;
+[outc(:).itc_dat] = dd{:};
+%-- put each element into a cell
+tmp = cell(length(outc),1);
+for o_i = 1:length(outc)
+    tmp{o_i} = outc(o_i);
+end
+outc = tmp;
+%--
+par_save(outc,save_dir,sprintf('rdata_struct_%s.mat',fext));
+
 %% ===================================================================== %%
 %## VALIDATION PLOT
 %{

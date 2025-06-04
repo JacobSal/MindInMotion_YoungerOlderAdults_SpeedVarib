@@ -820,20 +820,21 @@ for cl_i = 1:length(cluster_inds_plot)
     %--
     % stat_ext = 'int_rafdr';
     % stat_ext = 'int_rindvfdr';
-    % stat_ext = 'int_rrawp';
-    % flasso_fpath = [r_stats_dir filesep fexts filesep sprintf('statmatint_cl%i.mat',cl_n)];
+    stat_ext = 'int_rrawp';
+    flasso_fpath = [r_stats_dir filesep fexts filesep sprintf('statmatint_cl%i.mat',cl_n)];
     %--
-    stat_ext = 'grp_rafdr';
-    % stat_ext = 'grp_rindvfdr';
-    flasso_fpath = [r_stats_dir filesep fexts filesep sprintf('statmatgrp_cl%i.mat',cl_n)];
+    % stat_ext = 'grp_rafdr';
+    % % stat_ext = 'grp_rindvfdr';
+    % stat_ext = 'grp_rrawp';
+    % flasso_fpath = [r_stats_dir filesep fexts filesep sprintf('statmatgrp_cl%i.mat',cl_n)];
     %--
     % tmp = load(flasso_fpath,'-mat');
     tmp = load(flasso_fpath);
     tmp = tmp.stat_mat;
     %--
     estm = reshape(tmp.estimate,[length(tmp.freqs),length(tmp.times),length(tmp.coeff_c)]);
-    pval = reshape(tmp.fdrp,[length(tmp.freqs),length(tmp.times),length(tmp.pinds)]);
-    % pval = reshape(tmp.rawp,[length(tmp.freqs),length(tmp.times),length(tmp.coeff_c)]);
+    % pval = reshape(tmp.fdrp,[length(tmp.freqs),length(tmp.times),length(tmp.pinds)]);
+    pval = reshape(tmp.rawp,[length(tmp.freqs),length(tmp.times),length(tmp.coeff_c)]);
     %--
     astat = reshape(tmp.astat,[length(tmp.freqs),length(tmp.times),length(tmp.acoeff_c)]);
     apval = reshape(tmp.afdrp(:,1),[length(tmp.freqs),length(tmp.times),length(tmp.apinds)]);
@@ -856,26 +857,26 @@ for cl_i = 1:length(cluster_inds_plot)
     % clim_asi = [0,0,0];
     % clim_tit = {'F Stat','F Stat','F Stat'};
     %--
-    % stat_ext = [stat_ext,'_est'];
-    % stattitles = {'\DeltaSpeed_{YA}','OHFA-YA','OLFA-YA','\DeltaSpeed_{OHFA-YA}','\DeltaSpeed_{OLFA-YA}'};
-    % allpvs = {pval(:,:,2),pval(:,:,3),pval(:,:,4),pval(:,:,5),pval(:,:,6)};
-    % allest = {estm(:,:,2),estm(:,:,3),estm(:,:,4),estm(:,:,5),estm(:,:,6)};
-    % clim_asi = [1,2,2,3,3];
-    % clim_tit = {'slope (m_{YA})','intercept (b_{OHFA}-b_{YA})','intercept (b_{OLFA}-b_{YA})','slope (m_{OHFA}-m_{YA})','slope (m_{OLFA}-m_{YA})'};
+    stat_ext = [stat_ext,'_est'];
+    stattitles = {'YA','\DeltaSpeed_{YA}','OHFA-YA','OLFA-YA','\DeltaSpeed_{OHFA-YA}','\DeltaSpeed_{OLFA-YA}'};
+    allpvs = {pval(:,:,1),pval(:,:,2),pval(:,:,3),pval(:,:,4),pval(:,:,5),pval(:,:,6)};
+    allest = {estm(:,:,1),estm(:,:,2),estm(:,:,3),estm(:,:,4),estm(:,:,5),estm(:,:,6)};
+    clim_asi = [6,1,2,2,3,3];
+    clim_tit = {'b_{YA}','slope (m_{YA})','intercept (b_{OHFA}-b_{YA})','intercept (b_{OLFA}-b_{YA})','slope (m_{OHFA}-m_{YA})','slope (m_{OLFA}-m_{YA})'};
     %--
-    stat_ext = [stat_ext,'_anv'];
-    stattitles = {'Speed','Group','OHFA-YA','OLFA-YA'};
-    allpvs = {apval(:,:,1),apval(:,:,2),pval(:,:,3),pval(:,:,4)};
-    allest = {astat(:,:,1),astat(:,:,2),estm(:,:,3),estm(:,:,4)};
-    clim_asi = [4,5,2,2];
-    clim_tit = {'F Stat','F Stat','intercept (ITC)','intercept (ITC)'};
+    % stat_ext = [stat_ext,'_anv'];
+    % stattitles = {'Speed','Group','OHFA-YA','OLFA-YA'};
+    % allpvs = {apval(:,:,1),apval(:,:,2),pval(:,:,3),pval(:,:,4)};
+    % allest = {astat(:,:,1),astat(:,:,2),estm(:,:,3),estm(:,:,4)};
+    % clim_asi = [4,5,2,2];
+    % clim_tit = {'F Stat','F Stat','intercept (ITC)','intercept (ITC)'};
     %--
     % stat_ext = [stat_ext,'_est'];
-    % stattitles = {'\DeltaSpeed_{YA}','OHFA-YA','OLFA-YA'};
-    % allpvs = {pval(:,:,2),pval(:,:,3),pval(:,:,4)};
-    % allest = {estm(:,:,2),estm(:,:,3),estm(:,:,4)};
-    % clim_asi = [1,2,2,3,3];
-    % clim_tit = {'slope (m_{YA})','intercept (b_{OHFA}-b_{YA})','intercept (b_{OLFA}-b_{YA})'};
+    % stattitles = {'YA','\DeltaSpeed','OHFA-YA','OLFA-YA'};
+    % allpvs = {pval(:,:,1),pval(:,:,2),pval(:,:,3),pval(:,:,4)};
+    % allest = {estm(:,:,1),estm(:,:,2),estm(:,:,3),estm(:,:,4)};
+    % clim_asi = [6,1,2,2,3,3];
+    % clim_tit = {'b_{YA}','slope (m_{YA})','intercept (b_{OHFA}-b_{YA})','intercept (b_{OLFA}-b_{YA})'};
     
     %## EXTRACT DATA
     allitc = cell(length(COND_CHARS),length(groups));
@@ -1114,11 +1115,12 @@ for cl_i = 1:length(cluster_inds_plot)
     end
 
     %## ADD STATS
-    X_DIM = 5;
-    % AX_INIT_X = 0.05;
-    AX_INIT_X = 0.135;
+    X_DIM = 6;
+    AX_INIT_X = 0.0;
+    % AX_INIT_X = 0.135;
     x_shift = AX_INIT_X+AX_DIM(1)/2;
     y_shift = y_shift + (-0.075);
+    AX_SHIFT = [1.22,-1.1];
     x_cnt = 1;
     y_cnt = 1;
     % stattitles = {'\Delta Faster Speeds','OHFA-YA','OLFA-YA'};
@@ -1176,6 +1178,11 @@ for cl_i = 1:length(cluster_inds_plot)
                 %-- a group
                 clim = [0,4];
                 clim_ticks = [0,1,2,3,4];
+                clim_tlabs = cellstr(string(clim_ticks));
+            case 6
+                %-- intercept
+                clim = [0,0.2];
+                clim_ticks = [0,0.05,0.1,0.15,0.2];
                 clim_tlabs = cellstr(string(clim_ticks));
             otherwise
                 %-- clim

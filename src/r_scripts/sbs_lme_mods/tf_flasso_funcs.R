@@ -634,30 +634,30 @@ flstat_int_agg <- function(saves,cli,freqs,times,pinds=1:6,apinds=1:3){
   pvot = pvo[,,pinds];
   apvot = apvo[,,apinds];
   #-- correct LMER values (Satterthwaite)
-  # for(pi in 1:length(pinds)){
-  #   tmp <- p.adjust(matrix(pvo[,,pi],nrow=nfreqs*ntimes),
-  #                    method="fdr",
-  #                    n=nfreqs*ntimes);
-  #   fdrp[,,pi] <- matrix(tmp,nrow=nfreqs,ncol=ntimes);
-  # }
-  
-  tmp <- p.adjust(matrix(pvot,nrow=nfreqs*ntimes*lnpi),
-                  method="fdr",
-                  n=nfreqs*ntimes*lnpi);
-  fdrp <- array(tmp,dim=c(nfreqs,ntimes,lnpi));
+  for(pi in 1:length(pinds)){
+    tmp <- p.adjust(matrix(pvo[,,pi],nrow=nfreqs*ntimes),
+                     method="fdr",
+                     n=nfreqs*ntimes);
+    fdrp[,,pi] <- matrix(tmp,nrow=nfreqs,ncol=ntimes);
+  }
+  # 
+  # tmp <- p.adjust(matrix(pvot,nrow=nfreqs*ntimes*lnpi),
+  #                 method="fdr",
+  #                 n=nfreqs*ntimes*lnpi);
+  # fdrp <- array(tmp,dim=c(nfreqs,ntimes,lnpi));
   
   #-- correct anova values (Satterthwaite F-values)
-  # for(pi in 1:length(apinds)){
-  #   tmp <- p.adjust(matrix(apvot[,,pi],nrow=nfreqs*ntimes),
-  #                   method="fdr",
-  #                   n=nfreqs*ntimes);
-  #   afdrp[,,pi] <- matrix(tmp,nrow=nfreqs,ncol=ntimes);
-  # }
+  for(pi in 1:length(apinds)){
+    tmp <- p.adjust(matrix(apvot[,,pi],nrow=nfreqs*ntimes),
+                    method="fdr",
+                    n=nfreqs*ntimes);
+    afdrp[,,pi] <- matrix(tmp,nrow=nfreqs,ncol=ntimes);
+  }
   
-  tmp <- p.adjust(matrix(apvot,nrow=nfreqs*ntimes*lnapi),
-                  method="fdr",
-                  n=nfreqs*ntimes*lnapi);
-  afdrp <- array(tmp,dim=c(nfreqs,ntimes,lnapi));
+  # tmp <- p.adjust(matrix(apvot,nrow=nfreqs*ntimes*lnapi),
+  #                 method="fdr",
+  #                 n=nfreqs*ntimes*lnapi);
+  # afdrp <- array(tmp,dim=c(nfreqs,ntimes,lnapi));
 
   #%% SAVE
   dato = list(fdrp=matrix(fdrp,nrow=nfreqs*ntimes*lnpi),
