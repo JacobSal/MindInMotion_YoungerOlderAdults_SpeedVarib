@@ -104,6 +104,7 @@ This repository has links to the desired submodules embedded with in it. --recur
 
 ### Prerequisites
 MATLAB 2023b
+R (for IDK I like RStudio, but some may prefer visual studio code)
 
 ### Installation
 Using GitHub Desktop to clone repository is preferred, but command line arguments can be used easily:
