@@ -28,11 +28,11 @@ round_even <- function(x,rnd_num) {
 
 #%% ======================================================================== %%#
 #%% GET DAT .MAT
-get_mat_dat <- function(mat_dat){
+get_mat_dat <- function(mat_dat,ext_inds=c(1:11)){
   #%% GET FORMATTING
   tmp = mat_dat[[1]];
-  times = tmp[[1]][[1]][[11]];
-  freqs = tmp[[1]][[1]][[10]];
+  times = tmp[[1]][[1]][[ext_inds[11]]];
+  freqs = tmp[[1]][[1]][[ext_inds[10]]];
   ntimes = length(times);
   nfreqs = length(freqs);
   fns = attr(tmp[[1]][[1]],"dimnames");
@@ -52,13 +52,13 @@ get_mat_dat <- function(mat_dat){
     tt = tmp[[i]][[1]];
     #-- data list
     tmp_dat_store <- append(tmp_dat_store,
-                            list(itc_dat=matrix(tt[[9]],nrow=nfreqs,ncol=ntimes)));
+                            list(itc_dat=matrix(tt[[ext_inds[9]]],nrow=nfreqs,ncol=ntimes)));
     #-- indexing list
     index_l <- rbind(index_l,data.frame(
-      subj_n=as.numeric(tt[[2]]),
-      cond_n=as.numeric(tt[[6]]),
-      group_n=as.numeric(tt[[4]]),
-      cluster_n=as.numeric(tt[[8]]),
+      subj_n=as.numeric(tt[[ext_inds[2]]]),
+      group_n=as.numeric(tt[[ext_inds[4]]]),
+      cond_n=as.numeric(tt[[ext_inds[6]]]),
+      cluster_n=as.numeric(tt[[ext_inds[8]]]),
       index_n=i))
   }
   return(list(itc_datl=tmp_dat_store,indexl=index_l,freqs=freqs,times=times))
@@ -222,7 +222,7 @@ tf_plot <- function(pwr_dat,times,freqs,title_char,zlim_in,
 
 #%% ======================================================================== %%#
 #%% FUSEDLASSO CV 
-mfusedl2d_cv <- function(lambs,tf_dat,freqN,timeN,nlambs_test=30,block_size=5,K=5){
+mfusedl2d_cv <- function(lambs,tf_dat,freqN,timeN,nlambs_test=30,block_size=3,K=5){
   #-- lambda vec
   lambda_values <- seq(min(lambs), max(lambs), length.out=nlambs_test)
   #-- get input image
@@ -271,7 +271,7 @@ mfusedl2d_cv <- function(lambs,tf_dat,freqN,timeN,nlambs_test=30,block_size=5,K=
 #%% FUSED LASSO 2D WRAPPER
 mfusedl2d <- function(item,save_dir) {
   #%% PARAMETERS
-  block_size = 5;
+  block_size = 3;
   nlambs_test = 30;
   K = 10;
   #(05/11/2025) JS, bumping to 10
@@ -409,9 +409,12 @@ get_stat_dat_mat <- function(dat_mat,nfreqs,ntimes,
 
 #%% ======================================================================== %%#
 #%% PERFORM STATS
-lmer_fl_intstat_ij <- function(loop_dat){
-  coeffis = 1:6;
-  coeffis_a = 1:3;
+lmer_fl_intstat_ij <- function(loop_dat,DO_INT_MOD=TRUE){
+  ngrps = 3;
+  ncoeffs = 6;
+  naterms = 3;
+  nocomps = 3;
+  #--
   y = loop_dat$point_dat;
   tspeed = loop_dat$speeds;
   tgrp = as.factor(loop_dat$groups);
@@ -419,22 +422,59 @@ lmer_fl_intstat_ij <- function(loop_dat){
   i = loop_dat$i;
   j = loop_dat$j;
   #--
-  estimate <- array(NA,dim=c(6));
-  pvalue <- array(NA,dim=c(6));
-  statvalue <- array(NA,dim=c(6));
-  c_chars <- array("NA",dim=c(6));
-  anpvalue <- array(NA,dim=c(3));
-  anstat <- array(NA,dim=c(3));
-  anchar <- array("NA",dim=c(3));
+  estimate <- array(NA,dim=c(ncoeffs));
+  pvalue <- array(NA,dim=c(ncoeffs));
+  statvalue <- array(NA,dim=c(ncoeffs));
+  c_chars <- array("NA",dim=c(ncoeffs));
+  anpvalue <- array(NA,dim=c(naterms));
+  anstat <- array(NA,dim=c(naterms));
+  anchar <- array("NA",dim=c(naterms));
+  #--
+  cc <- array('NA',dim=c(nocomps));
+  ccp <- array(0,dim=c(nocomps));
+  cce <- array(0,dim=c(nocomps));
+  cccic <- array('NA',dim=c(nocomps));
+  cccie <- array(0,dim=c(nocomps));
+  ccciu <- array(0,dim=c(nocomps));
+  cccil <- array(0,dim=c(nocomps));
   
   #%% MODELS
   tryCatch(
     {
       #-- group-speed interaction model
-      fit <- lmer(y ~ tspeed + tgrp + tspeed:tgrp + (1|tsubj))
-      # fit <- lm(y ~ tspeed + tgrp + tspeed:tgrp)
-      ann <- anova(fit)
-      sfit <- summary(fit)
+      if(DO_INT_MOD){
+        coeffis = 1:6;
+        coeffis_a = 1:3;
+        ngrps = 3;
+        #--
+        fit <- lmer(y ~ tspeed + tgrp + tspeed:tgrp + (1|tsubj))
+        # fit <- lm(y ~ tspeed + tgrp + tspeed:tgrp)
+        ann <- anova(fit)
+        sfit <- summary(fit)
+      }else{
+        #-- group only model
+        coeffis = 1:4;
+        coeffis_a = 1:2;
+        ngrps = 3;
+        #--
+        fit <- lmer(y ~ tspeed + tgrp + (1|tsubj))
+        # fit <- lm(y ~ tspeed + tgrp)
+        ann <- anova(fit)
+        sfit <- summary(fit)
+      }
+      
+      #--
+      emm = emmeans::emmeans(fit,spec=c('tspeed','tgrp'),level=0.95);
+      cfis <- data.frame(emm)
+      pwc = emmeans::contrast(emm,method = "pairwise")
+      tbp = data.frame(pwc)
+      cc = tbp$contrast
+      ccp = as.numeric(tbp$p.value)
+      cce = as.numeric(tbp$estimate)
+      cccic = cfis$tgrp
+      cccie = as.numeric(cfis$emmean)
+      ccciu = as.numeric(cfis$lower.CL)
+      cccil = as.numeric(cfis$upper.CL)
       #--
       estimate[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Estimate"])
       pvalue[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Pr(>|t|)"])
@@ -462,131 +502,27 @@ lmer_fl_intstat_ij <- function(loop_dat){
               apv=anpvalue,
               astat=anstat,
               acch=anchar,
+              pwcc = cc,
+              pwccp = ccp,
+              pwcce = cce,
+              cic = cccic,
+              cie = cccie,
+              ciu = ccciu,
+              cil = cccil,
               i=i,
               j=j))
 }
 
 #%% ======================================================================== %%#
-lmer_fl_grpstat_ij <- function(loop_dat){
-  coeffis = 1:4;
-  coeffis_a = 1:2;
-  y = loop_dat$point_dat;
-  tspeed = loop_dat$speeds;
-  tgrp = as.factor(loop_dat$groups);
-  tsubj = as.factor(loop_dat$subjs);
-  i = loop_dat$i;
-  j = loop_dat$j;
-  
-  estimate <- array(NA,dim=c(6));
-  pvalue <- array(NA,dim=c(6));
-  statvalue <- array(NA,dim=c(6));
-  c_chars <- array("NA",dim=c(6));
-  anpvalue <- array(NA,dim=c(3));
-  anstat <- array(NA,dim=c(3));
-  anchar <- array("NA",dim=c(3));
-  
-  #%% MODELS
-  tryCatch(
-    {
-      fit <- lmer(y ~ tspeed + tgrp + (1|tsubj))
-      # fit <- lm(y ~ tspeed + tgrp)
-      ann <- anova(fit)
-      sfit <- summary(fit)
-      #--
-      estimate[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Estimate"])
-      pvalue[coeffis] <- as.numeric(sfit$coefficients[coeffis, "Pr(>|t|)"])
-      statvalue[coeffis] <- as.numeric(sfit$coefficients[coeffis, "t value"])
-      c_chars[coeffis] <- rownames(sfit$coefficients[coeffis,])
-      anpvalue[coeffis_a] <- as.numeric(ann[coeffis_a,"Pr(>F)"])
-      anstat[coeffis_a] <- as.numeric(ann[coeffis_a,"F value"])
-      anchar[coeffis_a] <- rownames(ann)
-    },
-    #if an error occurs, tell me the error
-    error=function(e) {
-      message('An Error Occurred')
-      print(e)
-    },
-    #if a warning occurs, tell me the warning
-    warning=function(w) {
-      message('A Warning Occurred')
-      print(w)
-    }
-  )
-  return(list(est=estimate,
-              pv=pvalue,
-              cch=c_chars,
-              stat=statvalue,
-              apv=anpvalue,
-              astat=anstat,
-              acch=anchar,
-              i=i,
-              j=j))
-}
-
-#%% ======================================================================== %%#
-# flstat_grp_agg <- function(saves,cli,freqs,times){
-#   nfreqs = length(freqs);
-#   ntimes = length(times);
-#   
-#   #%% EXTRACT DATA
-#   tmp <- lapply(saves,function(x) x$i)
-#   is <- as.numeric(tmp)
-#   tmp <- lapply(saves,function(x) x$j)
-#   js <- as.numeric(tmp)
-#   tmp <- lapply(saves,function(x) x$cch)
-#   cch <- unique(tmp); #as.character(tmp))
-#   indsk <- !(cch == "NA");
-#   tmp <- lapply(saves,function(x) x$acch)
-#   acch <- unique(tmp); #as.character(tmp))
-#   indsk <- !(acch == "NA");
-#   #--
-#   pvo <- array(1,dim=c(nfreqs,ntimes,6))
-#   esto <- array(0,dim=c(nfreqs,ntimes,6))
-#   stato <- array(0,dim=c(nfreqs,ntimes,6))
-#   apvo <- array(1,dim=c(nfreqs,ntimes,3))
-#   astato <- array(0,dim=c(nfreqs,ntimes,3))
-#   #--
-#   for(cnt in 1:length(saves)){
-#     ii = as.numeric(saves[[cnt]]$i);
-#     jj = as.numeric(saves[[cnt]]$j);
-#     pv = as.numeric(saves[[cnt]]$pv);
-#     est = as.numeric(saves[[cnt]]$est);
-#     stt = as.numeric(saves[[cnt]]$stat);
-#     apv = as.numeric(saves[[cnt]]$apv);
-#     astt = as.numeric(saves[[cnt]]$astat);
-#     #--
-#     pvo[ii,jj,] = pv;
-#     esto[ii,jj,] = est;
-#     stato[ii,jj,] = stt;
-#     apvo[ii,jj,] = apv;
-#     astato[ii,jj,] = astt;
-#   }
-#   
-#   #%% FDR CORRECTION
-#   pvo = pvo[,,2:4];
-#   fdrp <- p.adjust(matrix(pvo,nrow=nfreqs*ntimes*3),
-#                    method="fdr",
-#                    n=nfreqs*ntimes*3);
-#   fdrp <- array(fdrp,c(nfreqs,ntimes,3));
-#   
-#   #%% SAVE
-#   dato = list(fdrp=matrix(fdrp,nrow=nfreqs*ntimes*3),
-#               estimate=matrix(esto,nrow=nfreqs*ntimes*3),
-#               freqs=freqs,
-#               times=times,
-#               dim3=cch,
-#               modtype=c('interact'));
-#   return(dato)
-# }
-
-#%% ======================================================================== %%#
-flstat_int_agg <- function(saves,cli,freqs,times,pinds=1:6,apinds=1:3){
+flstat_int_agg <- function(saves,cli,freqs,times,pinds=1:6,apinds=1:3,pwcinds=1:3){
   nfreqs = length(freqs);
   ntimes = length(times);
   lnpi = length(pinds);
   lnapi = length(apinds);
+  lnpwci = length(pwcinds);
   lno = 6;
   lnoa = 3;
+  lnop = 3;
   
   #%% EXTRACT DATA
   tmp <- lapply(saves,function(x) x$i)
@@ -594,24 +530,34 @@ flstat_int_agg <- function(saves,cli,freqs,times,pinds=1:6,apinds=1:3){
   tmp <- lapply(saves,function(x) x$j)
   js <- as.numeric(tmp)
   tmp <- lapply(saves,function(x) x$cch)
-  cch <- unique(tmp); #as.character(tmp))
+  cch <- unique(tmp); 
   cch <- cch[[1]];
-  # indsk <- !is.na(cch);
-  # indsk <- !(cch=='NA')
   tmp <- lapply(saves,function(x) x$acch)
-  acch <- unique(tmp); #as.character(tmp))
+  acch <- unique(tmp); 
   acch <- acch[[1]];
-  # indsk <- !is.na(acch);
-  # indsk <- !(acch=='NA')
+  #--
+  tmp <- lapply(saves,function(x) x$pwcc)
+  pwcc <- unique(tmp);
+  pwcc <- pwcc[[1]];
+  tmp <- lapply(saves,function(x) x$cic)
+  cic <- unique(tmp);
+  cic <- cic[[1]]
   #--
   fdrp <- array(1,dim=c(nfreqs,ntimes,lnpi))
   afdrp <- array(1,dim=c(nfreqs,ntimes,lnapi))
+  pwcfdrp <- array(1,dim=c(nfreqs,ntimes,lnpwci))
   #--
   pvo <- array(1,dim=c(nfreqs,ntimes,lno))
   esto <- array(0,dim=c(nfreqs,ntimes,lno))
   stato <- array(0,dim=c(nfreqs,ntimes,lno))
   apvo <- array(1,dim=c(nfreqs,ntimes,lnoa))
   astato <- array(0,dim=c(nfreqs,ntimes,lnoa))
+  #--
+  pwccpo <- array(1,dim=c(nfreqs,ntimes,lnop))
+  pwceo <- array(0,dim=c(nfreqs,ntimes,lnop))
+  cieo <- array(0,dim=c(nfreqs,ntimes,lnop))
+  ciuo <- array(0,dim=c(nfreqs,ntimes,lnop))
+  cilo <- array(0,dim=c(nfreqs,ntimes,lnop))
   #--
   for(cnt in 1:length(saves)){
     ii = as.numeric(saves[[cnt]]$i);
@@ -621,16 +567,28 @@ flstat_int_agg <- function(saves,cli,freqs,times,pinds=1:6,apinds=1:3){
     stt = as.numeric(saves[[cnt]]$stat);
     apv = as.numeric(saves[[cnt]]$apv);
     astt = as.numeric(saves[[cnt]]$astat);
-    
+    #--
+    pwccp = as.numeric(saves[[cnt]]$pwccp);
+    pwce = as.numeric(saves[[cnt]]$pwcce);
+    cie = as.numeric(saves[[cnt]]$cie);
+    ciu = as.numeric(saves[[cnt]]$ciu);
+    cil = as.numeric(saves[[cnt]]$cil);
     #--
     pvo[ii,jj,] = pv;
     esto[ii,jj,] = est;
     stato[ii,jj,] = stt;
     apvo[ii,jj,] = apv;
     astato[ii,jj,] = astt;
+    pwccpo[ii,jj,] = pwccp;
+    pwceo[ii,jj,] = pwce;
+    cieo[ii,jj,] = cie;
+    ciuo[ii,jj,] = ciu;
+    cilo[ii,jj,] = cil;
   }
   
   #%% FDR CORRECTION
+  #(06/20/2025) JS, as per recommendation from Arkaprava, correcting p-values within each image is preferred
+  # There isn't a direct connection between model coefficients that might make you assume depedence between them.
   pvot = pvo[,,pinds];
   apvot = apvo[,,apinds];
   #-- correct LMER values (Satterthwaite)
@@ -640,25 +598,23 @@ flstat_int_agg <- function(saves,cli,freqs,times,pinds=1:6,apinds=1:3){
                      n=nfreqs*ntimes);
     fdrp[,,pi] <- matrix(tmp,nrow=nfreqs,ncol=ntimes);
   }
-  # 
-  # tmp <- p.adjust(matrix(pvot,nrow=nfreqs*ntimes*lnpi),
-  #                 method="fdr",
-  #                 n=nfreqs*ntimes*lnpi);
-  # fdrp <- array(tmp,dim=c(nfreqs,ntimes,lnpi));
   
   #-- correct anova values (Satterthwaite F-values)
   for(pi in 1:length(apinds)){
-    tmp <- p.adjust(matrix(apvot[,,pi],nrow=nfreqs*ntimes),
+    tmp <- p.adjust(matrix(apvo[,,pi],nrow=nfreqs*ntimes),
                     method="fdr",
                     n=nfreqs*ntimes);
     afdrp[,,pi] <- matrix(tmp,nrow=nfreqs,ncol=ntimes);
   }
   
-  # tmp <- p.adjust(matrix(apvot,nrow=nfreqs*ntimes*lnapi),
-  #                 method="fdr",
-  #                 n=nfreqs*ntimes*lnapi);
-  # afdrp <- array(tmp,dim=c(nfreqs,ntimes,lnapi));
-
+  #-- correct pwc values 
+  for(pi in 1:length(pwcinds)){
+    tmp <- p.adjust(matrix(pwccpo[,,pi],nrow=nfreqs*ntimes),
+                    method="fdr",
+                    n=nfreqs*ntimes);
+    pwcfdrp[,,pi] <- matrix(tmp,nrow=nfreqs,ncol=ntimes);
+  }
+  
   #%% SAVE
   dato = list(fdrp=matrix(fdrp,nrow=nfreqs*ntimes*lnpi),
               rawp=matrix(pvo,nrow=nfreqs*ntimes*lno),
@@ -672,7 +628,15 @@ flstat_int_agg <- function(saves,cli,freqs,times,pinds=1:6,apinds=1:3){
               coeff_c=cch,
               acoeff_c=acch,
               pinds=pinds,
-              apinds=apinds);
+              apinds=apinds,
+              pwcinds=pwcinds,
+              pwc_c=pwcc,
+              pwc_est=matrix(pwceo,nrow=nfreqs*ntimes*lnpwci),
+              pwcfdrp=matrix(pwcfdrp,nrow=nfreqs*ntimes*lnpwci),
+              ci_c=cic,
+              ci_err=matrix(cieo,nrow=nfreqs*ntimes*lnop),
+              ci_up=matrix(ciu,nrow=nfreqs*ntimes*lnop),
+              ci_lw=matrix(cil,nrow=nfreqs*ntimes*lnop));
   return(dato)
 }
 

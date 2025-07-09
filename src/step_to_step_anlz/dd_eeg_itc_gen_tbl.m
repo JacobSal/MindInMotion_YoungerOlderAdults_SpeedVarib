@@ -167,12 +167,13 @@ par_save(itc_so,save_dir,sprintf('itc_table_%s.mat',fext));
 % fext = 'phasec_notw_mw';
 % fext = 'phasec_notw_mw_based';
 fext = 'phasec_notw_mw_based';
+fext_save = 'crop_phasec_notw_based';
 CL_NUM_CUTOFF = 13;
 GROUP_CHARS = {'H1000','H2000','H3000'};
 COND_CHARS = {'0p25','0p5','0p75','1p0','flat','low','med','high'};
-% FREQ_BOUND = [3,80];
-FREQ_BOUND = [3,250];
-TIME_BOUND = [0,2000];
+FREQ_BOUND = [3,80];
+% FREQ_BOUND = [3,250];
+TIME_BOUND = [0,1500];
 
 %## LOOP
 % itc_so = cell(11,length(CL_STUDY.datasetinfo));
@@ -220,7 +221,7 @@ parfor subj_i = 1:length(CL_STUDY.datasetinfo)
                         % rtd = mean(abs(tt.itc_dat_slide(finds,tinds,:)),3);
                         %-- multi image
                         rtd = abs(tt.itc_dat_slide(finds,tinds,:));
-                        
+                        rtd = mean(rtd,3);
                         %## STORE DATA
                         gg = strcmp(tt.group_char,GROUP_CHARS);
                         cc = strcmp(tt.cond_char,COND_CHARS);
@@ -275,19 +276,12 @@ parfor subj_i = 1:length(CL_STUDY.datasetinfo)
 end
 %--
 itc_so = itc_so(~cellfun(@isempty,itc_so));
-itc_so = cat(1,tmp{:});
+tmp = itc_so;
+tmp = cat(1,tmp{:});
 %--
-itc_so = cat(1,tmp{:});
-%--
-% tt = num2cell(zeros(length(itc_so)-1,1));
-% [itc_so(2:length(itc_so)).itc_freq] = tt{:}; %abs(mean(tmp.itc_dat_slide))
-% [itc_so(2:length(itc_so)).itc_time] = tt{:}; %abs(mean(tmp.itc_dat_slide))
-%--
-par_save(itc_so,save_dir,sprintf('itc_rdata_struct_125f_%s.mat',fext));
-% par_save(itc_so,save_dir,sprintf('itc_rdata_cell_%s.mat',fext));
-% save([save_dir filesep sprintf('itc_rdata_struct_%s.mat',fext)],'itc_so','-mat')
-% save([save_dir filesep sprintf('itc_rdata_cell_%s.mat',fext)],'itc_so','-mat','v6')
-
+save([save_dir filesep sprintf('rdata_struct_ext_%s.mat',fext_save)],'tmp');
+% par_save(tmp,save_dir,sprintf('rdata_struct_%s.mat',fext_save));
+% tmp = par_load(save_dir,sprintf('rdata_struct_%s.mat',fext));
 %% (SAVE R TABLE SPCA ERSP) =================================================== %%
 fext = 'ersp_spca';
 %- spca dir
@@ -360,6 +354,9 @@ dd = cellfun(@(x) x(finds,tinds),{outc.itc_dat},'UniformOutput',false);
 [outc(:).cond_n] = cond_n{:};
 [outc(1).itc_freq] = allfreqs;
 [outc(1).itc_time] = alltimes;
+titt = repmat({0},[length(outc)-1,1]);
+[outc(2:length(outc)).itc_freq] = titt{:};
+[outc(2:length(outc)).itc_time] = titt{:};
 [outc(:).itc_dat] = dd{:};
 %-- put each element into a cell
 tmp = cell(length(outc),1);
@@ -410,10 +407,12 @@ ax = axes();
 % fext = 'itc_rdata_table_phasec_notw_mw_based_flasso_results_bsz5';
 % fext = 'itc_rdata_table_phasec_notw_mw_based_fl_res_bsz5_nob';
 % fext = 'itc_rdata_flasso_out_bsz5_nob_sliding';
-fext = 'itc_rdata_flasso_125f_out_bsz5_nob_sliding';
+% fext = 'itc_rdata_flasso_125f_out_bsz5_nob_sliding';
+% fext = 'rdata_extc_phasec_notw_condb';
+fext = 'rdata_extc_phasec_notw_nocondb';
 COND_CHARS = {'0p25','0p5','0p75','1p0','flat','low','med','high'};
 GROUP_CHARS = {'H1000','H2000','H3000'};
-clusters = [3,4,6,8];
+clusters = [3,4,6,8,5,9,11];
 % conds = [5,6,7,8];
 conds = [1,2,3,4];
 %## LOOP
@@ -429,9 +428,10 @@ stats_struct = struct('itc_dat',[], ...
 stats_struct = repmat(stats_struct,[1,length(COND_CHARS)*length(GROUP_CHARS)*90]);
 cnt = 1;
 for cl_i = 1:length(clusters)
+    
     for c_i = 1:length(conds)
         flasso_fpath = [r_stats_dir filesep fext filesep sprintf('allmat_cl%i-c%i.mat',clusters(cl_i),conds(c_i))];
-        tmp = load(flasso_fpath,'-mat');
+        tmp = load(flasso_fpath);
         tmp = tmp.flasso_tbl;
         subjs = tmp.svec;
         for s_i = 1:length(subjs)

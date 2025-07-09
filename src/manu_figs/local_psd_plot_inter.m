@@ -427,7 +427,7 @@ for i_i = 1:length(alphai)
             % cntl = cntl + 1;
             cnt = cnt + 1;          
         end        
-    end
+    end 
     %--
     soht_store(i_i,1) = stat_ht;
     soht_store(i_i,2) = stat_ht_o;
@@ -436,7 +436,30 @@ for i_i = 1:length(alphai)
     stat_ht = stat_ht_o + ht*SHADE_HT_FACTOR + ht*SHADE_HT_FUDGE;
 end
 %(04/02/2025) JS, so far the leat buggy stats algorithm.
-
+%-- plot patch
+Pa = patch(ax,[-100,-99,-99,-100], ...
+    [-100,-100,-99,-99], ...
+    params.cmaps_stats(1,:));
+hold on;
+set(Pa,'edgecolor',SHADE_EDG_COLOR, ...
+    'facealpha',SHADE_FAC_ALPHA, ...
+    'edgealpha',SHADE_EDG_ALPHA, ...
+    'DisplayName',stats_titles{1});
+hold on;
+paramso.stats_store{cnt} = Pa;
+cnt = cnt + 1; 
+%-- plot patch
+Pa = patch(ax,[-100,-99,-99,-100], ...
+    [-100,-100,-99,-99], ...
+    params.cmaps_stats(2,:));
+hold on;
+set(Pa,'edgecolor',SHADE_EDG_COLOR, ...
+    'facealpha',SHADE_FAC_ALPHA, ...
+    'edgealpha',SHADE_EDG_ALPHA, ...
+    'DisplayName',stats_titles{2});
+hold on;
+paramso.stats_store{cnt} = Pa;
+cnt = cnt + 1; 
 %## OUTPUTS
 paramso.stats_store = paramso.stats_store(~cellfun(@isempty,paramso.stats_store));
 paramso.leg_store = paramso.leg_store(~cellfun(@isempty,paramso.leg_store));
