@@ -27,13 +27,17 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
+  <a href="https://doi.org/10.5281/zenodo.15851376"><img src="https://zenodo.org/badge/896235334.svg" alt="DOI"></a>
+</div>
+<div align="center">
   <a href="https://github.com/JacobSal/MindInMotion_YoungerOlderAdults_BrainSpeedChanges">
     <img src="images/hnl_logo.svg" alt="Logo" width = "300px">
   </a>
-<h3 align="center">(Mind In Motion) Younger vs Older Adults Electrocortical Dynamics with Walking Speed Changes</h3>
+<h3 align="center">Interstride Variation in EEG Power Spectra of Younger and Older Adults Walking at a Range of Gait Speeds</h3>
 
   <p align="justify">
-    Preferred and maximum walking speeds decline as we age and have been associated with worsening health. A body of evidence has shown biomechanical, sub-cortical, and some cortical contributions to slowing gait speed.  Additional studies observing older and younger adults’ whole brain dynamics during walking would provide insight into network wide contributions to slowing gait. We studied younger (N=31) and older adults (N=57) walking on a treadmill at different speeds (0.25, 0.50, 0.75, 1.0 m/s) while their electrocortical dynamics were recorded using high density electroencephalography EEG. We hypothesized  that sensorimotor and posterior parietal theta power would increase and beta power would decrease with increasing gait speed, consistent with previous studies of younger adults walking at different speeds. Additionally, we used a standardized test of physical function to group older adults. A Short Physical Performance Battery (SPPB)  categorized older adults into high (SPPB>=10) and low (SPPB<10) function groups.  Then we compared EEG power modulations across age and physical function. In agreement with our hypotheses, sensorimotor and posterior parietal theta power increased, and beta power decreased with increasing gait speed. Additionally, we observed differences in power modulations between younger and older adults in sensorimotor, posterior parietal, mid cingulate, left supplementary motor, and right temporal. Our results show that regulation of gait speed activates a network of brain areas that are thought to be involved in error detection and sensorimotor processing.   Further, there are differences in electrocortical contributions between younger and older adults while walking at different speeds, and mobility status may play a role in the degree of these contributions.
+    Abstract—Aging alters both biomechanical and neural factors related to walking, leading to reductions in preferred gait speed with age. Biomechanical variability has been an area of great interest when studying walking in older adults. Neural variability has not been as well studied in this context. Electroencephalography (EEG) can measure brain activity during walking, allowing us to quantify interstride variability of electrocortical activity. We recruited younger and older adults to walk (0.25-1.0 m/s) while we measured EEG interstride variability in theta power and beta power. We hypothesized that theta and beta variability would decrease at faster walking speeds as most gait kinematic variables show decreased variability with speed. We also hypothesized that older adults would have more interstride variability compared to younger adults due to reduced gait automaticity. We focused on the sensorimotor and posterior parietal cortices for their roles in motor action and sensory processing. At faster walking speeds, interstride variability in theta power was lower than at slower speeds in posterior parietal cortex and beta power was lower in both sensorimotor and posterior parietal cortex.  Comparing younger and older adults, we found that older adults had steeper decreases in interstride variability. We also observed phasic alignment of electrocortical signals between gait cycles and found that walking faster increased electrocortical phase coherence. Comparing groups, we found that older higher functioning had greater phasic alignment between gait cycles in gamma (30-50 Hz) than younger adults in parietal cortex. These findings suggest that decreases in neural interstride variability occurs with faster gait speeds, and that older adults show less interstride variability in electrocortical activity than younger adults.
+Index Terms—Aging, Electroencephalography, Biomechanics, Neuroscience, Locomotion.
     <br />
     <a href="https://github.com/JacobSal/MindInMotion_YoungerOlderAdults_BrainSpeedChanges/issues">Report Bug</a>
     ·
@@ -103,9 +107,16 @@ This repository has links to the desired submodules embedded with in it. --recur
 
 ### Prerequisites
 MATLAB 2023b
+R (for IDK I like RStudio, but some may prefer visual studio code)
 
 ### Installation
-git  clone https://github.com/JacobSal/MindInMotion_YoungerOlderAdults_BrainSpeedChanges --recurse-submodules
+Using GitHub Desktop to clone repository is preferred, but command line arguments can be used easily:
+git clone https://github.com/JacobSal/MindInMotion_YoungerOlderAdults_SpeedVarib --recurse-submodules
+
+You may need to:
+git submodule update
+and
+git sumbodule init
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
