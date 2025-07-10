@@ -19,6 +19,7 @@
 *.RData
 *.Rproj
 *.Rhistory
+*.pdf
 
 # .gitignore folders
 **/TEST
@@ -37,7 +38,6 @@
 **/.Rproj.user
 **/_save*
 *.Rproj.user
-/MindInMotion_Submodules
 /MindInMotion_Submodules
 .Rproj.user
 **/*_figs
