@@ -13,11 +13,6 @@ close all;
 clearvars
 %}
 %% SET WORKSPACE ======================================================= %%
-% opengl('dsave', 'software') % might b EEG = pop_loadset('filepath',tmp_study_sbs.datasetinfo(s_i).filepath, ...
-            'filename',tmp_study_sbs.datasetinfo(s_i).filename);
-        tmpf = strsplit(tmp_study_sbs.datasetinfo(s_i).filename,'.');
-        tmpf{2} = 'fdt';
-        icatimef_f = [EEG.filepath filesep sprintf('%s.icatimef',EEG.subject)];e needed to plot dipole plots?
 %## TIME
 tic
 ADD_ALL_SUBMODS = false;

@@ -104,6 +104,7 @@ STUDY.cluster = cl_struct;
 [comps_out,main_cl_inds,outlier_cl_inds] = eeglab_get_cluster_comps(STUDY);
 CLUSTER_PICS = main_cl_inds;
 
+
 %%
 fpaths = {STUDY.datasetinfo.filepath};
 % fextr = 'perstridefb_mi_nfslidingb36';

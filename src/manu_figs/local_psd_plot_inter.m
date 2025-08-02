@@ -171,9 +171,9 @@ end
 psd_in_c = zeros(size(psd_dat_in{1,1},1),csz,gsz);
 err_bnd_in = zeros(size(psd_dat_in{1,1},1),csz,gsz,2);
 
-for g_i = 1:gsz
-    num_subj = size(psd_dat_in{c_i,g_i},2);
+for g_i = 1:gsz   
     for c_i = 1:csz
+        num_subj = size(psd_dat_in{c_i,g_i},2);
         switch params.line_plot_opt
             case 'inter'
                 tmp = psd_dat_in{c_i,g_i};

@@ -392,6 +392,8 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                         tmp = squeeze(mean(spec_in(aband,:),1));
                         % tmp = squeeze(median(spec_in(aband,:),1));
                         tmpp_cov_alpha(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % alpha
+                        %-- gamma
+                        % tmpp_cov_alpha(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % alpha
                         %-- ap meas.
                         tmpap_cov(2,cnt) = tmpap_std(2,cnt)/tmpap_mu(2,cnt);
                         tmpap_cov(1,cnt) = tmpap_std(1,cnt)/tmpap_mu(1,cnt); 

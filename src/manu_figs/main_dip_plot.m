@@ -319,8 +319,10 @@ end
 % aa_txt(ii).Position(1) = aa_txt(end).Position(1) + (1/2)*HORIZ_SHIFT_VAL*txt_dim_x;
 hold off;
 %## SAVE
-exportgraphics(fig,[save_dir filesep 'figure_group_dipoleplots.pdf'],'ContentType','vector')
-exportgraphics(fig,[save_dir filesep 'figure_group_dipoleplots.tiff'],'ContentType','image','Resolution',600)
+exportgraphics(fig,[save_dir filesep 'figure_group_dipoleplots.emf'], ...
+    'ContentType','vector')
+exportgraphics(fig,[save_dir filesep 'figure_group_dipoleplots.png'], ...
+    'ContentType','image','Resolution',600)
 
 %% PLOT .TIF OF MRI SLICES ============================================ %%
 
