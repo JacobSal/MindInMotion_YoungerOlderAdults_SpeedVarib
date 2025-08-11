@@ -19,12 +19,12 @@ end
 
 %##
 SUBMODS_DIR = [fileparts(SRC_DIR) filesep 'submods'];
-FUNCS_DIR = [fileparts(fileparts(SRC_DIR)) filesep 'MindInMotion_Functions' filesep 'src'];
+% FUNCS_DIR = [fileparts(fileparts(SRC_DIR)) filesep 'MindInMotion_Functions' filesep 'src'];
 
 %##
 path(path,SUBMODS_DIR)
 path(path,SRC_DIR)
-path(path,FUNCS_DIR);
+% path(path,FUNCS_DIR);
 %% HARDCODE PATHS STRUCT =============================================== %%
 PATHS = [];
 RMV_MODS = {'dipfit'};
@@ -36,7 +36,8 @@ if ADD_ALL_SUBMODS
 else
     SUBMODULES = {'fieldtrip','eeglab','sift','postamicautility',...
             'iclabel','viewprops','powpowcat', ...
-            'bemobil_pipeline','gait_tracking_w_imu','eeglab_specparam'};
+            'bemobil_pipeline','gait_tracking_w_imu','eeglab_specparam', ...
+            'mim_functions'};
     SUBMODULES_GENPATH = {};
 end
 %--

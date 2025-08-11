@@ -311,6 +311,7 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
             ttim = tic();
             for ct = 1:size(nolog_eeg_psd,3)
                 %## GET DATA
+                tmpp_rawnl = zeros(length(f_ind),size(eeg_psd,2),1); 
                 tmpp_raw = zeros(length(f_ind),size(eeg_psd,2),1); 
                 tmpap_raw = zeros(2,size(eeg_psd,2),1); 
                 tmpp_mu = zeros(length(f_ind),size(eeg_psd,2),1); 
@@ -330,7 +331,8 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                 for i = 1:size(nolog_eeg_psd,2)
                     fr = fooof(freqs_orig(f_ind),squeeze(nolog_eeg_psd(f_ind,i,ct)),f_range,settings,return_model);
                     %-- assign data
-                    tmpp_raw(:,i) = 10*(log10(squeeze(nolog_eeg_psd(f_ind,i,ct)))) - 10*(fr.ap_fit');   
+                    tmpp_raw(:,i) = 10*(log10(squeeze(nolog_eeg_psd(f_ind,i,ct)))) - 10*(fr.ap_fit'); 
+                    tmpp_rawnl(:,i) = squeeze(nolog_eeg_psd(f_ind,i,ct)) - 10.^(fr.ap_fit'); 
                     tmpap_raw(1:2,i) = fr.aperiodic_params'; 
                 end
                 if ct == 1
@@ -358,6 +360,7 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                     %-
                     inds_cond = find(cellfun(@(x) strcmp(x,tmp_conds{c_i}),{trialinfo.cond}));
                     fooof_tmp = tmpp_raw(:,inds_cond);
+                    fooof_tmpnl = tmpp_rawnl(:,inds_cond);
                     ap_tmp = tmpap_raw(:,inds_cond);
                     %-
                     slides = 1:NUM_STRIDES_AVG:size(fooof_tmp,2);
@@ -366,6 +369,27 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                     %standard deviation values due to singular extractions.
                     %- fooof
                     for i = 1:length(slides)-1  
+                        %## NO LOG
+                        % spec_in = squeeze(fooof_tmpnl(:,slides(i):(slides(i+1)-1)));
+                        % %-- mean std calcs
+                        % tmpp_mu(:,cnt) = mean(spec_in,2);
+                        % tmpp_std(:,cnt) = std(spec_in,[],2)'/sqrt(NUM_STRIDES_AVG);
+                        % tmpap_mu(1,cnt) = mean(ap_tmp(1,slides(i):(slides(i+1)-1)),2);
+                        % tmpap_std(1,cnt) = std(ap_tmp(1,slides(i):(slides(i+1)-1)),[],2)/sqrt(NUM_STRIDES_AVG);
+                        % tmpap_mu(2,cnt) = mean(ap_tmp(2,slides(i):(slides(i+1)-1)),2);
+                        % tmpap_std(2,cnt) = std(ap_tmp(2,slides(i):(slides(i+1)-1)),[],2)/sqrt(NUM_STRIDES_AVG);
+                        % %## COV
+                        % %-- theta
+                        % tmp = squeeze(mean(spec_in(tband,:),1));
+                        % tmpp_cov_theta(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % theta
+                        % %-- beta
+                        % tmp = squeeze(mean(spec_in(bband,:),1));
+                        % tmpp_cov_beta(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % beta
+                        % %-- alpha
+                        % tmp = squeeze(mean(spec_in(aband,:),1));
+                        % tmpp_cov_alpha(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % alpha
+
+                        %## LOG
                         spec_in = squeeze(fooof_tmp(:,slides(i):(slides(i+1)-1)));
                         %-- mean std calcs
                         tmpp_mu(:,cnt) = mean(spec_in,2);
@@ -373,24 +397,21 @@ parfor subj_i = 1:length(SBS_STUDY.datasetinfo)
                         % tmpp_std(:,cnt) = std(spec_in,[],2)';
                         tmpp_std(:,cnt) = std(spec_in,[],2)'/sqrt(NUM_STRIDES_AVG);
                         tmpap_mu(1,cnt) = mean(ap_tmp(1,slides(i):(slides(i+1)-1)),2);
-                        % tmpap_std(1,cnt) = std(ap_tmp(1,slides(i):(slides(i+1)-1)),[],2);
                         tmpap_std(1,cnt) = std(ap_tmp(1,slides(i):(slides(i+1)-1)),[],2)/sqrt(NUM_STRIDES_AVG);
                         tmpap_mu(2,cnt) = mean(ap_tmp(2,slides(i):(slides(i+1)-1)),2);
-                        % tmpap_std(2,cnt) = std(ap_tmp(2,slides(i):(slides(i+1)-1)),[],2);
                         tmpap_std(2,cnt) = std(ap_tmp(2,slides(i):(slides(i+1)-1)),[],2)/sqrt(NUM_STRIDES_AVG);
-                        
+                        % %##
+                        % tdat = randn(20,20);
+                        % mtd_nl = mean(tdat,1)
                         %## COV
                         %-- theta
                         tmp = squeeze(mean(spec_in(tband,:),1));
-                        % tmp = squeeze(median(spec_in(tband,:),1));
                         tmpp_cov_theta(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % theta
                         %-- beta
                         tmp = squeeze(mean(spec_in(bband,:),1));
-                        % tmp = squeeze(median(spec_in(bband,:),1));
                         tmpp_cov_beta(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % beta
                         %-- alpha
                         tmp = squeeze(mean(spec_in(aband,:),1));
-                        % tmp = squeeze(median(spec_in(aband,:),1));
                         tmpp_cov_alpha(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % alpha
                         %-- gamma
                         % tmpp_cov_alpha(1,cnt) = 100*(std(tmp,[],2)/abs(mean(tmp,2))); % alpha

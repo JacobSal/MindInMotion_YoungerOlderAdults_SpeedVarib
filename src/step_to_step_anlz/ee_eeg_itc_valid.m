@@ -684,7 +684,7 @@ for cl_i = 1:length(cluster_inds_plot)
         end
     end
     drawnow;
-    exportgraphics(fig,[tmp_save_dir filesep sprintf('cl%i_mi_%s_%s_%s.tiff',cl_n,fext,stat_ext,blext)],'Resolution',300);
+    exportgraphics(fig,[tmp_save_dir filesep sprintf('cl%i_mi_%s_%s_%s.png',cl_n,fext,stat_ext,blext)],'Resolution',300);
     % close(fig);
 end
 

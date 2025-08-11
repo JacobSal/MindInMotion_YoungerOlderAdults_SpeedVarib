@@ -17,18 +17,14 @@ clear java
 % opengl('dsave', 'software') % might be needed to plot dipole plots?
 %## TIME
 tic
-global ADD_CLEANING_SUBMODS STUDY_DIR SCRIPT_DIR %#ok<GVMIS>
-ADD_CLEANING_SUBMODS = false;
 %## Determine Working Directories
 if ~ispc
     try
         SCRIPT_DIR = matlab.desktop.editor.getActiveFilename;
         SCRIPT_DIR = fileparts(SCRIPT_DIR);
-        STUDY_DIR = SCRIPT_DIR; % change this if in sub folder
-        SRC_DIR = fileparts(fileparts(STUDY_DIR));
+        SRC_DIR = SCRIPT_DIR; % change this if in sub folder
     catch e
         fprintf('ERROR. PWD_DIR couldn''t be set...\n%s',getReport(e))
-        STUDY_DIR = getenv('STUDY_DIR');
         SCRIPT_DIR = getenv('SCRIPT_DIR');
         SRC_DIR = getenv('SRC_DIR');
     end
@@ -41,18 +37,18 @@ else
         SCRIPT_DIR = dir(['.' filesep]);
         SCRIPT_DIR = SCRIPT_DIR(1).folder;
     end
-    STUDY_DIR = SCRIPT_DIR; % change this if in sub folder
-    SRC_DIR = fileparts(fileparts(STUDY_DIR));
+    SRC_DIR = SCRIPT_DIR; % change this if in scond_iub folder
 end
 %## Add Study, Src, & Script Paths
+addpath(SCRIPT_DIR);
 addpath(SRC_DIR);
-addpath(STUDY_DIR);
 cd(SRC_DIR);
 fprintf(1,'Current folder: %s\n',SRC_DIR);
 %## Set PWD_DIR, EEGLAB path, _functions path, and others...
 set_workspace
 %% (DATASET INFORMATION) =============================================== %%
-[SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca');
+% [SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca');
+[SUBJ_PICS,GROUP_NAMES,SUBJ_ITERS,~,~,~,~] = mim_dataset_information('yaoa_spca_speed');
 %% (PARAMETERS) ======================================================== %%
 fprintf('Assigning Params\n');
 %## Hard Define
@@ -91,33 +87,26 @@ f_range = [3, 40];
 theta_band = [4, 8];
 alpha_band = [8 12];
 beta_band  = [12 30];
+%% (PATHS)
 %- datset name
 DATA_SET = 'MIM_dataset';
-%- cluster directory for study
-% study_dir_name = '03232023_MIM_YAOAN89_antsnormalize_iccREMG0p4_powpow0p3_skull0p01';
-% study_dir_name = '04162024_MIM_YAOAN89_antsnormalize_iccREMG0p4_powpow0p3_skull0p01';
-% study_dir_name = '04232024_MIM_YAOAN89_antsnormalize_iccREMG0p4_powpow0p3_skull0p01_15mmrej';
-study_dir_name = '04232024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej';
-
-%- study info
-SUB_GROUP_FNAME = 'group_spec';
-% SUB_GROUP_FNAME = 'all_spec';
-%- study group and saving
-studies_fpath = [PATHS.src_dir filesep '_data' filesep DATA_SET filesep '_studies'];
+%- study name
+STUDY_DNAME = '02202025_mim_yaoa_powpow0p3_crit_speed';
+STUDY_FNAME = 'spca_fooof_psd_anl';
+ANALYSIS_DNAME = 'spca_fooof_psd_anl';
+%-
+studies_fpath = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
 %- load cluster
 CLUSTER_K = 11;
 CLUSTER_STUDY_NAME = 'temp_study_rejics5';
-cluster_fpath = [studies_fpath filesep sprintf('%s',study_dir_name) filesep 'cluster'];
+% cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_kmeansalt_rb3'];
+cluster_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME) filesep '__iclabel_cluster_allcond_rb3'];
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
-%% ================================================================== %%
-%## SET STUDY PATHS
-cluster_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
-if ~isempty(SUB_GROUP_FNAME)
-    spec_data_dir = [cluster_dir filesep 'spec_data' filesep SUB_GROUP_FNAME];
-else
-    spec_data_dir = [cluster_dir filesep 'spec_data'];
-end
-save_dir = [spec_data_dir filesep 'psd_calcs' filesep 'no_spca_psd_data'];
+cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
+%## R-STATS LOADING
+r_stats_dir = [PATHS.src_dir filesep 'r_scripts' filesep 'sbs_lme_mods'];
+%-
+save_dir = [cluster_k_dir filesep ANALYSIS_DNAME];
 if ~exist(save_dir,'dir')
     mkdir(save_dir);
 end
@@ -130,14 +119,18 @@ else
     tmp = load('-mat',[cluster_study_fpath filesep sprintf('%s.study',CLUSTER_STUDY_NAME)]);
     STUDY = tmp.STUDY;
 end
-%}
-if ~ispc
-    [STUDY,ALLEEG] = pop_loadstudy('filename',[CLUSTER_STUDY_NAME '_UNIX.study'],'filepath',spec_data_dir);
-else
-    [STUDY,ALLEEG] = pop_loadstudy('filename',[CLUSTER_STUDY_NAME '.study'],'filepath',spec_data_dir);
-end
-cl_struct = par_load(cluster_dir,sprintf('cl_inf_%i.mat',CLUSTER_K));
+cl_struct = par_load(cluster_k_dir,sprintf('cl_inf_%i.mat',CLUSTER_K));
 STUDY.cluster = cl_struct;
+
+%}
+% if ~ispc
+%     [STUDY,ALLEEG] = pop_loadstudy('filename',[CLUSTER_STUDY_NAME '_UNIX.study'],'filepath',spec_data_dir);
+% else
+%     [STUDY,ALLEEG] = pop_loadstudy('filename',[CLUSTER_STUDY_NAME '.study'],'filepath',spec_data_dir);
+% end
+% cl_struct = par_load(cluster_k_dir,sprintf('cl_inf_%i.mat',CLUSTER_K));
+% STUDY.cluster = cl_struct;
+
 %% RE-POP PARAMS
 STUDY = pop_statparams(STUDY,'condstats',ERSP_STAT_PARAMS.condstats,...
     'groupstats',ERSP_STAT_PARAMS.groupstats,...
@@ -147,7 +140,7 @@ STUDY = pop_statparams(STUDY,'condstats',ERSP_STAT_PARAMS.condstats,...
     'fieldtripmethod',ERSP_STAT_PARAMS.fieldtripmethod,...
     'fieldtripmcorrect',ERSP_STAT_PARAMS.fieldtripmcorrect,'fieldtripnaccu',ERSP_STAT_PARAMS.fieldtripnaccu);
 %% (LOAD EXISTING TALBES && FORMAT STUDY)
-tmp = load([save_dir filesep 'psd_feature_table.mat']);
+tmp = par_load([save_dir filesep 'psd_feature_table.mat']);
 FOOOF_TABLE = tmp.FOOOF_TABLE;
 tmp = load([save_dir filesep 'STATS_TRACK_STRUCT_speedlin.mat']);
 STATS_TRACK_STRUCT = tmp.STATS_TRACK_STRUCT;
@@ -498,9 +491,9 @@ for k_i = 1:length(clusters)
     %-
     target_sz = 1.25; %inch
     target_dim = 1; %2==width, 1==height
-    im1 = imread([cluster_dir filesep sprintf('%i_dipplot_alldipspc_sagittal.tiff',cl_i)]);
-    im2 = imread([cluster_dir filesep sprintf('%i_dipplot_alldipspc_top.tiff',cl_i)]);
-    im3 = imread([cluster_dir filesep sprintf('%i_dipplot_alldipspc_coronal.tiff',cl_i)]);
+    im1 = imread([cluster_k_dir filesep sprintf('%i_dipplot_alldipspc_sagittal.tiff',cl_i)]);
+    im2 = imread([cluster_k_dir filesep sprintf('%i_dipplot_alldipspc_top.tiff',cl_i)]);
+    im3 = imread([cluster_k_dir filesep sprintf('%i_dipplot_alldipspc_coronal.tiff',cl_i)]);
     im1d1 = size(im1,1)/DIP_IM_DPI;
     im1d2 = size(im1,2)/DIP_IM_DPI;
     im2d1 = size(im2,1)/DIP_IM_DPI;

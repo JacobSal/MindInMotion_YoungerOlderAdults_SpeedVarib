@@ -61,3 +61,6 @@
 [submodule "submods/gait_tracking_w_imu"]
 	path = submods/gait_tracking_w_imu
 	url = https://github.com/xioTechnologies/Gait-Tracking-With-x-IMU.git
+[submodule "submods/mim_functions"]
+	path = submods/mim_functions
+	url = https://github.com/JacobSal/MindInMotion_Functions.git

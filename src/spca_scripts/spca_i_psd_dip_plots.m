@@ -104,14 +104,14 @@ beta2_band_lims = [20,30];
 %- datset name
 DATA_SET = 'MIM_dataset';
 %- study name
-STUDY_DNAME = '10172024_MIM_YAOAN89_antsnorm_dipfix_iccREMG0p4_powpow0p3_skull0p01_15mmrej_speed';
-studies_fpath = [PATHS.src_dir filesep '_data' filesep DATA_SET filesep '_studies'];
+STUDY_DNAME = '02202025_mim_yaoa_powpow0p3_crit_speed';
+studies_fpath = [PATHS.data_dir filesep DATA_SET filesep '_studies'];
 %- load study file
 study_fpath = [studies_fpath filesep sprintf('%s',STUDY_DNAME)];
 %- load cluster
 CLUSTER_K = 11;
 CLUSTER_STUDY_NAME = 'temp_study_rejics5';
-cluster_fpath = [study_fpath filesep '__iclabel_cluster_kmeansalt_rb5'];
+cluster_fpath = [study_fpath filesep '__iclabel_cluster_allcond_rb3'];
 cluster_study_fpath = [cluster_fpath filesep 'icrej_5'];
 cluster_k_dir = [cluster_study_fpath filesep sprintf('%i',CLUSTER_K)];
 %- save directory 
@@ -163,27 +163,20 @@ STUDY.cluster = cl_struct;
 [comps_out,main_cl_inds,outlier_cl_inds] = eeglab_get_cluster_comps(STUDY);
 CLUSTER_PICS = main_cl_inds;
 %% (LOAD EXISTING TALBES && FORMAT STUDY)
-tmp = load([save_dir filesep 'psd_feature_table.mat']);
-fooof_table = tmp.FOOOF_TABLE;
+fooof_table = par_load([save_dir filesep 'psd_feature_table.mat']);
 % tmp = load([save_dir filesep 'STATS_TRACK_STRUCT_speedlin.mat']);
-tmp = load([save_dir filesep 'STATS_TRACK_STRUCT_speedlin_alt.mat']);
+% tmp = load([save_dir filesep 'STATS_TRACK_STRUCT_speedlin_alt.mat']);
 % STATS_TRACK_STRUCT = tmp.STATS_TRACK_STRUCT;
 % STATS_TRACK_STRUCT = struct2table(STATS_TRACK_STRUCT);
 vio_stats_struct = tmp.stats_struct;
-tmp = load([save_dir filesep 'fooof_pcond.mat']);
-pcond = tmp.pcond;
-tmp = load([save_dir filesep 'org_pcond.mat']);
-pcond_org = tmp.pcond_org;
+pcond = par_load([save_dir filesep 'fooof_pcond.mat']);
+pcond_org = par_load([save_dir filesep 'org_pcond.mat']);
 % tmp = load([save_dir filesep 'fooof_results_summary.mat']);
 % fooof_group_results_org = tmp.fooof_group_results_org;
-tmp = load([save_dir filesep 'fooof_diff_store.mat']);
-fooof_diff_store = tmp.fooof_diff_store;
-tmp = load([save_dir filesep 'fooof_apfit_store.mat']);
-fooof_apfit_store = tmp.fooof_apfit_store;
-tmp = load([save_dir filesep 'spec_data_original.mat']);
-spec_data_original = tmp.spec_data_original;
-tmp = load([save_dir filesep 'fooof_results.mat']);
-fooof_results = tmp.fooof_results;
+fooof_diff_store = par_load([save_dir filesep 'fooof_diff_store.mat']);
+fooof_apfit_store = par_load([save_dir filesep 'fooof_apfit_store.mat']);
+spec_data_original = par_load([save_dir filesep 'spec_data_original.mat']);
+fooof_results = par_load([save_dir filesep 'fooof_results.mat']);
 fooof_freq = fooof_results{1}{1,1}{1}.freqs;
 %% (LOAD) ============================================================== %%
 % atlas_char = 'AAL3v1.nii';

@@ -116,7 +116,7 @@ kin_title_chars = c('mu_ml_exc_mm_gc','mu_step_dur',
 #--
 eeg_measures = c('mu_avg_theta_fn1','mu_avg_alpha_fn1','mu_avg_beta_fn1',
                  'std_avg_theta_fn1','std_avg_alpha_fn1','std_avg_beta_fn1',
-                 'cov_i_avg_theta_fn1','cov_i_avg_alpha_fn1','cov_i_avg_beta_fn1');
+                 'cov_avg_theta_calc_fn1','cov_avg_alpha_calc_fn1','cov_avg_beta_calc_fn1');
 eeg_title_chars = c("**THETA** Mean","**ALPHA** Mean","**BETA** Mean",
                     "**THETA** Std. Dev.","**ALPHA** Std. Dev.","**BETA** Std. Dev.",
                     "**THETA** COVi","**ALPHA** COVi","**BETA** COVi");
@@ -162,12 +162,12 @@ orig_eegt <- orig_eegt %>%
          cov_ml_exc_mm_gc,cov_ap_exc_mm_gc,cov_ud_exc_mm_gc,
          cov_stance_dur,cov_step_dur,cov_single_sup_dur,cov_double_sup_dur,cov_swing_dur);
 
-# orig_eegt <- transform(orig_eegt,cov_avg_theta_calc = log10((std_avg_theta/abs(mu_avg_theta))*100))
-# orig_eegt <- transform(orig_eegt,cov_avg_alpha_calc = log10((std_avg_alpha/abs(mu_avg_alpha))*100))
-# orig_eegt <- transform(orig_eegt,cov_avg_beta_calc = log10((std_avg_beta/abs(mu_avg_beta))*100))
-orig_eegt <- transform(orig_eegt,cov_i_avg_theta = log(cov_i_avg_theta))
-orig_eegt <- transform(orig_eegt,cov_i_avg_alpha = log(cov_i_avg_alpha))
-orig_eegt <- transform(orig_eegt,cov_i_avg_beta = log(cov_i_avg_beta))
+orig_eegt <- transform(orig_eegt,cov_avg_theta_calc = std_avg_theta/mu_avg_theta)
+orig_eegt <- transform(orig_eegt,cov_avg_alpha_calc = std_avg_alpha/mu_avg_alpha)
+orig_eegt <- transform(orig_eegt,cov_avg_beta_calc = std_avg_beta/mu_avg_beta)
+# orig_eegt <- transform(orig_eegt,cov_i_avg_theta = log(cov_i_avg_theta))
+# orig_eegt <- transform(orig_eegt,cov_i_avg_alpha = log(cov_i_avg_alpha))
+# orig_eegt <- transform(orig_eegt,cov_i_avg_beta = log(cov_i_avg_beta))
 # orig_eegt <- transform(orig_eegt,qcv_i_avg_theta = log10(abs(qcv_i_avg_theta)))
 # orig_eegt <- transform(orig_eegt,qcv_i_avg_alpha = log10(abs(qcv_i_avg_alpha)))
 # orig_eegt <- transform(orig_eegt,qcv_i_avg_beta = log10(abs(qcv_i_avg_beta)))
@@ -175,9 +175,9 @@ orig_eegt <- transform(orig_eegt,cov_i_avg_beta = log(cov_i_avg_beta))
 orig_eegt <- transform(orig_eegt,cov_ml_exc_mm_gc = 100*cov_ml_exc_mm_gc)
 orig_eegt <- transform(orig_eegt,cov_step_dur = 100*cov_step_dur)
 orig_eegt <- transform(orig_eegt,cov_stance_dur = 100*cov_stance_dur)
-orig_eegt <- transform(orig_eegt,cov_ml_exc_mm_gc = 100*cov_single_sup_dur)
-orig_eegt <- transform(orig_eegt,cov_step_dur = 100*cov_double_sup_dur)
-orig_eegt <- transform(orig_eegt,cov_stance_dur = 100*cov_swing_dur)
+orig_eegt <- transform(orig_eegt,cov_single_sup_dur = 100*cov_single_sup_dur)
+orig_eegt <- transform(orig_eegt,cov_double_sup_dur = 100*cov_double_sup_dur)
+orig_eegt <- transform(orig_eegt,cov_swing_dur = 100*cov_swing_dur)
 #--
 dtbl <- orig_eegt;
 
